@@ -1,0 +1,26 @@
+{
+  "name": "aegis-defensive-toolkits",
+  "version": "1.0.0",
+  "description": "Aegis Defensive Localhost & Web Security Audit Suite with Sci-Fi Tactical HUD Interface",
+  "main": "main.py",
+  "scripts": {
+    "dev": "python main.py --web",
+    "start": "python main.py --web",
+    "gui": "python main.py --gui",
+    "cli": "python main.py --cli",
+    "ports": "python main.py --audit-ports",
+    "sample-logs": "python main.py --sample-logs"
+  },
+  "keywords": [
+    "cybersecurity",
+    "defensive-security",
+    "owasp",
+    "localhost-audit",
+    "threat-intelligence",
+    "ids",
+    "firewall",
+    "sci-fi-hud"
+  ],
+  "author": "unidentifiedcyberghost",
+  "license": "MIT"
+}

@@ -98,12 +98,18 @@ def main():
     parser.add_argument("--audit-ports", action="store_true", help="Inspect local listening ports and exposure")
     parser.add_argument("--analyze-logs", type=str, help="Path to access log file to analyze for attackers")
     parser.add_argument("--sample-logs", action="store_true", help="Analyze built-in representative attack log samples")
-    parser.add_argument("--gui", action="store_true", help="Launch the PyQt6 Sci-Fi HUD Interface")
+    parser.add_argument("--web", action="store_true", help="Launch the Web Browser Sci-Fi Tactical HUD on http://127.0.0.1:5000")
+    parser.add_argument("--port", type=int, default=5000, help="Port to run the Web Dashboard on (default: 5000)")
+    parser.add_argument("--host", type=str, default="127.0.0.1", help="Host interface to bind Web Dashboard (default: 127.0.0.1)")
+    parser.add_argument("--gui", action="store_true", help="Launch the PyQt6 Desktop Sci-Fi HUD Interface")
 
     args = parser.parse_args()
 
     # If any specific CLI action is requested
-    if args.cli:
+    if args.web:
+        from aegis.web_app import run_web
+        run_web(host=args.host, port=args.port)
+    elif args.cli:
         run_cli_audit(args.target, args.export_html)
     elif args.audit_ports:
         run_cli_ports()
@@ -111,14 +117,16 @@ def main():
         run_cli_logs(log_path=args.analyze_logs)
     elif args.sample_logs:
         run_cli_logs(use_sample=True)
+    elif args.gui:
+        from aegis.gui import launch_gui
+        launch_gui()
     else:
-        # Launch PyQt6 HUD GUI
+        # Default: Launch Web Dashboard or Desktop GUI
         try:
-            from aegis.gui import launch_gui
-            launch_gui()
+            from aegis.web_app import run_web
+            run_web(host=args.host, port=args.port)
         except Exception as e:
-            print(f"[!] Could not launch GUI: {e}")
-            print("[*] Falling back to CLI mode...")
+            print(f"[*] Starting CLI audit: {e}")
             run_cli_audit(args.target, args.export_html)
 
 

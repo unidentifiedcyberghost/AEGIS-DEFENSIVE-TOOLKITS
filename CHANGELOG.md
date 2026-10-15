@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.0.1] - 2026-10-16
+
+### 🌐 Added Localhost Web Browser Tactical HUD & NPM Launcher
+- Added `package.json` with `npm run dev`, `npm start`, and `npm run gui` shortcuts.
+- Added `aegis/web_app.py` providing an interactive Tactical Sci-Fi CIA HUD web dashboard on `http://127.0.0.1:5000`.
+- Integrated real-time REST API endpoints:
+  - `POST /api/audit`: Live web and localhost posture auditor.
+  - `GET /api/ports`: Active listening socket and interface exposure inspector.
+  - `POST /api/analyze-logs`: Attacker tracking, GeoIP/Reverse DNS enrichment, and automated firewall drop command generation.
+  - `GET /api/playbooks`: OWASP hardening playbooks.
+- Added `--web`, `--port`, and `--host` CLI flags to `main.py`.
+
+---
+
 ## [1.0.0] - 2026-10-16
 
 ### 🚀 Initial Public Release & Multi-Engine Architecture
