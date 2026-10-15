@@ -1,341 +1,215 @@
 # 🛡️ AEGIS // DEFENSIVE LOCALHOST & WEB AUDIT SUITE
-### *Advanced Defensive Security Intelligence, Localhost Hardening & Attacker Tracking Toolkit*
+### *Next-Generation Cyber OSINT, Attack Surface Reconnaissance, Malware Path Scanner, Host Server Auditor, and OWASP Defense War Room*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-00F0FF.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/Python-3.10%2B-00FF88.svg)](https://www.python.org/)
 [![Go Version](https://img.shields.io/badge/Go-1.22%2B-00A3FF.svg)](https://golang.org/)
 [![Rust Edition](https://img.shields.io/badge/Rust-2021-FFB800.svg)](https://www.rust-lang.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-FF3366.svg)]()
-[![UI Aesthetic](https://img.shields.io/badge/UI-Tactical%20CIA%20HUD-blueviolet.svg)]()
+[![Developed by](https://img.shields.io/badge/Team-White%20Hat-00FF88.svg)](https://x.com/TeamWhiteHatDev)
 
 ---
 
 ## 📑 Table of Contents
 1. [Mission & Purpose](#-mission--purpose)
-2. [Multi-Engine Architecture](#-multi-engine-architecture)
-3. [Sci-Fi CIA HUD Interface](#-sci-fi-cia-hud-interface)
-4. [Core Defensive Features & Modules](#-core-defensive-features--modules)
-5. [Credential & Sensitive Data Protection Layer](#-credential--sensitive-data-protection-layer)
-6. [Cross-Platform Installation & Setup](#-cross-platform-installation--setup)
-   - [Windows (PowerShell / CMD)](#windows-installation--setup)
-   - [Linux (Ubuntu / Debian / Arch / Fedora)](#linux-installation--setup)
-   - [macOS (Apple Silicon / Intel)](#macos-installation--setup)
-7. [Running the Toolkit](#-running-the-toolkit)
-   - [Interactive Tactical HUD GUI (Recommended)](#1-interactive-tactical-hud-gui)
-   - [Headless Command-Line Interface (CLI)](#2-headless-cli-mode)
-   - [High-Speed Compiled Go Micro-Engine](#3-compiled-go-micro-engine)
-   - [Rust Engine](#4-rust-engine)
-8. [Attacker Intrusion Detection & Firewall Generation](#-attacker-intrusion-detection--firewall-generation)
-9. [Changelog & Version History](#-changelog--version-history)
-10. [Contributors & Developer Community](#-contributors--developer-community)
-11. [License & Ethics](#-license--ethics)
+2. [Categorized Architecture (Cat 1 to Cat 8)](#-categorized-architecture)
+3. [How to Run the Application](#-how-to-run-the-application)
+   - [Desktop PyQt6 GUI Interface (`gui.py`)](#1-running-the-desktop-gui-interface-recommended)
+   - [Interactive Web Tactical HUD (`web.py`)](#2-running-the-localhost-web-hud)
+   - [Headless Command-Line Interface (`main.py`)](#3-running-via-command-line-cli)
+4. [Target Connectivity & Connection Diagnostics](#-target-connectivity--connection-diagnostics)
+5. [Infected Path & Malware Scanner (With Bright Red Highlighting)](#-infected-path--malware-scanner)
+6. [Host Server Machine Rootkit & Process Auditor](#-host-server-machine-rootkit--process-auditor)
+7. [Comprehensive Attack Matrix & Fix Runbook](#-comprehensive-attack-matrix--fix-runbook)
+8. [Cyber OSINT & Attack Surface Engine](#-cyber-osint--attack-surface-engine)
+9. [Attacker Tracking, VPN/Proxy Detection & Carrier Subpoena Protocol](#-attacker-tracking-vpnproxy-detection--carrier-subpoena-protocol)
+10. [Developers & Contributors (Team White Hat)](#-developers--contributors-team-white-hat)
+11. [License](#-license)
 
 ---
 
 ## 🎯 Mission & Purpose
 
-**Aegis** is an advanced defensive security auditing suite engineered to empower developers, system administrators, and security analysts to defend and harden their own localhost environments and web applications against modern cyber threats.
+**Aegis** is a modular, high-performance defensive cybersecurity toolkit developed by **Team White Hat** to help web developers, system administrators, and cybersecurity professionals proactively defend their localhost systems, cloud servers, and web applications.
 
-Instead of waiting for an attacker to exploit hidden vulnerabilities or misconfigurations, Aegis audits your defenses from the ground up:
-* **Proactive Exposure Audit:** Pinpoints missing OWASP security headers, insecure session cookies, software banner disclosures, and dangerous accidental file leaks (`.env`, `.git`, `docker-compose.yml`, `phpinfo.php`).
-* **Interface Exposure Analysis:** Audits active listening sockets across your machine to ensure databases (MySQL, PostgreSQL, Redis, MongoDB) and development servers are securely bound to `127.0.0.1` and not accidentally exposed to your local network or the internet on `0.0.0.0`.
-* **Attacker Telemetry & Intrusion Tracking:** Ingests web server access logs, identifies probing attacks (SQLi, Directory Traversal, Dotfile harvesting, Brute force, Webshell scans), enriches attacker IPs with Geolocation, Reverse DNS, and ASN information, and generates **instant firewall drop rules** to stop attacks in their tracks.
-* **Hardening Playbooks:** Provides immediate, copy-paste configurations to remediate findings across Nginx, Apache, Express.js, Caddy, and FastAPI.
-
----
-
-## ⚡ Multi-Engine Architecture
-
-Aegis is constructed using a hybrid **Python + Go + Rust** architecture to deliver maximum flexibility, high graphical fidelity, and wire-speed concurrent processing:
-
-```
-+-------------------------------------------------------------------+
-|                        AEGIS DEFENSIVE SUITE                      |
-+---------------------------------+---------------------------------+
-|          USER INTERFACE         |        CORE ENGINE LAYER        |
-+---------------------------------+---------------------------------+
-|                                 |                                 |
-|  PyQt6 Tactical Sci-Fi HUD      |  Python 3 Modular Suite         |
-|  - Circular Score Gauge         |  - Web & OWASP Header Auditor   |
-|  - Real-Time Telemetry Cards    |  - Cross-Platform Port Inspector|
-|  - Attacker Dossier Viewer      |  - Threat Intelligence Profiler |
-|  - Streaming HUD Console        |  - HTML & JSON Report Engine    |
-|                                 |                                 |
-|                                 |  Go Micro-Engine (aegis-core)   |
-|                                 |  - High-concurrency socket scan |
-|                                 |  - Parallel HTTP & leak checks  |
-|                                 |  - Wire-speed regex log parsing |
-|                                 |                                 |
-|                                 |  Rust Crate (aegis-rust)        |
-|                                 |  - Memory-safe static rules     |
-|                                 |  - High-throughput log analyzer |
-+---------------------------------+---------------------------------+
-```
+Instead of waiting for an attacker to breach your systems, Aegis audits your defenses from the ground up:
+* **Passive Cyber OSINT & Attack Surface Mapping:** Enumerates DNS records, Certificate Transparency subdomains, SSL/TLS cryptographic health, BGP routing/ASN, and RFC 9116 `security.txt` compliance without sending intrusive exploit probes.
+* **Infected Path & Malware Scanner:** Deeply inspects website and server directories for backdoors, obfuscated PHP shells (`eval(base64_decode())`), JavaScript cryptominers, and double extensions. Detected infected paths are prominently highlighted in **bright red** with one-click **Quarantine** and **Permanent Delete** actions.
+* **Host Server Machine Auditor:** Scans running OS processes for rogue cryptominers, reverse shells, backdoor ports (4444, 1337), hosts file hijacking, and dropped executable payloads in Temp directories, with one-click process termination (`kill PID`).
+* **Interactive Cyber Attack Matrix:** A complete War Room dashboard cataloging all major web attack vectors (SQLi, XSS, Web Shells, RCE, Path Traversal, DDoS, Brute Force, .env leaks, CSRF, SSRF), detailing exact log symptoms, immediate containment actions, permanent architectural fixes, and ready-to-deploy code fixes for Nginx, Apache, Python, Node.js, and PHP.
+* **Law Enforcement & Carrier Subpoena Dossier:** Synthesizes ISO/IEC 27037 compliant forensic evidence reports with 18 U.S.C. § 2703 preservation procedures for police authorities to legally request subscriber SIM ICCID, hardware IMEI, and cell tower GPS coordinates from mobile carriers.
 
 ---
 
-## 🖥️ Sci-Fi CIA HUD Interface
+## 🗂️ Categorized Architecture
 
-The graphical interface is built with **PyQt6** and features a high-tech **CIA / Cyberpunk Tactical HUD** aesthetic:
-* **Color Palette:** Deep Obsidian (`#05080E`, `#0A0F1D`) with glowing Tactical Cyan (`#00F0FF`), Radar Green (`#00FF88`), Alert Amber (`#FFB800`), and Threat Red (`#FF3366`).
-* **Dynamic Posture Score Gauge:** Custom circular arc gauge calculating a 0–100 score and assigning a defensive posture grade (`A+`, `A`, `B`, `C`, `D`, `F`).
-* **Telemetry Cards:** Instant metrics tracking Critical Threats, High Severity risks, Medium Warnings, and Hardened Passes.
-* **Non-Blocking Multithreading:** Background operations run via `QThread` workers (`AuditWorker`, `PortWorker`, `LogAnalysisWorker`) ensuring smooth animations and zero UI lag.
-* **Streaming HUD Terminal:** Auto-scrolling tactical event log with timestamped entries and status indicators (`[INFO]`, `[PASS]`, `[WARN]`, `[THREAT]`).
+Both the **PyQt6 Desktop GUI** and the **Localhost Web HUD** are structured into clean, intuitive categories:
 
----
-
-## 🔍 Core Defensive Features & Modules
-
-### 1. OWASP Web Security Headers Auditor
-Audits target response headers against official OWASP Secure Headers Project standards:
-* **`Content-Security-Policy` (CSP):** Mitigates Cross-Site Scripting (XSS), malicious iframe embeds, and data injection.
-* **`Strict-Transport-Security` (HSTS):** Enforces HTTPS encryption and prevents SSL-stripping attacks.
-* **`X-Frame-Options`:** Defends against Clickjacking attacks (`DENY` or `SAMEORIGIN`).
-* **`X-Content-Type-Options`:** Prevents browser MIME-type sniffing (`nosniff`).
-* **`Referrer-Policy`:** Prevents sensitive URL paths or tokens from leaking in referrer headers.
-* **`Permissions-Policy`:** Restricts browser hardware access (camera, microphone, geolocation).
-
-### 2. Cookie & Session Security Inspector
-Inspects `Set-Cookie` directives for defensive attributes:
-* **`HttpOnly` Flag:** Prevents malicious client-side JavaScript from accessing session tokens (stops XSS token theft).
-* **`Secure` Flag:** Ensures session cookies are transmitted exclusively over encrypted TLS/HTTPS connections.
-* **`SameSite` Attribute:** Enforces `Strict` or `Lax` policies to defend against Cross-Site Request Forgery (CSRF).
-
-### 3. Accidental Docroot Leak Detection
-Non-destructively verifies whether developer configuration or repository metadata files are exposed in the public web root:
-* `/.env` and `/.env.local` (Environment variables containing database strings or API tokens)
-* `/.git/HEAD` and `/.git/config` (Exposed version control repositories)
-* `/docker-compose.yml` (Container orchestration configurations)
-* `/phpinfo.php` (PHP system diagnostic dumps)
-* `/web.config` (IIS web server configurations)
-
-### 4. Cross-Platform Localhost Port & Interface Auditor
-Inspects active listening sockets across your machine:
-* Flags when databases or internal caching layers (MySQL `3306`, PostgreSQL `5432`, Redis `6379`, MongoDB `27017`) are bound to `0.0.0.0` or `::` (listening on all network interfaces) instead of `127.0.0.1`.
-* Displays process names and Process IDs (PIDs).
-* Features cross-platform dual-mode inspection: high-performance `psutil` queries with seamless non-blocking socket probing fallbacks on unprivileged Linux/macOS environments.
-
-### 5. Attacker Tracking & Intrusion Detection System (IDS)
-Analyzes server access logs to uncover malicious probes targeting your web infrastructure:
-* **Pattern Detection:** Intercepts Path Traversal (`../`), SQL Injection (`UNION SELECT`, `' OR 1=1`), sensitive file harvesting (`.env`, `id_rsa`), admin panel probes (`wp-login.php`, `phpmyadmin`), and webshell queries (`shell.php`).
-* **Attacker Profiling:** Enriches attacker IPs with Reverse DNS (PTR), Geolocation (Country, City), ISP, and Autonomous System Number (ASN).
-* **Scanner Fingerprinting:** Detects automated reconnaissance tools (`sqlmap`, `nikto`, `dirbuster`, `gobuster`, `masscan`, `wpscan`, `curl`, `python-requests`).
-* **MITRE ATT&CK & OWASP Mapping:** Correlates detected attack patterns with formal security framework classifications.
-
-### 6. Automated Multi-Platform Firewall Mitigation
-Generates immediate, copy-paste firewall rules to block detected attacker IPs across major operating systems:
-* **Windows Defender Firewall (PowerShell):**  
-  `New-NetFirewallRule -DisplayName "Aegis_Block_<IP>" -Direction Inbound -Action Block -RemoteAddress "<IP>"`
-* **Linux UFW:**  
-  `sudo ufw deny from <IP>`
-* **Linux iptables:**  
-  `sudo iptables -I INPUT -s <IP> -j DROP`
-* **Nginx Web Server Directive:**  
-  `deny <IP>;`
-* **Apache HTTP Server Directive:**  
-  `Require not ip <IP>`
-
-### 7. OWASP Hardening Playbooks
-Includes ready-to-deploy, copy-paste security configurations for:
-* **Nginx** (`nginx.conf`)
-* **Apache** (`.htaccess` / `httpd.conf`)
-* **Express.js / Node.js** (Helmet + Session Security)
-* **Caddy** (`Caddyfile`)
-* **Python FastAPI / Starlette** (Security Middleware)
+| Category | Icon | Module Name | Primary Capabilities |
+| :--- | :---: | :--- | :--- |
+| **CAT 1** | 🛡️ | **Vulnerability Auditor & Compliance** | OWASP Security Headers (CSP, HSTS, X-Frame), Cookie security, and .env/Git/Credential leak checks. |
+| **CAT 2** | 🕵️ | **Cyber OSINT & Attack Surface** | Passive multi-record DNS (A, AAAA, MX, NS, TXT), CRT.SH Subdomain Enumeration, SSL/TLS cryptanalysis, BGP/ASN, and threat pivots. |
+| **CAT 3** | 🦠 | **Malware & Web Shell Scanner** | Path scanner detecting backdoors, PHP eval/base64 shells, JS cryptominers; displays infected paths in **bright red** with Quarantine and Delete. |
+| **CAT 4** | 💉 | **Anti-XSS & Data Injection Shield** | Audits CSP, MIME sniffing, clickjacking; generates strict CSP policies, context-aware sanitization code, and ModSecurity WAF rules. |
+| **CAT 5** | 📡 | **Localhost Ports & Server Rootkit Auditor** | Audits open sockets and 0.0.0.0 exposures; scans host computer for miners, reverse shells, backdoor ports, and dropped temp files with process kill. |
+| **CAT 6** | 🚨 | **Attacker Tracker & Log IDS** | Ingests server access logs, identifies probing attacks, profiles attacker IPs, detects VPN/Proxy/Tor, and fingerprints mobile device models. |
+| **CAT 7** | ⚔️ | **Attack Matrix & How to Fix Dashboard** | Catalog of all web attacks, symptoms, immediate emergency containment actions, permanent architectural fixes, and multi-language code snippets. |
+| **CAT 8** | 📜 | **Carrier Subpoena Evidence Dossier** | Formal forensic evidence report formatted for police cybercrime units and carrier subpoenas (SIM/IMEI/GPS coordinates). |
 
 ---
 
-## 🔒 Credential & Sensitive Data Protection Layer
+## 🚀 How to Run the Application
 
-Aegis implements strict defensive security controls to guarantee that **no sensitive project credentials, keys, or secrets are ever accidentally committed or leaked**:
+Aegis provides multiple ways to launch the software depending on your workflow:
 
-1. **Enterprise-Grade `.gitignore`:**
-   * **Environment Files:** `.env`, `.env.*`, `*.env`, `.env.local`
-   * **Certificates & Private Keys:** `*.pem`, `*.key`, `*.cert`, `*.crt`, `*.pfx`, `*.p12`, `*.id_rsa`, `*.pub`
-   * **Secrets & Tokens:** `credentials.json`, `secrets.json`, `secrets.yaml`, `*.secret`, `*.token`, `*.password`, `*serial_key*`, `*api_key*`
-   * **Databases & Dumps:** `*.db`, `*.sqlite`, `*.sqlite3`, `*.sql`, `*.dump`, `dump.rdb`
-   * **Binaries & Cache:** `*.exe`, `aegis-core.exe`, `__pycache__/`, `target/`
-2. **Safe Template Model (`.env.example`):**
-   * Projects should only commit `.env.example` containing non-sensitive placeholder configurations.
-3. **100% Client-Side Auditing:**
-   * All log parsing, socket checking, and security analysis executes completely locally on your host machine.
+### 1. Running the Desktop GUI Interface (Recommended)
+To run the high-tech Sci-Fi CIA-style PyQt6 desktop application with all 8 categorized tabs:
 
----
-
-## 💻 Cross-Platform Installation & Setup
-
-Aegis is engineered for seamless cross-platform operation on **Windows**, **Linux**, and **macOS**.
-
-### Windows Installation & Setup
-1. Open PowerShell or Command Prompt.
-2. Clone the repository:
-   ```powershell
-   git clone https://github.com/unidentifiedcyberghost/AEGIS-DEFENSIVE-TOOLKITS.git
-   cd AEGIS-DEFENSIVE-TOOLKITS
-   ```
-3. Install dependencies:
-   ```powershell
-   pip install -r requirements.txt
-   ```
-
-### Linux Installation & Setup
-1. Open your terminal (Ubuntu / Debian / Arch / Fedora):
-   ```bash
-   git clone https://github.com/unidentifiedcyberghost/AEGIS-DEFENSIVE-TOOLKITS.git
-   cd AEGIS-DEFENSIVE-TOOLKITS
-   ```
-2. Set up a virtual environment and install dependencies:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
-3. (Optional for GUI) Ensure Qt6 libraries are available:
-   ```bash
-   # Debian / Ubuntu:
-   sudo apt-get install -y libxcb-cursor0 libxkbcommon-x11-0 libgl1
-   ```
-
-### macOS Installation & Setup
-1. Open Terminal (Apple Silicon M1/M2/M3 or Intel):
-   ```bash
-   git clone https://github.com/unidentifiedcyberghost/AEGIS-DEFENSIVE-TOOLKITS.git
-   cd AEGIS-DEFENSIVE-TOOLKITS
-   ```
-2. Set up a virtual environment and install dependencies:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
-
----
-
-## 🚀 Running the Toolkit
-
-### 1. Interactive Tactical HUD GUI
-Launch the full desktop Sci-Fi HUD interface:
 ```bash
+# Option A: Direct dedicated launcher
+python gui.py
+
+# Option B: Standard main launcher with --gui flag
+python main.py --gui
+```
+
+### 2. Running the Localhost Web HUD
+To run the interactive browser dashboard at `http://127.0.0.1:5000`:
+
+```bash
+# Option A: Direct dedicated web launcher
+python web.py
+
+# Option B: Standard main launcher (defaults to web)
 python main.py
+# or
+python main.py --web
 ```
-*(Or explicitly `python main.py --gui`)*
+Open your browser and navigate to: **`http://127.0.0.1:5000`**
 
-### 2. Headless CLI Mode
-For automated CI/CD pipelines, remote SSH sessions, or terminal workflows:
+### 3. Running via Command-Line (CLI)
+For automated pipelines, headless servers, or quick terminal audits:
 
-* **Audit a target website & export a styled HTML report:**
-  ```bash
-  python main.py --cli --target http://127.0.0.1:8000 --export-html security_audit.html
-  ```
-
-* **Inspect local listening ports & interface exposure:**
-  ```bash
-  python main.py --audit-ports
-  ```
-
-* **Analyze server access logs for attacker tracking:**
-  ```bash
-  # Analyze a live access log:
-  python main.py --analyze-logs /var/log/nginx/access.log
-
-  # Analyze representative attack telemetry:
-  python main.py --sample-logs
-  ```
-
-### 3. Compiled Go Micro-Engine
-The Go engine (`aegis-go/aegis-core.exe`) can be compiled and executed independently for high-speed audits:
 ```bash
-# Build the Go binary (if needed):
-cd aegis-go
-go build -o aegis-core.exe main.go
+# Run full OWASP web audit:
+python main.py --cli --target http://localhost:8000 --export-html report.html
 
-# Run socket listener scan:
-.\aegis-core.exe -ports
+# Audit open listening ports:
+python main.py --audit-ports
 
-# Fast audit of headers & leaks:
-.\aegis-core.exe -target http://localhost:8000 -json
-
-# Fast streaming log parser:
-.\aegis-core.exe -log access.log
-```
-
-### 4. Rust Engine
-The Rust engine (`aegis-rust/`) can be compiled using Cargo:
-```bash
-cd aegis-rust
-cargo run -- --parse-log access.log
+# Ingest and analyze server access logs for attackers:
+python main.py --analyze-logs access.log
+# Or run with built-in attack telemetry simulation:
+python main.py --sample-logs
 ```
 
 ---
 
-## 🚨 Attacker Intrusion Detection & Firewall Generation
+## 🌐 Target Connectivity & Connection Diagnostics
 
-When suspicious activity is recorded in your web server logs, Aegis extracts the client IP, checks passive threat intelligence, and displays an **Attacker Intelligence Dossier**:
+If you see the message:
+> *"Could not connect to http://example.com. Ensure the web server or localhost service is running."*
 
-```text
-=====================================================
-ATTACKER INTELLIGENCE DOSSIER // IP: 203.0.113.88
-=====================================================
-[GEOLOCATION & NETWORK TELEMETRY]
-  Country / City: United States (US), Ashburn
-  ISP / Hosting:  Example Hosting LLC
-  AS Number:      AS12345
-  Reverse DNS:    scanner.example.com
-
-[ATTACK ACTIVITY & VOLUME]
-  Threat Severity: CRITICAL
-  Malicious Probes: 14 / Total Requests: 18
-  Attack Categories: SQL Injection Probe, Path Traversal
-
-[MITRE ATT&CK & OWASP MAPPING]
-  - SQL Injection Probe: A03:2021 - Injection | T1190
-    Defensive Fix: Use Parameterized Queries / Prepared Statements; Enforce strict WAF SQLi filter.
-
-[INSTANT DEFENSIVE FIREWALL MITIGATION RULES]
-  Windows PowerShell: New-NetFirewallRule -DisplayName "Aegis_Block_203.0.113.88" -Direction Inbound -Action Block -RemoteAddress "203.0.113.88"
-  Linux UFW:          sudo ufw deny from 203.0.113.88
-  Linux iptables:     sudo iptables -I INPUT -s 203.0.113.88 -j DROP
-  Nginx Directive:    deny 203.0.113.88;
-```
+Here is how to resolve it:
+1. **Scanning Localhost:**
+   Ensure your local web application (e.g., React, Vite, Express, Flask, Django, or Docker) is running on the specific port you entered (e.g. `http://localhost:3000` or `http://127.0.0.1:8000`).
+2. **Scanning Public Websites:**
+   Most modern public websites enforce HTTPS and block plain HTTP (port 80). **Ensure you include `https://`** when entering a public domain (e.g. `https://yourdomain.com`). Aegis now includes automatic HTTPS/HTTP fallback and multi-port probing to assist connection.
+3. **Local IP Auto-Discovery:**
+   Use the **"🎯 MY DETECTED LOCAL IPs"** button on the target bar to automatically detect and test your machine's LAN and loopback IP addresses.
 
 ---
 
-## 📜 Changelog & Version History
+## 🦠 Infected Path & Malware Scanner
 
-See the complete version history, implementation details, and patch notes in [**`CHANGELOG.md`**](CHANGELOG.md).
-
-* **v1.0.0 (2026-10-16):**
-  * Initial public release with multi-engine architecture (Python, Go, Rust).
-  * Tactical Sci-Fi CIA HUD GUI with circular posture score gauge and live console.
-  * OWASP Security Headers, Cookie Hygiene, and Sensitive File Exposure Auditor.
-  * Localhost Socket & Exposure Telemetry (detecting dangerous `0.0.0.0` bindings).
-  * Attacker Tracking & Intrusion Detection System (IDS) with automated Geolocation, Reverse DNS, ASN lookup, scanner fingerprinting, and MITRE ATT&CK / OWASP mappings.
-  * Multi-platform firewall rule generator (PowerShell, UFW, iptables, Nginx, Apache).
-  * Full cross-platform support for Windows, Linux, and macOS.
-
----
-
-## 👥 Contributors & Developer Community
-
-Connect with the project creators, contributors, and the cybersecurity research community:
-
-* **GitHub Organization & Core Profile:**
-  * [**@unidentifiedcyberghost**](https://github.com/unidentifiedcyberghost) (Creator & Lead Maintainer)
-  * [**@teamwhitehatdev**](https://github.com/teamwhitehatdev) (Core Security Research Team)
-* **Social & Community Channels:**
-  * [**X / Twitter (@TeamWhiteHatDev)**](https://x.com/TeamWhiteHatDev)
-  * [**Instagram: @pinoyunknown**](https://instagram.com/pinoyunknown)
-  * [**Instagram Post & Community Updates**](https://www.instagram.com/p/DbZKjkazUzR/)
-  * [**Dev.to Articles & Publications**](https://dev.to/whitehatdev)
-  * [**YouTube Video Showcase & Demos**](https://www.youtube.com/watch?v=zrF1EoEh1-w)
-* **Official Browser Themes & Extensions:**
-  * [**Cybersecurity Theme for Firefox**](https://addons.mozilla.org/en-US/firefox/addon/cybersecurity-theme-v1-0-1/)
+The Category 3 Malware Scanner audits your project code and upload directories for unauthorized web shells and viruses:
+* **Bright Red Highlighting:** Detected infected paths and files are styled in **bold bright red (`#FF3366`)** with a `🚨` warning indicator so they can be immediately recognized.
+* **Malware Signatures Detected:**
+  - Obfuscated PHP execution: `eval(base64_decode())`, `assert()`, `passthru()`, `shell_exec()`
+  - Public web shells: c99, r57, WSO, b374k, FilesMan, Weevely, China Chopper
+  - Cryptocurrency miners: Coinhive, CryptoLoot, Monero web miners
+  - Upload vulnerabilities: Double-extensions (e.g. `image.php.jpg`, `shell.phtml`)
+* **Instant Actions:**
+  - **⚠️ Quarantine:** Moves the file into `.aegis_quarantine/` and sets permissions to read-only non-executable.
+  - **🗑️ Remove:** Permanently deletes the infected file from disk.
 
 ---
 
-## ⚖️ License & Ethics
+## 💻 Host Server Machine Rootkit & Process Auditor
 
-This project is licensed under the **MIT License**.
+Located in **Category 5**, this tool inspects the host computer or server itself:
+* **Cryptominer & Rogue Process Detection:** Checks running processes against known miners (`xmrig`, `minerd`, `kdevtmpfsi`) and reverse shells (`nc -e`, `powershell -enc`).
+* **Backdoor Port Check:** Scans for rogue listeners on notorious hacker ports (`4444`, `1337`, `31337`).
+* **Temp Directory Malware Drop:** Identifies executable files (`.exe`, `.bat`, `.vbs`, `.sh`) dropped into `%TEMP%` or `/tmp`.
+* **Hosts File Integrity:** Verifies that security domains (e.g., Windows Update, VirusTotal) are not redirected.
+* **1-Click Remediation:** Select any suspicious process row and click **"⚡ TERMINATE SELECTED ROGUE PROCESS (KILL PID)"** to terminate it immediately.
 
-> **Defensive Security Notice:** Aegis is designed strictly for defensive security auditing, educational purposes, vulnerability assessment of systems you own or have explicit authorization to audit, and incident response. Always obtain proper authorization before auditing network services.
+---
+
+## ⚔️ Comprehensive Attack Matrix & Fix Runbook
+
+Located in **Category 7**, this dashboard provides a complete defensive playbook for every major cyber attack:
+1. **SQL Injection (SQLi)** (CWE-89)
+2. **Cross-Site Scripting (XSS)** (CWE-79)
+3. **Web Shell & Malicious File Upload** (CWE-434)
+4. **Command Injection / Remote Code Execution (RCE)** (CWE-78)
+5. **Path Traversal & Local File Inclusion (LFI)** (CWE-22)
+6. **DDoS & HTTP Layer 7 Flood** (CWE-400)
+7. **Brute Force & Credential Stuffing** (CWE-307)
+8. **Sensitive File Exposure (.env / Git / Private Keys)** (CWE-552)
+9. **Cross-Site Request Forgery (CSRF)** (CWE-352)
+10. **Server-Side Request Forgery (SSRF)** (CWE-918)
+
+For each attack vector, the dashboard displays:
+- What the attack is & the attacker's objective
+- Real-time indicator if your server is currently targeted
+- Symptoms & how to tell if you are being attacked
+- **Immediate Emergency Actions (What to do right now)**
+- **Permanent Architectural Resolution (How to fix it)**
+- Multi-framework code fixes for **Nginx**, **Apache**, **Python**, **Node.js**, and **PHP**
+- 1-Click PowerShell / Bash firewall script generation
+
+---
+
+## 🕵️ Cyber OSINT & Attack Surface Engine
+
+Located in **Category 2**, this engine conducts passive reconnaissance:
+* **Multi-Record DNS:** Queries A, AAAA, MX, NS, PTR, and TXT records.
+* **Certificate Transparency Subdomains:** Queries `crt.sh` logs and SSL Subject Alternative Names (SAN) to map all discovered subdomains, with a one-click **"📋 COPY ALL SUBDOMAINS"** button.
+* **SSL/TLS Cryptanalysis:** Evaluates certificate validity, expiration, issuer, cipher suite, and TLS version.
+* **BGP Routing & ASN:** Identifies target IP, Autonomous System, ISP, organization, and datacenter/proxy hosting flags.
+* **RFC 9116 `security.txt`:** Checks for compliant security vulnerability disclosure files.
+* **External Threat Pivots:** Generates deep search links for Shodan, Censys, VirusTotal, AlienVault OTX, and URLScan.
+
+---
+
+## 🚨 Attacker Tracking, VPN/Proxy Detection & Carrier Subpoena Protocol
+
+Located in **Category 6 & Category 8**:
+* **VPN / Proxy / Tor Detection:** Identifies whether the attacking IP belongs to a commercial VPN provider, public Tor exit node, or cloud datacenter hosting range.
+* **Mobile Device Hardware Fingerprinting:** Decodes the attacker's HTTP `User-Agent` headers to identify specific physical hardware models (e.g. *Samsung Galaxy S23 Ultra [SM-S918B]*, *iPhone 15 Pro Max*, *Xiaomi 13 Pro*).
+* **Law Enforcement & Carrier Subpoena Protocol (Category 8):**
+  Because public internet packets do not carry physical device IMEI numbers, SIM card ICCIDs, or GPS coordinates directly over IP headers, Aegis generates a formal legal dossier conforming to **ISO/IEC 27037** and **18 U.S.C. § 2703 / Budapest Convention on Cybercrime**.
+  This gives cybercrime police and legal authorities the exact UTC timestamp, source IP, source port, and hardware fingerprint needed to issue emergency preservation letters to mobile telecommunications carriers to legally unmask the suspect's registered SIM card and GPS tower locations.
+
+---
+
+## 👥 Developers & Contributors (Team White Hat)
+
+Aegis is developed and maintained by **TEAM WHITE HAT**:
+
+* **GitHub:** [@unidentifiedcyberghost](https://github.com/unidentifiedcyberghost)
+* **GitHub:** [@pinoyUnknown](https://github.com/pinoyUnknown)
+* **X / Twitter:** [@TeamWhiteHatDev](https://x.com/TeamWhiteHatDev)
+
+Repository: [https://github.com/unidentifiedcyberghost/AEGIS-DEFENSIVE-TOOLKITS](https://github.com/unidentifiedcyberghost/AEGIS-DEFENSIVE-TOOLKITS)
+
+---
+
+## 📄 License & Ethics
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+> [!IMPORTANT]
+> **Defensive & Educational Use Only:**
+> Aegis is designed exclusively for authorized defensive security audits, localhost testing, and incident response on systems you own or have explicit written permission to assess.

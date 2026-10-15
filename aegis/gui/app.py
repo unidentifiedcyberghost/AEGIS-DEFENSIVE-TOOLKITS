@@ -1,24 +1,45 @@
 """
 Aegis Main HUD Window
 High-tech Sci-Fi CIA/Cyberpunk style graphical interface built with PyQt6.
+Categorized architecture for:
+- [CAT 1] Vulnerability Auditor & Compliance
+- [CAT 2] Cyber OSINT & Attack Surface Intelligence
+- [CAT 3] Malware, Web Shell & Suspicious Path Scanner
+- [CAT 4] Anti-XSS & Data Injection Defense Shield
+- [CAT 5] Localhost & Network Sockets Monitor
+- [CAT 6] Attacker Tracker & IDS Log Engine
+- [CAT 7] Hardening Playbooks & Active Defense
+- [CAT 8] Tactical Streaming Console
+Developed by Team White Hat.
 """
 
 import sys
 import os
+import urllib.parse
 from datetime import datetime
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QLineEdit, QPushButton, QProgressBar, QTabWidget, QTableWidget,
     QTableWidgetItem, QHeaderView, QFrame, QSplitter, QTextEdit,
-    QFileDialog, QMessageBox, QComboBox, QApplication
+    QFileDialog, QMessageBox, QComboBox, QApplication,
+    QListWidget, QListWidgetItem
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor, QFont, QClipboard
+from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtGui import QColor, QFont, QClipboard, QDesktopServices
 
 from aegis.gui.hud_theme import HUD_STYLESHEET, HUD_COLORS
 from aegis.gui.widgets import ScoreGaugeWidget, TelemetryCard, HudTerminal
-from aegis.gui.workers import AuditWorker, PortWorker, LogAnalysisWorker
+from aegis.gui.workers import (
+    AuditWorker, PortWorker, LogAnalysisWorker, OsintWorker,
+    MalwareScanWorker, InjectionAuditWorker, ServerAuditWorker
+)
 from aegis.log_ids import LogIntrusionDetector
+from aegis.osint_engine import OsintEngine
+from aegis.malware_scanner import MalwareScanner
+from aegis.injection_defense import InjectionDefenseEngine
+from aegis.server_auditor import ServerSystemAuditor
+from aegis.attack_matrix import ATTACK_MATRIX
+from aegis.active_defense import ActiveDefenseManager
 from aegis.playbook import PLAYBOOKS
 from aegis.reporter import ReportGenerator
 
@@ -29,46 +50,62 @@ class AegisMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("AEGIS // DEFENSIVE LOCALHOST & WEB AUDIT SUITE [TACTICAL HUD]")
-        self.resize(1280, 840)
-        self.setMinimumSize(1050, 700)
+        self.resize(1340, 880)
+        self.setMinimumSize(1100, 740)
 
         self.last_report = None
         self.current_attackers = []
+        self.last_osint = None
+        self.last_malware_scan = None
+        self.scanner_engine = MalwareScanner()
 
         self.setStyleSheet(HUD_STYLESHEET)
         self._init_ui()
         self.terminal.log("Aegis Defensive System initialized. Telemetry channels online.", "INFO")
+        self.terminal.log("Core Suite Developed by Team White Hat (Defensive Cyber Research).", "INFO")
 
     def _init_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
         main_layout = QVBoxLayout(central)
-        main_layout.setContentsMargins(16, 14, 16, 14)
-        main_layout.setSpacing(12)
+        main_layout.setContentsMargins(14, 12, 14, 10)
+        main_layout.setSpacing(10)
 
         # 1. Top HUD Tactical Header
         header_frame = self._build_header()
         main_layout.addWidget(header_frame)
 
-        # 2. Main Tabs
+        # 2. Category Quick Ribbon
+        category_ribbon = self._build_category_ribbon()
+        main_layout.addWidget(category_ribbon)
+
+        # 3. Main Categorized Tabs
         self.tabs = QTabWidget()
         self.tab_overview = self._build_overview_tab()
         self.tab_web = self._build_web_tab()
+        self.tab_osint = self._build_osint_tab()
+        self.tab_malware = self._build_malware_tab()
+        self.tab_injection = self._build_injection_tab()
         self.tab_ports = self._build_ports_tab()
         self.tab_attackers = self._build_attackers_tab()
+        self.tab_attack_matrix = self._build_attack_matrix_tab()
         self.tab_playbooks = self._build_playbooks_tab()
         self.tab_terminal = self._build_terminal_tab()
 
-        self.tabs.addTab(self.tab_overview, "🛡️ OVERVIEW & SCORE")
-        self.tabs.addTab(self.tab_web, "🌐 WEB & OWASP AUDIT")
-        self.tabs.addTab(self.tab_ports, "📡 LOCALHOST PORT AUDIT")
-        self.tabs.addTab(self.tab_attackers, "🚨 ATTACKER TRACKER & IDS")
-        self.tabs.addTab(self.tab_playbooks, "📋 HARDENING PLAYBOOKS")
-        self.tabs.addTab(self.tab_terminal, "🖥️ TACTICAL CONSOLE")
+        self.tabs.addTab(self.tab_overview, "🛡️ [CAT 1] OVERVIEW & SCORE")
+        self.tabs.addTab(self.tab_web, "🌐 [CAT 1] OWASP VULN AUDIT")
+        self.tabs.addTab(self.tab_osint, "🕵️ [CAT 2] CYBER OSINT & ATTACK SURFACE")
+        self.tabs.addTab(self.tab_malware, "🦠 [CAT 3] MALWARE & WEBSHELL SCANNER")
+        self.tabs.addTab(self.tab_injection, "💉 [CAT 4] ANTI-XSS & DATA INJECTION")
+        self.tabs.addTab(self.tab_ports, "📡 [CAT 5] LOCALHOST & PORTS")
+        self.tabs.addTab(self.tab_attackers, "🚨 [CAT 6] ATTACKER IDS & LOGS")
+        self.tabs.addTab(self.tab_attack_matrix, "⚔️ [CAT 7] ATTACK MATRIX & HOW TO FIX")
+        self.tabs.addTab(self.tab_playbooks, "📋 [CAT 7] HARDENING PLAYBOOKS")
+        self.tabs.addTab(self.tab_terminal, "🖥️ [CAT 8] TACTICAL CONSOLE")
 
         main_layout.addWidget(self.tabs, stretch=1)
 
-        # 3. Bottom Progress Bar & Status
+        # 4. Status Bar & Progress
         bottom_layout = QHBoxLayout()
         self.lbl_status = QLabel("STATUS: STANDBY // READY FOR AUDIT")
         self.lbl_status.setStyleSheet("color: #00F0FF; font-weight: bold; font-size: 11px;")
@@ -81,12 +118,16 @@ class AegisMainWindow(QMainWindow):
         bottom_layout.addWidget(self.progress_bar, stretch=2)
         main_layout.addLayout(bottom_layout)
 
+        # 5. Developer Footer Frame (Team White Hat)
+        footer_frame = self._build_footer()
+        main_layout.addWidget(footer_frame)
+
     def _build_header(self) -> QFrame:
         frame = QFrame()
         frame.setObjectName("hudPanel")
         layout = QVBoxLayout(frame)
-        layout.setContentsMargins(14, 12, 14, 12)
-        layout.setSpacing(10)
+        layout.setContentsMargins(14, 10, 14, 10)
+        layout.setSpacing(8)
 
         # Title Row
         top_row = QHBoxLayout()
@@ -104,11 +145,11 @@ class AegisMainWindow(QMainWindow):
         # Input & Action Controls
         ctrl_row = QHBoxLayout()
         lbl_target = QLabel("TARGET URL / HOST:")
-        lbl_target.setStyleSheet("color: #8899B5; font-weight: bold;")
+        lbl_target.setStyleSheet("color: #8899B5; font-weight: bold; font-size: 11px;")
         
         self.txt_target = QLineEdit("http://127.0.0.1:8000")
         self.txt_target.setPlaceholderText("e.g., http://localhost:3000, http://127.0.0.1:8080")
-        self.txt_target.setFixedHeight(34)
+        self.txt_target.setFixedHeight(32)
 
         # Preset Quick Targets
         btn_preset1 = QPushButton("localhost:3000")
@@ -118,11 +159,11 @@ class AegisMainWindow(QMainWindow):
 
         self.btn_scan = QPushButton("🛡️ INITIATE DEFENSIVE AUDIT")
         self.btn_scan.setObjectName("btnPrimary")
-        self.btn_scan.setFixedHeight(34)
+        self.btn_scan.setFixedHeight(32)
         self.btn_scan.clicked.connect(self.start_audit)
 
         self.btn_export = QPushButton("💾 EXPORT REPORT")
-        self.btn_export.setFixedHeight(34)
+        self.btn_export.setFixedHeight(32)
         self.btn_export.clicked.connect(self.export_report)
 
         ctrl_row.addWidget(lbl_target)
@@ -133,6 +174,94 @@ class AegisMainWindow(QMainWindow):
         ctrl_row.addWidget(self.btn_export)
 
         layout.addLayout(ctrl_row)
+        return frame
+
+    def _build_category_ribbon(self) -> QFrame:
+        """Ribbon providing instant category explanation and one-click navigation."""
+        frame = QFrame()
+        frame.setObjectName("hudPanel")
+        layout = QHBoxLayout(frame)
+        layout.setContentsMargins(10, 6, 10, 6)
+        layout.setSpacing(6)
+
+        lbl = QLabel("CATEGORIES:")
+        lbl.setStyleSheet("color: #00F0FF; font-weight: bold; font-size: 10px; letter-spacing: 1px;")
+        layout.addWidget(lbl)
+
+        cats = [
+            ("🛡️ [CAT 1] VULNERABILITY AUDITOR", 1, "#00F0FF"),
+            ("🕵️ [CAT 2] CYBER OSINT ENGINE", 2, "#00FF88"),
+            ("🦠 [CAT 3] MALWARE SCANNER", 3, "#FF3366"),
+            ("💉 [CAT 4] ANTI-XSS & INJECTION", 4, "#00F0FF"),
+            ("📡 [CAT 5] LOCALHOST & PORTS", 5, "#FFB800"),
+            ("🚨 [CAT 6] ATTACKER IDS & LOGS", 6, "#FF3366"),
+            ("⚔️ [CAT 7] ATTACK MATRIX & HOW TO FIX", 7, "#00FF88"),
+            ("📋 [CAT 7] PLAYBOOKS", 8, "#8899B5"),
+            ("🖥️ [CAT 8] TACTICAL CONSOLE", 9, "#64748B")
+        ]
+
+        for text, tab_idx, col in cats:
+            btn = QPushButton(text)
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: rgba(15, 23, 42, 0.7);
+                    color: {col};
+                    border: 1px solid #1E293B;
+                    padding: 3px 8px;
+                    border-radius: 4px;
+                    font-size: 10px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    border-color: {col};
+                    background: rgba(15, 23, 42, 0.95);
+                }}
+            """)
+            btn.clicked.connect(lambda checked, idx=tab_idx: self.tabs.setCurrentIndex(idx))
+            layout.addWidget(btn)
+
+        layout.addStretch()
+        return frame
+
+    def _build_footer(self) -> QFrame:
+        """Bottom HUD footer showing developer credits (Team White Hat) and links."""
+        frame = QFrame()
+        frame.setObjectName("hudPanel")
+        layout = QHBoxLayout(frame)
+        layout.setContentsMargins(12, 5, 12, 5)
+
+        lbl_dev = QLabel("🛡️ DEVELOPED BY TEAM WHITE HAT")
+        lbl_dev.setStyleSheet("color: #00F0FF; font-weight: bold; font-size: 11px; letter-spacing: 1px;")
+        layout.addWidget(lbl_dev)
+
+        layout.addStretch()
+
+        links = [
+            ("GitHub: @unidentifiedcyberghost", "https://github.com/unidentifiedcyberghost"),
+            ("GitHub: @pinoyUnknown", "https://github.com/pinoyUnknown"),
+            ("X / Twitter: @TeamWhiteHatDev", "https://x.com/TeamWhiteHatDev")
+        ]
+
+        for text, url_str in links:
+            btn = QPushButton(text)
+            btn.setStyleSheet("""
+                QPushButton {
+                    background: transparent;
+                    color: #00FF88;
+                    border: 1px solid #1E293B;
+                    padding: 2px 7px;
+                    border-radius: 3px;
+                    font-size: 10px;
+                }
+                QPushButton:hover {
+                    color: #00F0FF;
+                    border-color: #00F0FF;
+                    background: rgba(0, 240, 255, 0.1);
+                }
+            """)
+            btn.clicked.connect(lambda checked, u=url_str: QDesktopServices.openUrl(QUrl(u)))
+            layout.addWidget(btn)
+
         return frame
 
     def _build_overview_tab(self) -> QWidget:
@@ -148,8 +277,8 @@ class AegisMainWindow(QMainWindow):
 
         self.card_crit = TelemetryCard("Critical Threats", "0", "Requires Immediate Action", "#FF3366")
         self.card_high = TelemetryCard("High Severity", "0", "Missing Critical Defenses", "#FFB800")
-        self.card_med = TelemetryCard("Medium Warnings", "0", "Information Leaks / Minor", "#00F0FF")
-        self.card_pass = TelemetryCard("Hardened Passes", "0", "OWASP Aligned", "#00FF88")
+        self.card_med = TelemetryCard("Medium Warnings", "0", "Informational Leakage", "#00F0FF")
+        self.card_pass = TelemetryCard("Hardened Passes", "0", "Verified Secure Controls", "#00FF88")
 
         cards_row.addWidget(self.card_crit)
         cards_row.addWidget(self.card_high)
@@ -157,45 +286,32 @@ class AegisMainWindow(QMainWindow):
         cards_row.addWidget(self.card_pass)
         layout.addLayout(cards_row)
 
-        # Bottom Executive Summary & Action Items Splitter
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        
-        # Left: Target Diagnostics
-        pnl_diag = QFrame()
-        pnl_diag.setObjectName("hudPanel")
-        diag_layout = QVBoxLayout(pnl_diag)
-        diag_layout.addWidget(QLabel("HOST TELEMETRY & NETWORK PROFILE"))
-        self.txt_diag = QTextEdit()
-        self.txt_diag.setReadOnly(True)
-        self.txt_diag.setPlaceholderText("Target host diagnostics will display here once audit begins...")
-        diag_layout.addWidget(self.txt_diag)
-        splitter.addWidget(pnl_diag)
+        # Overview Findings Table
+        lbl_recent = QLabel("SECURITY AUDIT FINDINGS TELEMETRY:")
+        lbl_recent.setStyleSheet("color: #00F0FF; font-weight: bold; font-size: 12px; margin-top: 6px;")
+        layout.addWidget(lbl_recent)
 
-        # Right: Key Remediation Recommendations
-        pnl_rem = QFrame()
-        pnl_rem.setObjectName("hudPanel")
-        rem_layout = QVBoxLayout(pnl_rem)
-        rem_layout.addWidget(QLabel("DEFENSIVE ACTION PLAN // TOP PRIORITIES"))
-        self.txt_rem = QTextEdit()
-        self.txt_rem.setReadOnly(True)
-        self.txt_rem.setPlaceholderText("Top security recommendations will be populated after audit...")
-        rem_layout.addWidget(self.txt_rem)
-        splitter.addWidget(pnl_rem)
+        self.table_overview = QTableWidget(0, 3)
+        self.table_overview.setHorizontalHeaderLabels(["SEVERITY", "AUDIT CATEGORY", "FINDING & RECOMMENDATION"])
+        self.table_overview.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_overview.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_overview.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.table_overview.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table_overview.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
-        layout.addWidget(splitter, stretch=1)
+        layout.addWidget(self.table_overview)
         return widget
 
     def _build_web_tab(self) -> QWidget:
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(8)
+        layout.setSpacing(10)
 
         # Filters Row
         filter_row = QHBoxLayout()
-        lbl_filter = QLabel("VIEW FILTER:")
-        lbl_filter.setStyleSheet("font-weight: bold; color: #8899B5;")
-        btn_all = QPushButton("ALL FINDINGS")
+        lbl_filter = QLabel("FILTER FINDINGS:")
+        btn_all = QPushButton("ALL RESULTS")
         btn_all.clicked.connect(lambda: self._filter_findings("all"))
         btn_threats = QPushButton("THREATS ONLY")
         btn_threats.clicked.connect(lambda: self._filter_findings("threats"))
@@ -222,11 +338,733 @@ class AegisMainWindow(QMainWindow):
 
         return widget
 
+    def _build_osint_tab(self) -> QWidget:
+        """Category 2: Comprehensive Cyber OSINT & Attack Surface Engine."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(10)
+
+        # OSINT Sub-header / Target controls
+        top_frame = QFrame()
+        top_frame.setObjectName("hudPanel")
+        top_layout = QHBoxLayout(top_frame)
+        top_layout.setContentsMargins(10, 8, 10, 8)
+
+        lbl_recon = QLabel("OSINT TARGET DOMAIN / HOST / IP:")
+        lbl_recon.setStyleSheet("color: #00FF88; font-weight: bold; font-size: 11px;")
+        top_layout.addWidget(lbl_recon)
+
+        self.txt_osint_target = QLineEdit("google.com")
+        self.txt_osint_target.setPlaceholderText("Enter domain or IP (e.g., example.com, 1.1.1.1, localhost)")
+        self.txt_osint_target.setFixedHeight(30)
+        top_layout.addWidget(self.txt_osint_target, stretch=1)
+
+        # Quick preset buttons
+        btn_use_cur = QPushButton("Sync Target Host")
+        btn_use_cur.clicked.connect(self._sync_osint_target)
+        top_layout.addWidget(btn_use_cur)
+
+        btn_preset_ex = QPushButton("example.com")
+        btn_preset_ex.clicked.connect(lambda: self.txt_osint_target.setText("example.com"))
+        top_layout.addWidget(btn_preset_ex)
+
+        btn_run_osint = QPushButton("🕵️ RUN PASSIVE OSINT RECON")
+        btn_run_osint.setObjectName("btnPrimary")
+        btn_run_osint.setFixedHeight(30)
+        btn_run_osint.clicked.connect(self.start_osint_recon)
+        top_layout.addWidget(btn_run_osint)
+
+        layout.addWidget(top_frame)
+
+        # Telemetry Cards Row
+        cards_row = QHBoxLayout()
+        self.osint_card_risk = TelemetryCard("Attack Surface Risk", "STANDBY", "Overall Exposure", "#00FF88")
+        self.osint_card_ssl = TelemetryCard("SSL/TLS Cryptography", "STANDBY", "Cipher & Expiration", "#00F0FF")
+        self.osint_card_email = TelemetryCard("Email Anti-Spoofing", "STANDBY", "SPF & DMARC", "#FFB800")
+        self.osint_card_subs = TelemetryCard("Discovered Subdomains", "0", "SAN & CRT.SH Discovery", "#00F0FF")
+
+        cards_row.addWidget(self.osint_card_risk)
+        cards_row.addWidget(self.osint_card_ssl)
+        cards_row.addWidget(self.osint_card_email)
+        cards_row.addWidget(self.osint_card_subs)
+        layout.addLayout(cards_row)
+
+        # Sub-tabs for deep OSINT drilldown
+        osint_subtabs = QTabWidget()
+
+        # Sub-tab 1: DNS & Email Security
+        tab_dns = QWidget()
+        dns_layout = QVBoxLayout(tab_dns)
+        self.table_osint_dns = QTableWidget(0, 3)
+        self.table_osint_dns.setHorizontalHeaderLabels(["RECORD TYPE", "RECORD VALUE / TARGET", "SECURITY PURPOSE"])
+        self.table_osint_dns.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_osint_dns.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table_osint_dns.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_osint_dns.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table_osint_dns.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        dns_layout.addWidget(self.table_osint_dns)
+        osint_subtabs.addTab(tab_dns, "📡 DNS & EMAIL ANTI-SPOOFING")
+
+        # Sub-tab 2: SSL/TLS & Cryptography
+        tab_ssl = QWidget()
+        ssl_layout = QVBoxLayout(tab_ssl)
+        self.table_osint_ssl = QTableWidget(0, 3)
+        self.table_osint_ssl.setHorizontalHeaderLabels(["CRYPTOGRAPHIC PARAMETER", "VALUE", "SECURITY STANDARD"])
+        self.table_osint_ssl.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_osint_ssl.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table_osint_ssl.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_osint_ssl.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table_osint_ssl.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        ssl_layout.addWidget(self.table_osint_ssl)
+        osint_subtabs.addTab(tab_ssl, "🔒 SSL/TLS & CIPHER SUITES")
+
+        # Sub-tab 3: Subdomain Enumeration
+        tab_subs = QWidget()
+        subs_layout = QVBoxLayout(tab_subs)
+        top_subs_row = QHBoxLayout()
+        lbl_subs_info = QLabel("PASSIVELY DISCOVERED SUBDOMAINS (NO TARGET PACKETS SENT):")
+        lbl_subs_info.setStyleSheet("color: #00F0FF; font-weight: bold; font-size: 11px;")
+        btn_copy_subs = QPushButton("📋 COPY ALL SUBDOMAINS")
+        btn_copy_subs.clicked.connect(self._copy_subdomains_to_clipboard)
+        top_subs_row.addWidget(lbl_subs_info)
+        top_subs_row.addStretch()
+        top_subs_row.addWidget(btn_copy_subs)
+        subs_layout.addLayout(top_subs_row)
+
+        self.table_osint_subs = QTableWidget(0, 2)
+        self.table_osint_subs.setHorizontalHeaderLabels(["DISCOVERED SUBDOMAIN", "SOURCE DISCOVERY"])
+        self.table_osint_subs.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.table_osint_subs.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_osint_subs.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table_osint_subs.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        subs_layout.addWidget(self.table_osint_subs)
+        osint_subtabs.addTab(tab_subs, "🌐 SUBDOMAIN DISCOVERY (CRT.SH & SAN)")
+
+        # Sub-tab 4: BGP, ASN & Geolocation
+        tab_bgp = QWidget()
+        bgp_layout = QVBoxLayout(tab_bgp)
+        self.table_osint_bgp = QTableWidget(0, 2)
+        self.table_osint_bgp.setHorizontalHeaderLabels(["NETWORK TELEMETRY", "VALUE"])
+        self.table_osint_bgp.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_osint_bgp.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table_osint_bgp.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table_osint_bgp.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        bgp_layout.addWidget(self.table_osint_bgp)
+        osint_subtabs.addTab(tab_bgp, "🗺️ BGP ROUTING, ASN & ORIGIN")
+
+        # Sub-tab 5: Tech Stack & Perimeter
+        tab_tech = QWidget()
+        tech_layout = QVBoxLayout(tab_tech)
+        self.table_osint_tech = QTableWidget(0, 2)
+        self.table_osint_tech.setHorizontalHeaderLabels(["PERIMETER COMPONENT", "DETECTED TECHNOLOGY"])
+        self.table_osint_tech.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_osint_tech.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table_osint_tech.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table_osint_tech.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        tech_layout.addWidget(self.table_osint_tech)
+        osint_subtabs.addTab(tab_tech, "⚙️ TECH STACK & CLOUD WAF/CDN")
+
+        # Sub-tab 6: External Pivots (Shodan, Censys, VirusTotal)
+        tab_pivots = QWidget()
+        pivots_layout = QVBoxLayout(tab_pivots)
+        self.txt_pivots = QTextEdit()
+        self.txt_pivots.setReadOnly(True)
+        self.txt_pivots.setPlaceholderText("External threat intelligence search links will appear here after running reconnaissance...")
+        pivots_layout.addWidget(self.txt_pivots)
+        osint_subtabs.addTab(tab_pivots, "🔍 CYBER THREAT PIVOTS (SHODAN/CENSYS)")
+
+        layout.addWidget(osint_subtabs, stretch=1)
+        return widget
+
+    def _sync_osint_target(self):
+        target = self.txt_target.text().strip()
+        parsed = urllib.parse.urlparse(target)
+        host = parsed.hostname or target.replace("http://", "").replace("https://", "").split(":")[0]
+        self.txt_osint_target.setText(host)
+
+    def start_osint_recon(self):
+        target = self.txt_osint_target.text().strip()
+        if not target:
+            QMessageBox.warning(self, "Invalid Host", "Please enter a domain or IP for OSINT reconnaissance.")
+            return
+
+        self.lbl_status.setText(f"GATHERING PASSIVE OSINT TELEMETRY FOR: {target}...")
+        self.progress_bar.setValue(20)
+        self.terminal.log(f"Initiating professional passive OSINT against: {target}", "INFO")
+
+        self.osint_worker = OsintWorker(target)
+        self.osint_worker.progress.connect(self._on_audit_progress)
+        self.osint_worker.finished.connect(self._on_osint_finished)
+        self.osint_worker.error.connect(self._on_audit_error)
+        self.osint_worker.start()
+
+    def _on_osint_finished(self, recon: dict):
+        self.last_osint = recon
+        self.progress_bar.setValue(100)
+        self.lbl_status.setText(f"STATUS: OSINT RECONNAISSANCE COMPLETE FOR {recon.get('target')}")
+
+        # Update Telemetry Cards
+        risk = recon.get("attack_surface_risk", "Low")
+        risk_color = "#FF3366" if risk == "High" else ("#FFB800" if risk == "Medium" else "#00FF88")
+        self.osint_card_risk.set_value(risk.upper(), f"Score: {recon.get('risk_score', 0)}/100")
+        self.osint_card_risk.lbl_value.setStyleSheet(f"color: {risk_color}; font-size: 20px; font-weight: bold;")
+
+        ssl_data = recon.get("ssl_certificate", {})
+        if ssl_data.get("valid"):
+            days = ssl_data.get("expires_in_days", "N/A")
+            self.osint_card_ssl.set_value(f"VALID ({days}d)", ssl_data.get("cipher", "TLS"))
+        else:
+            self.osint_card_ssl.set_value("NO SSL", "Unencrypted or Local")
+
+        email_data = recon.get("email_security", {})
+        if email_data.get("spf_present") and email_data.get("dmarc_present"):
+            self.osint_card_email.set_value("PROTECTED", "SPF & DMARC Enforced")
+        elif email_data.get("spf_present"):
+            self.osint_card_email.set_value("PARTIAL", "SPF Only (No DMARC)")
+        else:
+            self.osint_card_email.set_value("VULNERABLE", "High Spoofing Risk")
+
+        subs = recon.get("subdomains_discovered", [])
+        self.osint_card_subs.set_value(str(len(subs)), "Discovered Hosts")
+
+        # 1. Populate DNS Table
+        self.table_osint_dns.setRowCount(0)
+        dns = recon.get("dns", {})
+        for ip in dns.get("ipv4_addresses", []):
+            self._add_dns_row("A (IPv4)", ip, "Primary Public/Local Host IP Address")
+        for ip in dns.get("ipv6_addresses", []):
+            self._add_dns_row("AAAA (IPv6)", ip, "Next-Gen IP Address")
+        if dns.get("reverse_dns") and dns["reverse_dns"] != "None":
+            self._add_dns_row("PTR (rDNS)", dns["reverse_dns"], "Reverse DNS Validation")
+        for mx in dns.get("mx_records", []):
+            self._add_dns_row("MX", mx, "Mail Exchange Server")
+        if email_data.get("spf_record") != "None":
+            self._add_dns_row("TXT (SPF)", email_data["spf_record"], "Sender Policy Framework")
+        if email_data.get("dmarc_record") != "None":
+            self._add_dns_row("TXT (DMARC)", email_data["dmarc_record"], "DMARC Phishing Defense")
+        for ns in dns.get("ns_records", []):
+            self._add_dns_row("NS", ns, "Authoritative Nameserver")
+
+        # 2. Populate SSL Table
+        self.table_osint_ssl.setRowCount(0)
+        if ssl_data.get("valid"):
+            self._add_ssl_row("Validation Status", "VALID", "TLS Handshake Successful")
+            issuer = ssl_data.get("issuer", {})
+            self._add_ssl_row("Issuer Authority", issuer.get("organizationName", issuer.get("commonName", "Unknown")), "Certificate Authority")
+            subject = ssl_data.get("subject", {})
+            self._add_ssl_row("Subject CN", subject.get("commonName", "Unknown"), "Target Domain Identity")
+            self._add_ssl_row("Cipher Suite", ssl_data.get("cipher", "Unknown"), "Cryptographic Algorithm")
+            self._add_ssl_row("TLS Protocol", ssl_data.get("tls_version", "Unknown"), "Security Standard")
+            self._add_ssl_row("Expiration Date", f"{ssl_data.get('valid_until')} ({ssl_data.get('expires_in_days')} days left)", "Certificate Life")
+        else:
+            self._add_ssl_row("Status", "No SSL / Inactive", "Target does not serve TLS on port 443")
+
+        # 3. Populate Subdomains Table
+        self.table_osint_subs.setRowCount(0)
+        for s in subs:
+            r = self.table_osint_subs.rowCount()
+            self.table_osint_subs.insertRow(r)
+            self.table_osint_subs.setItem(r, 0, QTableWidgetItem(s))
+            self.table_osint_subs.setItem(r, 1, QTableWidgetItem("Crt.sh CT Logs / SAN"))
+
+        # 4. Populate BGP & Network Table
+        self.table_osint_bgp.setRowCount(0)
+        bgp = recon.get("network_routing", {})
+        self._add_bgp_row("Primary Target IP", bgp.get("ip", "N/A"))
+        self._add_bgp_row("Autonomous System (ASN)", bgp.get("asn", "N/A"))
+        self._add_bgp_row("Internet Service Provider (ISP)", bgp.get("isp", "N/A"))
+        self._add_bgp_row("Organization", bgp.get("org", "N/A"))
+        self._add_bgp_row("Geographic Location", f"{bgp.get('city')}, {bgp.get('country')}")
+        self._add_bgp_row("Hosting / VPN Detection", "Yes (Datacenter / Proxy IP)" if bgp.get("is_vpn_or_hosting") else "No (Residential/Origin)")
+
+        # 5. Populate Tech Stack Table
+        self.table_osint_tech.setRowCount(0)
+        tech = recon.get("technologies", {})
+        self._add_tech_row("Edge CDN / Cloud WAF", tech.get("cdn_waf", "Direct Origin"))
+        self._add_tech_row("Server Header Banner", tech.get("server_banner", "Hidden"))
+        self._add_tech_row("X-Powered-By Header", tech.get("powered_by", "Hidden"))
+        fws = ", ".join(tech.get("detected_frameworks", [])) or "None Detected"
+        self._add_tech_row("Web Frameworks Fingerprinted", fws)
+        sec_txt = recon.get("security_txt", {})
+        self._add_tech_row("RFC 9116 security.txt", "Present (Compliance Verified)" if sec_txt.get("present") else "Missing")
+
+        # 6. Populate Threat Pivots
+        pivots_text = f"EXTERNAL THREAT INTELLIGENCE PIVOTS FOR: {recon.get('target')}\n"
+        pivots_text += "=" * 65 + "\n\n"
+        for name, link in recon.get("external_intelligence_links", {}).items():
+            pivots_text += f"[{name}]\n  --> {link}\n\n"
+        self.txt_pivots.setPlainText(pivots_text)
+
+        self.terminal.log(f"Passive OSINT completed for {recon.get('target')}. Subdomains: {len(subs)}, Risk: {risk}.", "PASS")
+
+    def _add_dns_row(self, rtype: str, val: str, purp: str):
+        r = self.table_osint_dns.rowCount()
+        self.table_osint_dns.insertRow(r)
+        self.table_osint_dns.setItem(r, 0, QTableWidgetItem(rtype))
+        self.table_osint_dns.setItem(r, 1, QTableWidgetItem(val))
+        self.table_osint_dns.setItem(r, 2, QTableWidgetItem(purp))
+
+    def _add_ssl_row(self, param: str, val: str, note: str):
+        r = self.table_osint_ssl.rowCount()
+        self.table_osint_ssl.insertRow(r)
+        self.table_osint_ssl.setItem(r, 0, QTableWidgetItem(param))
+        self.table_osint_ssl.setItem(r, 1, QTableWidgetItem(val))
+        self.table_osint_ssl.setItem(r, 2, QTableWidgetItem(note))
+
+    def _add_bgp_row(self, param: str, val: str):
+        r = self.table_osint_bgp.rowCount()
+        self.table_osint_bgp.insertRow(r)
+        self.table_osint_bgp.setItem(r, 0, QTableWidgetItem(param))
+        self.table_osint_bgp.setItem(r, 1, QTableWidgetItem(val))
+
+    def _add_tech_row(self, comp: str, tech: str):
+        r = self.table_osint_tech.rowCount()
+        self.table_osint_tech.insertRow(r)
+        self.table_osint_tech.setItem(r, 0, QTableWidgetItem(comp))
+        self.table_osint_tech.setItem(r, 1, QTableWidgetItem(tech))
+
+    def _copy_subdomains_to_clipboard(self):
+        if not self.last_osint or not self.last_osint.get("subdomains_discovered"):
+            QMessageBox.information(self, "No Subdomains", "Run an OSINT reconnaissance first.")
+            return
+        subs = "\n".join(self.last_osint.get("subdomains_discovered", []))
+        QApplication.clipboard().setText(subs)
+        self.terminal.log("Copied all discovered subdomains to clipboard.", "PASS")
+        QMessageBox.information(self, "Copied", f"Copied {len(self.last_osint['subdomains_discovered'])} subdomains to clipboard!")
+
+    # -------------------------------------------------------------
+    # Category 3: Malware & Web Shell Scanner
+    # -------------------------------------------------------------
+    def _build_malware_tab(self) -> QWidget:
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(10)
+
+        # Top controls
+        top_frame = QFrame()
+        top_frame.setObjectName("hudPanel")
+        top_layout = QHBoxLayout(top_frame)
+        top_layout.setContentsMargins(10, 8, 10, 8)
+
+        lbl = QLabel("PROJECT / WEBSITE DIRECTORY PATH:")
+        lbl.setStyleSheet("color: #FF3366; font-weight: bold; font-size: 11px;")
+        top_layout.addWidget(lbl)
+
+        self.txt_malware_dir = QLineEdit(".")
+        self.txt_malware_dir.setPlaceholderText("Path to website root or uploads folder (e.g., C:/www/html, ./uploads)")
+        self.txt_malware_dir.setFixedHeight(30)
+        top_layout.addWidget(self.txt_malware_dir, stretch=1)
+
+        btn_browse = QPushButton("📁 Browse...")
+        btn_browse.clicked.connect(self._browse_malware_dir)
+        top_layout.addWidget(btn_browse)
+
+        btn_preset_cur = QPushButton("Current Directory")
+        btn_preset_cur.clicked.connect(lambda: self.txt_malware_dir.setText("."))
+        top_layout.addWidget(btn_preset_cur)
+
+        btn_scan_malware = QPushButton("🔍 SCAN PATHS FOR MALWARE / WEBSHELLS")
+        btn_scan_malware.setObjectName("btnDanger")
+        btn_scan_malware.setFixedHeight(30)
+        btn_scan_malware.clicked.connect(self.start_malware_scan)
+        top_layout.addWidget(btn_scan_malware)
+
+        layout.addWidget(top_frame)
+
+        # Telemetry cards
+        cards_row = QHBoxLayout()
+        self.malware_card_status = TelemetryCard("Infection Status", "CLEAN", "System Posture", "#00FF88")
+        self.malware_card_threats = TelemetryCard("Threats Detected", "0", "Backdoors & Web Shells", "#FF3366")
+        self.malware_card_scanned = TelemetryCard("Files Scanned", "0", "Total Inspected Paths", "#00F0FF")
+
+        cards_row.addWidget(self.malware_card_status)
+        cards_row.addWidget(self.malware_card_threats)
+        cards_row.addWidget(self.malware_card_scanned)
+        layout.addLayout(cards_row)
+
+        # Splitter: Table of infected files on Left, Remediation / Quarantine action on Right
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+
+        # Left: Table
+        pnl_left = QFrame()
+        pnl_left.setObjectName("hudPanel")
+        left_layout = QVBoxLayout(pnl_left)
+        left_layout.addWidget(QLabel("DETECTED SUSPICIOUS / INFECTED WEBSITE PATHS:"))
+
+        self.table_malware = QTableWidget(0, 5)
+        self.table_malware.setHorizontalHeaderLabels([
+            "SEVERITY", "INFECTED FILE PATH / DIRECTORY [SUSPICIOUS]", "THREAT CLASSIFICATION", "LINE #", "MALICIOUS CODE / PARAMETER"
+        ])
+        self.table_malware.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_malware.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table_malware.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_malware.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_malware.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        self.table_malware.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table_malware.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table_malware.itemSelectionChanged.connect(self._on_malware_selected)
+
+        left_layout.addWidget(self.table_malware)
+        splitter.addWidget(pnl_left)
+
+        # Right: Quarantine & Action Panel
+        pnl_right = QFrame()
+        pnl_right.setObjectName("hudPanel")
+        right_layout = QVBoxLayout(pnl_right)
+        
+        lbl_act = QLabel("MALWARE DEFENSE & REMEDIATION ACTIONS")
+        lbl_act.setStyleSheet("color: #FF3366; font-weight: bold;")
+        right_layout.addWidget(lbl_act)
+
+        act_btn_row = QHBoxLayout()
+        btn_quarantine = QPushButton("🔒 QUARANTINE SELECTED FILE")
+        btn_quarantine.setObjectName("btnDanger")
+        btn_quarantine.clicked.connect(self._quarantine_selected_malware)
+        btn_remove = QPushButton("🗑️ PERMANENTLY REMOVE")
+        btn_remove.clicked.connect(self._remove_selected_malware)
+        act_btn_row.addWidget(btn_quarantine)
+        act_btn_row.addWidget(btn_remove)
+        right_layout.addLayout(act_btn_row)
+
+        self.txt_malware_log = QTextEdit()
+        self.txt_malware_log.setReadOnly(True)
+        self.txt_malware_log.setPlaceholderText("Select an infected file from the table to view remediation actions, or view anti-execution web server rules below...")
+        right_layout.addWidget(self.txt_malware_log)
+
+        splitter.addWidget(pnl_right)
+        splitter.setSizes([700, 480])
+        layout.addWidget(splitter, stretch=1)
+
+        return widget
+
+    def _browse_malware_dir(self):
+        folder = QFileDialog.getExistingDirectory(self, "Select Website Root or Uploads Directory", ".")
+        if folder:
+            self.txt_malware_dir.setText(folder)
+
+    def start_malware_scan(self):
+        target_dir = self.txt_malware_dir.text().strip() or "."
+        self.lbl_status.setText(f"SCANNING DIRECTORY FOR MALWARE & WEB SHELLS: {target_dir}...")
+        self.progress_bar.setValue(20)
+        self.terminal.log(f"Initiating malware path scanner on: {target_dir}", "INFO")
+
+        self.malware_worker = MalwareScanWorker(target_dir)
+        self.malware_worker.progress.connect(self._on_audit_progress)
+        self.malware_worker.finished.connect(self._on_malware_finished)
+        self.malware_worker.error.connect(self._on_audit_error)
+        self.malware_worker.start()
+
+    def _on_malware_finished(self, result: dict):
+        self.last_malware_scan = result
+        self.progress_bar.setValue(100)
+        inf_count = result.get("infected_files_count", 0)
+        scanned_count = result.get("scanned_files_count", 0)
+
+        self.lbl_status.setText(f"MALWARE SCAN COMPLETE // {scanned_count} FILES SCANNED // {inf_count} THREATS FOUND")
+        self.malware_card_scanned.set_value(str(scanned_count), "Files Checked")
+        self.malware_card_threats.set_value(str(inf_count), "Infected Paths")
+
+        if inf_count > 0:
+            self.malware_card_status.set_value("INFECTED", "Action Required")
+            self.malware_card_status.lbl_value.setStyleSheet("color: #FF3366; font-size: 20px; font-weight: bold;")
+        else:
+            self.malware_card_status.set_value("CLEAN", "No Web Shells")
+            self.malware_card_status.lbl_value.setStyleSheet("color: #00FF88; font-size: 20px; font-weight: bold;")
+
+        self.table_malware.setRowCount(0)
+        for inf in result.get("infected_files", []):
+            r = self.table_malware.rowCount()
+            self.table_malware.insertRow(r)
+
+            sev = inf["severity"].upper()
+            sev_item = QTableWidgetItem(sev)
+            col = "#FF3366" if sev == "CRITICAL" else "#FFB800"
+            sev_item.setForeground(QColor(col))
+            sev_item.setFont(QFont("Consolas", 10, QFont.Weight.Bold))
+
+            path_item = QTableWidgetItem(f"🚨 {inf['relative_path']}")
+            path_item.setForeground(QColor("#FF3366"))
+            path_item.setFont(QFont("Consolas", 10, QFont.Weight.Bold))
+
+            self.table_malware.setItem(r, 0, sev_item)
+            self.table_malware.setItem(r, 1, path_item)
+            self.table_malware.setItem(r, 2, QTableWidgetItem(inf["threat_type"]))
+            self.table_malware.setItem(r, 3, QTableWidgetItem(str(inf.get("matched_line", 1))))
+            self.table_malware.setItem(r, 4, QTableWidgetItem(inf.get("code_snippet", "Disguised File Extension")))
+
+        # Show Anti-execution configs in log box
+        rules = MalwareScanner.generate_anti_execution_config()
+        guide = f"""=====================================================
+MALWARE & SUSPICIOUS PATH SCAN SUMMARY:
+=====================================================
+Total Files Inspected: {scanned_count}
+Infected Files Found:  {inf_count}
+Scan Status:           {result.get('status')}
+
+RECOMMENDED DEFENSIVE ANTI-EXECUTION RULES:
+Deploy these rules in your Nginx or Apache server to block
+attackers from executing uploaded PHP/CGI scripts in upload folders:
+
+[NGINX CONFIGURATION]
+{rules['nginx']}
+
+[APACHE .HTACCESS (Place in /uploads/)]
+{rules['apache']}
+"""
+        self.txt_malware_log.setPlainText(guide)
+        self.terminal.log(f"Malware scan finished: {inf_count} suspicious files identified out of {scanned_count}.", "WARN" if inf_count > 0 else "PASS")
+
+    def _on_malware_selected(self):
+        idxs = self.table_malware.selectedIndexes()
+        if not idxs or not self.last_malware_scan:
+            return
+        row = idxs[0].row()
+        files = self.last_malware_scan.get("infected_files", [])
+        if row < len(files):
+            inf = files[row]
+            detail = f"""=====================================================
+INFECTED FILE TELEMETRY:
+=====================================================
+File Path:     {inf['file_path']}
+Severity:      {inf['severity'].upper()}
+Threat Name:   {inf['threat_type']}
+Signature ID:  {inf['matched_signature']}
+Line Number:   {inf.get('matched_line', 'N/A')}
+
+[EXTRACTED CODE SNIPPET]
+{inf.get('code_snippet', 'No code snippet (Double extension threat)')}
+
+[RECOMMENDED ACTION]
+{inf.get('remediation')}
+
+Click 'QUARANTINE SELECTED FILE' to safely isolate this file with
+read-only non-executable permissions into .aegis_quarantine/.
+"""
+            self.txt_malware_log.setPlainText(detail)
+
+    def _quarantine_selected_malware(self):
+        idxs = self.table_malware.selectedIndexes()
+        if not idxs or not self.last_malware_scan:
+            QMessageBox.information(self, "No Selection", "Please select an infected file from the table first.")
+            return
+        row = idxs[0].row()
+        files = self.last_malware_scan.get("infected_files", [])
+        if row < len(files):
+            fpath = files[row]["file_path"]
+            res = self.scanner_engine.quarantine_file(fpath)
+            if res.get("success"):
+                QMessageBox.information(self, "Quarantine Success", res["message"])
+                self.terminal.log(f"Quarantined infected file: {fpath}", "PASS")
+                self.start_malware_scan()
+            else:
+                QMessageBox.critical(self, "Quarantine Failed", res.get("error", "Unknown error"))
+
+    def _remove_selected_malware(self):
+        idxs = self.table_malware.selectedIndexes()
+        if not idxs or not self.last_malware_scan:
+            QMessageBox.information(self, "No Selection", "Please select an infected file from the table first.")
+            return
+        row = idxs[0].row()
+        files = self.last_malware_scan.get("infected_files", [])
+        if row < len(files):
+            fpath = files[row]["file_path"]
+            confirm = QMessageBox.question(self, "Confirm Delete", f"Are you sure you want to permanently delete:\n{fpath}?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            if confirm == QMessageBox.StandardButton.Yes:
+                res = self.scanner_engine.remove_file(fpath)
+                if res.get("success"):
+                    QMessageBox.information(self, "Deleted", res["message"])
+                    self.terminal.log(f"Permanently removed malicious file: {fpath}", "PASS")
+                    self.start_malware_scan()
+                else:
+                    QMessageBox.critical(self, "Delete Failed", res.get("error", "Unknown error"))
+
+    # -------------------------------------------------------------
+    # Category 4: Anti-XSS & Data Injection Defense
+    # -------------------------------------------------------------
+    def _build_injection_tab(self) -> QWidget:
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(10)
+
+        # Top controls
+        top_frame = QFrame()
+        top_frame.setObjectName("hudPanel")
+        top_layout = QHBoxLayout(top_frame)
+        top_layout.setContentsMargins(10, 8, 10, 8)
+
+        lbl = QLabel("TARGET WEB APPLICATION:")
+        lbl.setStyleSheet("color: #00F0FF; font-weight: bold; font-size: 11px;")
+        top_layout.addWidget(lbl)
+
+        self.txt_inj_target = QLineEdit("http://127.0.0.1:8000")
+        self.txt_inj_target.setFixedHeight(30)
+        top_layout.addWidget(self.txt_inj_target, stretch=1)
+
+        btn_sync = QPushButton("Sync Current Target")
+        btn_sync.clicked.connect(lambda: self.txt_inj_target.setText(self.txt_target.text().strip()))
+        top_layout.addWidget(btn_sync)
+
+        btn_audit_inj = QPushButton("💉 AUDIT ANTI-XSS & SCRIPT EXECUTION DEFENSES")
+        btn_audit_inj.setObjectName("btnPrimary")
+        btn_audit_inj.setFixedHeight(30)
+        btn_audit_inj.clicked.connect(self.start_injection_audit)
+        top_layout.addWidget(btn_audit_inj)
+
+        layout.addWidget(top_frame)
+
+        # Telemetry cards
+        cards_row = QHBoxLayout()
+        self.inj_card_posture = TelemetryCard("Script Defense Posture", "STANDBY", "Overall Security", "#00FF88")
+        self.inj_card_csp = TelemetryCard("Content-Security-Policy", "STANDBY", "Script Execution Policy", "#00F0FF")
+        self.inj_card_nosniff = TelemetryCard("MIME Sniffing Defense", "STANDBY", "X-Content-Type-Options", "#FFB800")
+        self.inj_card_clickjack = TelemetryCard("Frame Ancestors", "STANDBY", "Clickjacking Defense", "#00F0FF")
+
+        cards_row.addWidget(self.inj_card_posture)
+        cards_row.addWidget(self.inj_card_csp)
+        cards_row.addWidget(self.inj_card_nosniff)
+        cards_row.addWidget(self.inj_card_clickjack)
+        layout.addLayout(cards_row)
+
+        # Splitter: Left Table of findings, Right Generated CSP & Sanitization rules
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+
+        # Left: Findings
+        pnl_left = QFrame()
+        pnl_left.setObjectName("hudPanel")
+        left_layout = QVBoxLayout(pnl_left)
+        left_layout.addWidget(QLabel("SCRIPT EXECUTION & INJECTION AUDIT TELEMETRY:"))
+
+        self.table_inj = QTableWidget(0, 4)
+        self.table_inj.setHorizontalHeaderLabels(["DEFENSE", "STATUS", "ISSUE DETECTED", "RECOMMENDED MITIGATION"])
+        self.table_inj.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_inj.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_inj.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.table_inj.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        self.table_inj.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table_inj.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        left_layout.addWidget(self.table_inj)
+        splitter.addWidget(pnl_left)
+
+        # Right: Hardened Protection Code
+        pnl_right = QFrame()
+        pnl_right.setObjectName("hudPanel")
+        right_layout = QVBoxLayout(pnl_right)
+        
+        lbl_code = QLabel("HARDENED ANTI-XSS & ANTI-INJECTION SHIELD CODE:")
+        lbl_code.setStyleSheet("color: #00FF88; font-weight: bold;")
+        right_layout.addWidget(lbl_code)
+
+        inj_subtabs = QTabWidget()
+        
+        # Sub-tab 1: CSP Header
+        tab_csp = QWidget()
+        csp_layout = QVBoxLayout(tab_csp)
+        self.txt_gen_csp = QTextEdit()
+        self.txt_gen_csp.setReadOnly(True)
+        csp = InjectionDefenseEngine.generate_bulletproof_csp()
+        self.txt_gen_csp.setPlainText(f"// Strict Production CSP:\nContent-Security-Policy: {csp['strict_production']}\n\n// Balanced CDN CSP:\nContent-Security-Policy: {csp['balanced_cdn']}")
+        csp_layout.addWidget(self.txt_gen_csp)
+        inj_subtabs.addTab(tab_csp, "🔒 STRICT CSP HEADER")
+
+        # Sub-tab 2: Python Defense Code
+        tab_py = QWidget()
+        py_layout = QVBoxLayout(tab_py)
+        txt_py = QTextEdit()
+        txt_py.setReadOnly(True)
+        txt_py.setPlainText(InjectionDefenseEngine.generate_anti_injection_code("python"))
+        py_layout.addWidget(txt_py)
+        inj_subtabs.addTab(tab_py, "🐍 PYTHON (FLASK/FASTAPI)")
+
+        # Sub-tab 3: Node.js Defense Code
+        tab_js = QWidget()
+        js_layout = QVBoxLayout(tab_js)
+        txt_js = QTextEdit()
+        txt_js.setReadOnly(True)
+        txt_js.setPlainText(InjectionDefenseEngine.generate_anti_injection_code("javascript"))
+        js_layout.addWidget(txt_js)
+        inj_subtabs.addTab(tab_js, "⚡ NODE.JS (EXPRESS)")
+
+        # Sub-tab 4: ModSecurity WAF
+        tab_waf = QWidget()
+        waf_layout = QVBoxLayout(tab_waf)
+        txt_waf = QTextEdit()
+        txt_waf.setReadOnly(True)
+        txt_waf.setPlainText(InjectionDefenseEngine.generate_modsecurity_waf_rules())
+        waf_layout.addWidget(txt_waf)
+        inj_subtabs.addTab(tab_waf, "🛡️ MODSECURITY WAF RULES")
+
+        right_layout.addWidget(inj_subtabs)
+        splitter.addWidget(pnl_right)
+        splitter.setSizes([650, 520])
+
+        layout.addWidget(splitter, stretch=1)
+        return widget
+
+    def start_injection_audit(self):
+        target = self.txt_inj_target.text().strip()
+        if not target:
+            QMessageBox.warning(self, "Invalid URL", "Please enter a target web application URL.")
+            return
+
+        self.lbl_status.setText(f"AUDITING ANTI-XSS & DATA INJECTION DEFENSES: {target}...")
+        self.progress_bar.setValue(30)
+        self.terminal.log(f"Auditing script execution and XSS defenses for: {target}", "INFO")
+
+        self.inj_worker = InjectionAuditWorker(target)
+        self.inj_worker.progress.connect(self._on_audit_progress)
+        self.inj_worker.finished.connect(self._on_injection_finished)
+        self.inj_worker.error.connect(self._on_audit_error)
+        self.inj_worker.start()
+
+    def _on_injection_finished(self, result: dict):
+        self.progress_bar.setValue(100)
+        score = result.get("xss_defense_score", 100)
+        status = result.get("overall_status", "Secure")
+        self.lbl_status.setText(f"ANTI-XSS AUDIT COMPLETE // SCORE: {score}/100 // STATUS: {status.upper()}")
+
+        col = "#00FF88" if score >= 85 else ("#FFB800" if score >= 60 else "#FF3366")
+        self.inj_card_posture.set_value(f"{score}/100", status)
+        self.inj_card_posture.lbl_value.setStyleSheet(f"color: {col}; font-size: 20px; font-weight: bold;")
+
+        findings = result.get("findings", [])
+        self.table_inj.setRowCount(0)
+
+        for f in findings:
+            r = self.table_inj.rowCount()
+            self.table_inj.insertRow(r)
+
+            sev = f["status"].upper()
+            sev_item = QTableWidgetItem(sev)
+            s_col = "#FF3366" if "CRITICAL" in sev else ("#FFB800" if "WARNING" in sev or "HIGH" in sev else "#00F0FF")
+            sev_item.setForeground(QColor(s_col))
+            sev_item.setFont(QFont("Consolas", 10, QFont.Weight.Bold))
+
+            self.table_inj.setItem(r, 0, QTableWidgetItem(f["defense"]))
+            self.table_inj.setItem(r, 1, sev_item)
+            self.table_inj.setItem(r, 2, QTableWidgetItem(f["issue"]))
+            self.table_inj.setItem(r, 3, QTableWidgetItem(f["mitigation"]))
+
+        self.terminal.log(f"Anti-XSS & Script Execution audit finished for {result.get('target')}. Score: {score}/100.", "PASS" if score >= 80 else "WARN")
+
+    # -------------------------------------------------------------
+    # Category 5: Localhost Ports & Server Machine Auditor
+    # -------------------------------------------------------------
     def _build_ports_tab(self) -> QWidget:
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(10)
+
+        ports_subtabs = QTabWidget()
+
+        # ---------------- Sub-tab 1: Sockets & Open Ports ----------------
+        tab_sockets = QWidget()
+        sock_layout = QVBoxLayout(tab_sockets)
+        sock_layout.setContentsMargins(8, 8, 8, 8)
+        sock_layout.setSpacing(8)
 
         top_row = QHBoxLayout()
         lbl_info = QLabel("ACTIVE LISTENING SOCKETS & ACCIDENTAL EXPOSURE AUDIT")
@@ -237,7 +1075,7 @@ class AegisMainWindow(QMainWindow):
         top_row.addWidget(lbl_info)
         top_row.addStretch()
         top_row.addWidget(btn_refresh)
-        layout.addLayout(top_row)
+        sock_layout.addLayout(top_row)
 
         self.table_ports = QTableWidget(0, 6)
         self.table_ports.setHorizontalHeaderLabels(["PORT", "INTERFACE BINDING", "PROCESS", "PID", "RISK LEVEL", "DEFENSIVE STATUS & REMEDIATION"])
@@ -249,12 +1087,210 @@ class AegisMainWindow(QMainWindow):
         self.table_ports.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
         self.table_ports.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_ports.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        sock_layout.addWidget(self.table_ports)
 
-        layout.addWidget(self.table_ports)
+        ports_subtabs.addTab(tab_sockets, "📡 ACTIVE LISTENING PORTS & BINDINGS")
+
+        # ---------------- Sub-tab 2: Host Server & Computer Machine Auditor ----------------
+        tab_server = QWidget()
+        srv_layout = QVBoxLayout(tab_server)
+        srv_layout.setContentsMargins(8, 8, 8, 8)
+        srv_layout.setSpacing(8)
+
+        srv_top = QHBoxLayout()
+        lbl_srv = QLabel("SERVER MACHINE / COMPUTER MALWARE, MINERS & ROOTKIT AUDITOR")
+        lbl_srv.setStyleSheet("color: #00FF88; font-weight: bold;")
+        btn_scan_srv = QPushButton("💻 RUN FULL SYSTEM & SERVER INTEGRITY SCAN")
+        btn_scan_srv.setObjectName("btnDanger")
+        btn_scan_srv.clicked.connect(self.start_server_audit)
+
+        srv_top.addWidget(lbl_srv)
+        srv_top.addStretch()
+        srv_top.addWidget(btn_scan_srv)
+        srv_layout.addLayout(srv_top)
+
+        # Server telemetry cards
+        srv_cards = QHBoxLayout()
+        self.server_card_status = TelemetryCard("Infection Status", "READY", "Host Health", "#00FF88")
+        self.server_card_procs = TelemetryCard("Suspicious Processes", "0", "Rogue PIDs", "#FF3366")
+        self.server_card_scanned = TelemetryCard("Processes Checked", "0", "Running Tasks", "#00F0FF")
+
+        srv_cards.addWidget(self.server_card_status)
+        srv_cards.addWidget(self.server_card_procs)
+        srv_cards.addWidget(self.server_card_scanned)
+        srv_layout.addLayout(srv_cards)
+
+        srv_splitter = QSplitter(Qt.Orientation.Horizontal)
+
+        # Left: Server threats table
+        pnl_srv_left = QFrame()
+        pnl_srv_left.setObjectName("hudPanel")
+        sl_layout = QVBoxLayout(pnl_srv_left)
+        sl_layout.addWidget(QLabel("DETECTED ROGUE PROCESSES, SUSPICIOUS SOCKETS & TEMP DROPS:"))
+
+        self.table_server_threats = QTableWidget(0, 5)
+        self.table_server_threats.setHorizontalHeaderLabels(["SEVERITY", "COMPONENT / INFECTED TARGET", "THREAT CLASSIFICATION", "DETECTION REASON", "METADATA / CMDLINE"])
+        self.table_server_threats.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_server_threats.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_server_threats.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_server_threats.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        self.table_server_threats.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        self.table_server_threats.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table_server_threats.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        sl_layout.addWidget(self.table_server_threats)
+        srv_splitter.addWidget(pnl_srv_left)
+
+        # Right: Server telemetry & action
+        pnl_srv_right = QFrame()
+        pnl_srv_right.setObjectName("hudPanel")
+        sr_layout = QVBoxLayout(pnl_srv_right)
+        sr_layout.addWidget(QLabel("HOST INTEGRITY TELEMETRY & REMEDIATION:"))
+
+        self.txt_server_log = QTextEdit()
+        self.txt_server_log.setReadOnly(True)
+        self.txt_server_log.setPlaceholderText("Click 'RUN FULL SYSTEM & SERVER INTEGRITY SCAN' to audit running processes, cryptominers, reverse shells, and persistence mechanisms...")
+        sr_layout.addWidget(self.txt_server_log)
+
+        btn_kill_proc = QPushButton("⚡ TERMINATE SELECTED ROGUE PROCESS (KILL PID)")
+        btn_kill_proc.setObjectName("btnDanger")
+        btn_kill_proc.clicked.connect(self._kill_selected_server_process)
+        sr_layout.addWidget(btn_kill_proc)
+
+        srv_splitter.addWidget(pnl_srv_right)
+        srv_splitter.setSizes([650, 480])
+
+        srv_layout.addWidget(srv_splitter, stretch=1)
+        ports_subtabs.addTab(tab_server, "💻 HOST COMPUTER / SERVER ROOTKIT AUDITOR")
+
+        layout.addWidget(ports_subtabs)
         return widget
 
+    def start_server_audit(self):
+        self.lbl_status.setText("AUDITING SERVER MACHINE INTEGRITY & HOST PROCESSES...")
+        self.progress_bar.setValue(30)
+        self.terminal.log("Scanning host machine for cryptominers, reverse shells, and persistence...", "INFO")
+        self.server_worker = ServerAuditWorker()
+        self.server_worker.finished.connect(self._on_server_audit_finished)
+        self.server_worker.error.connect(self._on_audit_error)
+        self.server_worker.start()
+
+    def _on_server_audit_finished(self, report: dict):
+        self.progress_bar.setValue(100)
+        status = report.get("infection_status", "UNKNOWN")
+        score = report.get("system_health_score", 100)
+        self.lbl_status.setText(f"SERVER AUDIT COMPLETE // STATUS: {status} // HEALTH: {score}/100")
+        
+        self.server_card_status.set_value(f"{score}/100", status)
+        col = "#00FF88" if score >= 85 else ("#FFB800" if score >= 60 else "#FF3366")
+        self.server_card_status.lbl_value.setStyleSheet(f"color: {col}; font-size: 20px; font-weight: bold;")
+        
+        procs = report.get("suspicious_processes", [])
+        self.server_card_procs.set_value(str(len(procs)), "Suspicious PIDs")
+        scanned_count = report["summary"].get("processes_scanned", 0)
+        self.server_card_scanned.set_value(str(scanned_count), "Running Tasks")
+        
+        self.table_server_threats.setRowCount(0)
+        # 1. Suspicious processes
+        for p in procs:
+            r = self.table_server_threats.rowCount()
+            self.table_server_threats.insertRow(r)
+            sev_item = QTableWidgetItem(p["severity"])
+            sev_item.setForeground(QColor("#FF3366" if p["severity"] == "CRITICAL" else "#FFB800"))
+            sev_item.setFont(QFont("Consolas", 10, QFont.Weight.Bold))
+            
+            comp_item = QTableWidgetItem(f"PROCESS: {p['name']} (PID: {p['pid']})")
+            comp_item.setForeground(QColor("#FF3366"))
+            comp_item.setFont(QFont("Consolas", 10, QFont.Weight.Bold))
+            
+            self.table_server_threats.setItem(r, 0, sev_item)
+            self.table_server_threats.setItem(r, 1, comp_item)
+            self.table_server_threats.setItem(r, 2, QTableWidgetItem(p["threat_type"]))
+            self.table_server_threats.setItem(r, 3, QTableWidgetItem(p["details"]))
+            self.table_server_threats.setItem(r, 4, QTableWidgetItem(p.get("cmdline", "")))
+
+        # 2. Rogue connections
+        for c in report.get("rogue_connections", []):
+            r = self.table_server_threats.rowCount()
+            self.table_server_threats.insertRow(r)
+            sev_item = QTableWidgetItem(c["severity"])
+            sev_item.setForeground(QColor("#FF3366"))
+            sev_item.setFont(QFont("Consolas", 10, QFont.Weight.Bold))
+            
+            comp_item = QTableWidgetItem(f"SOCKET: Port {c['local_port']} / Remote {c['remote_ip']}:{c['remote_port']}")
+            comp_item.setForeground(QColor("#FF3366"))
+            comp_item.setFont(QFont("Consolas", 10, QFont.Weight.Bold))
+            
+            self.table_server_threats.setItem(r, 0, sev_item)
+            self.table_server_threats.setItem(r, 1, comp_item)
+            self.table_server_threats.setItem(r, 2, QTableWidgetItem("BACKDOOR SOCKET"))
+            self.table_server_threats.setItem(r, 3, QTableWidgetItem(c["threat"]))
+            self.table_server_threats.setItem(r, 4, QTableWidgetItem(f"Process: {c['process']} (PID: {c['pid']})"))
+
+        # 3. Temp infections
+        for t in report.get("temp_infections", []):
+            r = self.table_server_threats.rowCount()
+            self.table_server_threats.insertRow(r)
+            sev_item = QTableWidgetItem(t["severity"])
+            sev_item.setForeground(QColor("#FFB800"))
+            sev_item.setFont(QFont("Consolas", 10, QFont.Weight.Bold))
+            
+            path_item = QTableWidgetItem(f"🚨 {t['file_path']}")
+            path_item.setForeground(QColor("#FF3366"))
+            path_item.setFont(QFont("Consolas", 10, QFont.Weight.Bold))
+            
+            self.table_server_threats.setItem(r, 0, sev_item)
+            self.table_server_threats.setItem(r, 1, path_item)
+            self.table_server_threats.setItem(r, 2, QTableWidgetItem("DROPPED EXECUTABLE"))
+            self.table_server_threats.setItem(r, 3, QTableWidgetItem(t["threat"]))
+            self.table_server_threats.setItem(r, 4, QTableWidgetItem(f"Size: {t['size_bytes']} bytes"))
+
+        summary_txt = f"""=====================================================
+HOST MACHINE / SERVER SECURITY AUDIT REPORT:
+=====================================================
+Host Name:          {report.get('hostname')}
+Operating System:   {report.get('os')}
+Infection Status:   {report.get('infection_status')}
+Health Score:       {score}/100
+Processes Scanned:  {scanned_count}
+Threats Detected:   {report['summary'].get('threats_detected')}
+Critical Alerts:    {report['summary'].get('critical_alerts')}
+
+[DEFENSIVE RECOMMENDATION]
+If any suspicious processes or backdoor connections are detected,
+select the row and click 'TERMINATE ROGUE PROCESS' to safely isolate
+the system. Ensure all dropped executables in Temp are removed.
+"""
+        self.txt_server_log.setPlainText(summary_txt)
+        self.terminal.log(f"Server system audit finished. Status: {status}.", "PASS" if score >= 80 else "WARN")
+
+    def _kill_selected_server_process(self):
+        idxs = self.table_server_threats.selectedIndexes()
+        if not idxs:
+            QMessageBox.information(self, "No Selection", "Please select a suspicious process row from the table first.")
+            return
+        row = idxs[0].row()
+        target_str = self.table_server_threats.item(row, 1).text()
+        if "PID:" not in target_str:
+            QMessageBox.information(self, "Not a Process", "Selected item is not a process with a PID.")
+            return
+        import re
+        match = re.search(r"PID:\s*(\d+)", target_str)
+        if match:
+            pid = int(match.group(1))
+            confirm = QMessageBox.question(self, "Confirm Terminate", f"Terminate process PID {pid}?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            if confirm == QMessageBox.StandardButton.Yes:
+                res = ServerSystemAuditor.kill_process(pid)
+                if res.get("success"):
+                    QMessageBox.information(self, "Terminated", res["message"])
+                    self.terminal.log(f"Terminated rogue process PID {pid}.", "PASS")
+                    self.start_server_audit()
+                else:
+                    QMessageBox.critical(self, "Failed", res.get("error", "Failed to terminate process"))
+
+    # -------------------------------------------------------------
+    # Category 6: Attacker Tracking & IDS Handlers
+    # -------------------------------------------------------------
     def _build_attackers_tab(self) -> QWidget:
-        """Attacker tracking, threat telemetry, and automated firewall generator tab."""
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(12, 12, 12, 12)
@@ -280,16 +1316,17 @@ class AegisMainWindow(QMainWindow):
         pnl_left = QFrame()
         pnl_left.setObjectName("hudPanel")
         left_layout = QVBoxLayout(pnl_left)
-        left_layout.addWidget(QLabel("DETECTED ATTACKER IP ADDRESSES"))
+        left_layout.addWidget(QLabel("DETECTED ATTACKER IP ADDRESSES & CLIENT HARDWARE"))
 
-        self.table_attackers = QTableWidget(0, 6)
-        self.table_attackers.setHorizontalHeaderLabels(["ATTACKER IP", "GEO / COUNTRY", "HITS", "SEVERITY", "ATTACK VECTORS", "IDENTIFIED TOOL"])
+        self.table_attackers = QTableWidget(0, 7)
+        self.table_attackers.setHorizontalHeaderLabels(["ATTACKER IP", "GEO / COUNTRY", "CONNECTION TYPE", "DEVICE HARDWARE", "HITS", "SEVERITY", "ATTACK VECTORS"])
         self.table_attackers.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self.table_attackers.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.table_attackers.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         self.table_attackers.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
-        self.table_attackers.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        self.table_attackers.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         self.table_attackers.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_attackers.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
         self.table_attackers.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_attackers.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table_attackers.itemSelectionChanged.connect(self._on_attacker_selected)
@@ -302,13 +1339,13 @@ class AegisMainWindow(QMainWindow):
         pnl_right.setObjectName("hudPanel")
         right_layout = QVBoxLayout(pnl_right)
         
-        lbl_dossier = QLabel("ATTACKER DOSSIER & FIREWALL MITIGATION")
+        lbl_dossier = QLabel("ATTACKER DOSSIER & POLICE EVIDENCE PRESERVATION")
         lbl_dossier.setStyleSheet("color: #FF3366; font-weight: bold;")
         right_layout.addWidget(lbl_dossier)
 
         self.txt_dossier = QTextEdit()
         self.txt_dossier.setReadOnly(True)
-        self.txt_dossier.setPlaceholderText("Select an attacker IP from the table to view intelligence dossier, reverse DNS, and generated firewall block rules...")
+        self.txt_dossier.setPlaceholderText("Select an attacker IP from the table to view intelligence dossier, reverse DNS, device fingerprint, and firewall block rules...")
         right_layout.addWidget(self.txt_dossier)
 
         btn_copy_rule = QPushButton("📋 COPY FIREWALL BLOCK RULE (POWERSHELL / IPTABLES)")
@@ -317,10 +1354,241 @@ class AegisMainWindow(QMainWindow):
         right_layout.addWidget(btn_copy_rule)
 
         splitter.addWidget(pnl_right)
-        splitter.setSizes([650, 450])
+        splitter.setSizes([680, 480])
 
         layout.addWidget(splitter, stretch=1)
         return widget
+
+    # -------------------------------------------------------------
+    # Category 7: Attack Matrix & How to Fix (All Attacks Dashboard)
+    # -------------------------------------------------------------
+    def _build_attack_matrix_tab(self) -> QWidget:
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(10)
+
+        # Top title banner
+        banner = QFrame()
+        banner.setObjectName("hudPanel")
+        b_layout = QHBoxLayout(banner)
+        b_layout.setContentsMargins(10, 8, 10, 8)
+        
+        lbl_title = QLabel("⚔️ CYBER ATTACK MATRIX & DEFENSE RUNBOOK [ALL ATTACKS & HOW TO FIX]")
+        lbl_title.setStyleSheet("color: #00F0FF; font-weight: bold; font-size: 13px; letter-spacing: 1px;")
+        b_layout.addWidget(lbl_title)
+        b_layout.addStretch()
+
+        btn_lockdown = QPushButton("⚡ ONE-CLICK EMERGENCY FIREWALL DROP SCRIPT")
+        btn_lockdown.setObjectName("btnDanger")
+        btn_lockdown.clicked.connect(self._generate_emergency_lockdown_script)
+        b_layout.addWidget(btn_lockdown)
+
+        layout.addWidget(banner)
+
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+
+        # Left panel: List of all attacks
+        pnl_left = QFrame()
+        pnl_left.setObjectName("hudPanel")
+        left_layout = QVBoxLayout(pnl_left)
+        left_layout.setContentsMargins(8, 8, 8, 8)
+        
+        lbl_list = QLabel("SELECT ATTACK VECTOR TO VIEW DEFENSIVE RUNBOOK:")
+        lbl_list.setStyleSheet("color: #8899B5; font-size: 11px; font-weight: bold;")
+        left_layout.addWidget(lbl_list)
+
+        self.list_matrix = QListWidget()
+        self.list_matrix.setStyleSheet("""
+            QListWidget {
+                background: #070B14;
+                border: 1px solid #182338;
+                border-radius: 4px;
+                color: #CBD5E1;
+                font-size: 11.5px;
+                padding: 4px;
+            }
+            QListWidget::item {
+                padding: 10px 8px;
+                border-bottom: 1px solid #0F172A;
+                border-radius: 4px;
+            }
+            QListWidget::item:hover {
+                background: rgba(0, 240, 255, 0.08);
+                color: #00F0FF;
+            }
+            QListWidget::item:selected {
+                background: rgba(0, 240, 255, 0.18);
+                color: #00F0FF;
+                border: 1px solid #00F0FF;
+            }
+        """)
+
+        for aid, att in ATTACK_MATRIX.items():
+            item = QListWidgetItem(f"{att['icon']} {att['name']}  [{att['severity']}]")
+            item.setData(Qt.ItemDataRole.UserRole, aid)
+            self.list_matrix.addItem(item)
+
+        self.list_matrix.currentRowChanged.connect(self._on_attack_matrix_selected)
+        left_layout.addWidget(self.list_matrix)
+        splitter.addWidget(pnl_left)
+
+        # Right panel: Detailed guide & fix tabs
+        pnl_right = QFrame()
+        pnl_right.setObjectName("hudPanel")
+        right_layout = QVBoxLayout(pnl_right)
+        right_layout.setContentsMargins(10, 8, 10, 8)
+        right_layout.setSpacing(8)
+
+        # Header details
+        self.lbl_mat_name = QLabel()
+        self.lbl_mat_name.setStyleSheet("color: #00F0FF; font-size: 15px; font-weight: bold;")
+        right_layout.addWidget(self.lbl_mat_name)
+
+        self.lbl_mat_meta = QLabel()
+        self.lbl_mat_meta.setStyleSheet("color: #FFB800; font-size: 11px; font-weight: bold;")
+        right_layout.addWidget(self.lbl_mat_meta)
+
+        self.lbl_mat_status = QLabel()
+        self.lbl_mat_status.setStyleSheet("padding: 6px 10px; border-radius: 4px; font-weight: bold; font-size: 11px;")
+        right_layout.addWidget(self.lbl_mat_status)
+
+        # Tabs for details
+        self.tab_mat_details = QTabWidget()
+
+        # Tab 1: Overview & Symptoms
+        tab_symptoms = QWidget()
+        sym_layout = QVBoxLayout(tab_symptoms)
+        self.txt_mat_symptoms = QTextEdit()
+        self.txt_mat_symptoms.setReadOnly(True)
+        sym_layout.addWidget(self.txt_mat_symptoms)
+        self.tab_mat_details.addTab(tab_symptoms, "🔍 OVERVIEW & SYMPTOMS")
+
+        # Tab 2: Immediate Emergency Action
+        tab_immediate = QWidget()
+        imm_layout = QVBoxLayout(tab_immediate)
+        self.txt_mat_immediate = QTextEdit()
+        self.txt_mat_immediate.setReadOnly(True)
+        imm_layout.addWidget(self.txt_mat_immediate)
+        self.tab_mat_details.addTab(tab_immediate, "⚡ EMERGENCY ACTION (WHAT TO DO NOW)")
+
+        # Tab 3: Permanent Fix Guide
+        tab_perm = QWidget()
+        perm_layout = QVBoxLayout(tab_perm)
+        self.txt_mat_perm = QTextEdit()
+        self.txt_mat_perm.setReadOnly(True)
+        perm_layout.addWidget(self.txt_mat_perm)
+        self.tab_mat_details.addTab(tab_perm, "🛠️ PERMANENT FIX (HOW TO RESOLVE)")
+
+        # Tab 4: Code Fixes
+        tab_codes = QWidget()
+        code_layout = QVBoxLayout(tab_codes)
+        
+        self.combo_code_stack = QComboBox()
+        self.combo_code_stack.currentIndexChanged.connect(self._on_mat_code_stack_changed)
+        code_layout.addWidget(self.combo_code_stack)
+
+        self.txt_mat_code = QTextEdit()
+        self.txt_mat_code.setReadOnly(True)
+        code_layout.addWidget(self.txt_mat_code)
+
+        btn_copy_code = QPushButton("📋 COPY READY-TO-DEPLOY CODE FIX")
+        btn_copy_code.clicked.connect(lambda: QApplication.clipboard().setText(self.txt_mat_code.toPlainText()))
+        code_layout.addWidget(btn_copy_code)
+
+        self.tab_mat_details.addTab(tab_codes, "💻 READY-TO-DEPLOY CODE FIXES")
+
+        right_layout.addWidget(self.tab_mat_details, stretch=1)
+        splitter.addWidget(pnl_right)
+        splitter.setSizes([340, 800])
+
+        layout.addWidget(splitter, stretch=1)
+
+        # Trigger selection of first item
+        if self.list_matrix.count() > 0:
+            self.list_matrix.setCurrentRow(0)
+
+        return widget
+
+    def _on_attack_matrix_selected(self, row: int):
+        if row < 0 or row >= self.list_matrix.count():
+            return
+        item = self.list_matrix.item(row)
+        aid = item.data(Qt.ItemDataRole.UserRole)
+        att = ATTACK_MATRIX.get(aid)
+        if not att:
+            return
+
+        self.lbl_mat_name.setText(f"{att['icon']} {att['name']}")
+        self.lbl_mat_meta.setText(f"CATEGORY: {att['category'].upper()}  |  SEVERITY: {att['severity']}  |  CLASSIFICATION: {att['owasp_cwe']}")
+
+        # Check if active threats match this attack in logs or audit findings
+        has_active_threat = False
+        if self.current_attackers:
+            for attacker in self.current_attackers:
+                for vec in attacker.get("attack_types", []):
+                    if aid in vec.lower() or vec.lower() in aid:
+                        has_active_threat = True
+                        break
+
+        if has_active_threat:
+            self.lbl_mat_status.setText("🚨 LIVE ATTACK DETECTED: OFFENDING PROBES INTERCEPTED ON TARGET SERVER!")
+            self.lbl_mat_status.setStyleSheet("background: rgba(255, 51, 102, 0.2); color: #FF3366; border: 1px solid #FF3366; padding: 6px 10px; border-radius: 4px; font-weight: bold;")
+        else:
+            self.lbl_mat_status.setText("🟢 THREAT STATUS: STANDBY // READY FOR MITIGATION DEPLOYMENT")
+            self.lbl_mat_status.setStyleSheet("background: rgba(0, 255, 136, 0.1); color: #00FF88; border: 1px solid #00FF88; padding: 6px 10px; border-radius: 4px; font-weight: bold;")
+
+        # Symptoms text
+        sym_txt = f"=== ATTACK DESCRIPTION ===\n{att['description']}\n\n"
+        sym_txt += "=== SYMPTOMS & HOW TO TELL IF YOU ARE BEING ATTACKED ===\n"
+        for s in att['symptoms']:
+            sym_txt += f"• {s}\n"
+        self.txt_mat_symptoms.setPlainText(sym_txt)
+
+        # Immediate Actions
+        imm_txt = "=== IMMEDIATE EMERGENCY ACTIONS (WHAT TO DO RIGHT NOW) ===\n\n"
+        for a in att['immediate_actions']:
+            imm_txt += f"{a}\n\n"
+        self.txt_mat_immediate.setPlainText(imm_txt)
+
+        # Permanent Fix
+        perm_txt = "=== PERMANENT ARCHITECTURAL REMEDIATION (HOW TO FIX IT) ===\n\n"
+        for f in att['permanent_fix']:
+            perm_txt += f"{f}\n\n"
+        self.txt_mat_perm.setPlainText(perm_txt)
+
+        # Code Fixes Combo
+        self.combo_code_stack.blockSignals(True)
+        self.combo_code_stack.clear()
+        for stack in att.get("code_fixes", {}).keys():
+            self.combo_code_stack.addItem(f"Framework / Server: {stack.upper()}", stack)
+        self.combo_code_stack.blockSignals(False)
+        self._on_mat_code_stack_changed(0)
+
+    def _on_mat_code_stack_changed(self, idx: int):
+        row = self.list_matrix.currentRow()
+        if row < 0:
+            return
+        aid = self.list_matrix.item(row).data(Qt.ItemDataRole.UserRole)
+        att = ATTACK_MATRIX.get(aid)
+        if not att:
+            return
+        stack = self.combo_code_stack.currentData()
+        code = att.get("code_fixes", {}).get(stack, "# No code snippet available for this stack.")
+        self.txt_mat_code.setPlainText(code)
+
+    def _generate_emergency_lockdown_script(self):
+        ips = [a.get("ip") for a in self.current_attackers if a.get("ip")]
+        if not ips:
+            ips = ["198.51.100.45", "203.0.113.19", "185.220.101.5"]
+        
+        script = ActiveDefenseManager.generate_batch_firewall_script(ips, "windows")
+        fpath, _ = QFileDialog.getSaveFileName(self, "Save Emergency Firewall Script", "aegis_emergency_drop.ps1", "PowerShell Script (*.ps1)")
+        if fpath:
+            with open(fpath, "w", encoding="utf-8") as f:
+                f.write(script)
+            QMessageBox.information(self, "Lockdown Script Generated", f"Saved emergency drop rules for {len(ips)} attacker IPs to:\n{fpath}\n\nRight-click and Run with PowerShell as Administrator to drop all attackers immediately.")
+            self.terminal.log(f"Generated emergency firewall drop script: {fpath}", "PASS")
 
     def _build_playbooks_tab(self) -> QWidget:
         widget = QWidget()
@@ -372,9 +1640,8 @@ class AegisMainWindow(QMainWindow):
         return widget
 
     # -------------------------------------------------------------
-    # Action Handlers
+    # General Handlers
     # -------------------------------------------------------------
-
     def start_audit(self):
         target = self.txt_target.text().strip()
         if not target:
@@ -401,101 +1668,80 @@ class AegisMainWindow(QMainWindow):
         self.last_report = report
         self.btn_scan.setEnabled(True)
         self.progress_bar.setValue(100)
-        self.lbl_status.setText("STATUS: AUDIT COMPLETE // READY")
+        self.lbl_status.setText(f"AUDIT COMPLETE // TARGET: {report['target']} // GRADE: {report['score_grade']}")
 
-        score = report.get("score", 0)
-        grade = report.get("grade", "F")
-        self.gauge.set_score(score, grade)
+        self.gauge.set_score(report["score"], report["score_grade"])
+        self.card_crit.set_value(report["critical_count"])
+        self.card_high.set_value(report["high_count"])
+        self.card_med.set_value(report["medium_count"])
+        self.card_pass.set_value(report["pass_count"])
 
-        summary = report.get("summary", {})
-        self.card_crit.set_value(str(summary.get("critical", 0)))
-        self.card_high.set_value(str(summary.get("high", 0)))
-        self.card_med.set_value(str(summary.get("medium", 0)))
-        self.card_pass.set_value(str(summary.get("pass", 0)))
-
-        # Update Overview Diagnostics Text
-        diag_text = (
-            f"TARGET URL: {report.get('target')}\n"
-            f"RESOLVED IP(s): {', '.join(report.get('ip_resolution', []))}\n"
-            f"HTTP STATUS: {report.get('status_code')}\n"
-            f"LATENCY: {report.get('latency_ms')} ms\n"
-            f"POSTURE SCORE: {score}/100 [GRADE: {grade}]\n\n"
-            f"SUMMARY BREAKDOWN:\n"
-            f"  - Critical Findings: {summary.get('critical', 0)}\n"
-            f"  - High Severity:     {summary.get('high', 0)}\n"
-            f"  - Medium Warnings:   {summary.get('medium', 0)}\n"
-            f"  - Hardened Passes:   {summary.get('pass', 0)}"
-        )
-        self.txt_diag.setPlainText(diag_text)
-
-        # Update Recommendations Text
-        findings = report.get("findings", [])
-        rem_lines = []
-        for idx, f in enumerate(findings):
-            if f.get("severity") in ("Critical", "High", "Medium"):
-                rem_lines.append(f"[{f.get('severity').upper()}] {f.get('title')}\n -> {f.get('remediation')}\n")
-        self.txt_rem.setPlainText("\n".join(rem_lines) if rem_lines else "All audited security headers and controls are properly configured!")
-
-        # Populate Findings Table
-        self._populate_findings_table(findings)
-        self.terminal.log(f"Audit completed. Posture Score: {score}/100 (Grade: {grade})", "PASS" if score >= 80 else "WARN")
-
-        # Automatically check listening sockets as part of total assessment
-        self.scan_ports()
+        self._populate_findings_tables(report["findings"])
+        self.tabs.setCurrentIndex(1)
+        self.terminal.log(f"Audit completed: Score {report['score']}/100, Grade {report['score_grade']}.", "PASS")
 
     def _on_audit_error(self, err_msg: str):
         self.btn_scan.setEnabled(True)
-        self.lbl_status.setText("STATUS: AUDIT FAILED // ERROR OCCURRED")
-        self.terminal.log(f"Audit execution error: {err_msg}", "CRIT")
-        QMessageBox.critical(self, "Audit Error", f"An error occurred during audit:\n{err_msg}")
+        self.progress_bar.setValue(0)
+        self.lbl_status.setText(f"ERROR: {err_msg}")
+        self.terminal.log(f"Operation failed: {err_msg}", "CRIT")
+        QMessageBox.critical(self, "Audit Error", f"Encountered error during audit:\n\n{err_msg}")
 
-    def _populate_findings_table(self, findings: list):
+    def _populate_findings_tables(self, findings: list):
         self.table_web.setRowCount(0)
-        sev_colors = {
-            "Critical": "#FF3366",
-            "High": "#FFB800",
-            "Medium": "#00F0FF",
-            "Low": "#8899B5",
-            "Pass": "#00FF88"
-        }
+        self.table_overview.setRowCount(0)
+
         for f in findings:
             row = self.table_web.rowCount()
             self.table_web.insertRow(row)
 
-            sev = f.get("severity", "Info")
-            item_sev = QTableWidgetItem(sev.upper())
-            item_sev.setForeground(QColor(sev_colors.get(sev, "#CBD5E1")))
-            item_sev.setFont(QFont("Consolas", 10, QFont.Weight.Bold))
+            sev = f["severity"]
+            sev_item = QTableWidgetItem(sev.upper())
+            sev_color = "#FF3366" if sev == "Critical" else ("#FFB800" if sev == "High" else ("#00F0FF" if sev == "Medium" else "#00FF88"))
+            sev_item.setForeground(QColor(sev_color))
+            sev_item.setFont(QFont("Consolas", 10, QFont.Weight.Bold))
 
-            item_title = QTableWidgetItem(f.get("title", ""))
-            item_desc = QTableWidgetItem(f.get("description", ""))
-            item_rem = QTableWidgetItem(f.get("remediation", ""))
+            self.table_web.setItem(row, 0, sev_item)
+            self.table_web.setItem(row, 1, QTableWidgetItem(f["title"]))
+            self.table_web.setItem(row, 2, QTableWidgetItem(f["description"]))
+            self.table_web.setItem(row, 3, QTableWidgetItem(f["remediation"]))
 
-            self.table_web.setItem(row, 0, item_sev)
-            self.table_web.setItem(row, 1, item_title)
-            self.table_web.setItem(row, 2, item_desc)
-            self.table_web.setItem(row, 3, item_rem)
+            if sev in ["Critical", "High", "Medium"]:
+                ov_row = self.table_overview.rowCount()
+                self.table_overview.insertRow(ov_row)
+                s_item = QTableWidgetItem(sev.upper())
+                s_item.setForeground(QColor(sev_color))
+                s_item.setFont(QFont("Consolas", 10, QFont.Weight.Bold))
+                self.table_overview.setItem(ov_row, 0, s_item)
+                self.table_overview.setItem(ov_row, 1, QTableWidgetItem(f["category"]))
+                self.table_overview.setItem(ov_row, 2, QTableWidgetItem(f"{f['title']}: {f['description']}"))
 
     def _filter_findings(self, mode: str):
         if not self.last_report:
             return
         findings = self.last_report.get("findings", [])
         if mode == "threats":
-            filtered = [f for f in findings if f.get("severity") in ("Critical", "High", "Medium", "Low")]
+            filtered = [f for f in findings if f["severity"] != "Pass"]
         elif mode == "passes":
-            filtered = [f for f in findings if f.get("severity") == "Pass"]
+            filtered = [f for f in findings if f["severity"] == "Pass"]
         else:
             filtered = findings
-        self._populate_findings_table(filtered)
+        self._populate_findings_tables(filtered)
 
     def scan_ports(self):
-        self.terminal.log("Scanning local listening sockets and interface bindings...", "INFO")
+        self.lbl_status.setText("AUDITING LOCAL OPEN PORTS & SOCKETS...")
+        self.progress_bar.setValue(50)
+        self.terminal.log("Scanning system sockets for wildcard 0.0.0.0 exposures...", "INFO")
         self.port_worker = PortWorker()
         self.port_worker.finished.connect(self._on_ports_finished)
+        self.port_worker.error.connect(self._on_audit_error)
         self.port_worker.start()
 
     def _on_ports_finished(self, listeners: list):
         self.table_ports.setRowCount(0)
+        self.progress_bar.setValue(100)
+        self.lbl_status.setText("STATUS: LOCALHOST PORT AUDIT COMPLETE")
+
         for l in listeners:
             row = self.table_ports.rowCount()
             self.table_ports.insertRow(row)
@@ -525,10 +1771,6 @@ class AegisMainWindow(QMainWindow):
             self.table_ports.setItem(row, 5, msg_item)
 
         self.terminal.log(f"Port audit complete. Audited {len(listeners)} active listening sockets.", "PASS")
-
-    # -------------------------------------------------------------
-    # Attacker Tracking & IDS Handlers
-    # -------------------------------------------------------------
 
     def _load_sample_logs(self):
         sample_logs = LogIntrusionDetector.generate_sample_attack_log()
@@ -564,6 +1806,13 @@ class AegisMainWindow(QMainWindow):
             geo = att.get("threat_profile", {})
             geo_str = f"{geo.get('country_code', 'XX')} - {geo.get('country', 'Unknown')}"
 
+            conn_type = geo.get("connection_type", "Residential / Mobile Carrier")
+            if geo.get("is_vpn_proxy"):
+                conn_type = "VPN / Tor / Proxy [HIGH RISK]"
+
+            hw = att.get("device_hardware", {})
+            hw_str = f"{hw.get('mobile_brand', '')} {hw.get('hardware_model', 'Generic')}".strip()
+
             sev = att.get("highest_severity", "Low")
             sev_item = QTableWidgetItem(sev.upper())
             sev_color = "#FF3366" if sev == "Critical" else ("#FFB800" if sev == "High" else "#00F0FF")
@@ -571,16 +1820,14 @@ class AegisMainWindow(QMainWindow):
             sev_item.setFont(QFont("Consolas", 10, QFont.Weight.Bold))
 
             vectors = ", ".join(att.get("attack_types", []))
-            
-            tools = [t["tool"] for t in att.get("identified_tools", [])]
-            tools_str = ", ".join(tools) if tools else "Custom/Scripted"
 
             self.table_attackers.setItem(row, 0, QTableWidgetItem(att["ip"]))
             self.table_attackers.setItem(row, 1, QTableWidgetItem(geo_str))
-            self.table_attackers.setItem(row, 2, QTableWidgetItem(str(att["malicious_hits"])))
-            self.table_attackers.setItem(row, 3, sev_item)
-            self.table_attackers.setItem(row, 4, QTableWidgetItem(vectors))
-            self.table_attackers.setItem(row, 5, QTableWidgetItem(tools_str))
+            self.table_attackers.setItem(row, 2, QTableWidgetItem(conn_type))
+            self.table_attackers.setItem(row, 3, QTableWidgetItem(hw_str))
+            self.table_attackers.setItem(row, 4, QTableWidgetItem(str(att["malicious_hits"])))
+            self.table_attackers.setItem(row, 5, sev_item)
+            self.table_attackers.setItem(row, 6, QTableWidgetItem(vectors))
 
         if attackers:
             self.table_attackers.selectRow(0)
@@ -595,34 +1842,56 @@ class AegisMainWindow(QMainWindow):
         if row < len(self.current_attackers):
             att = self.current_attackers[row]
             geo = att.get("threat_profile", {})
+            hw = att.get("device_hardware", {})
             fw = att.get("firewall_rules", {})
             mitre = att.get("mitre_mappings", [])
 
             mitre_text = "\n".join([f"  - {m['category']}: {m['owasp']} | {m['mitre']}\n    Defensive Fix: {m['defensive_control']}" for m in mitre])
             payloads = "\n".join([f"  * {p}" for p in att.get("sample_payloads", [])])
 
+            vpn_status = "VPN / Tor / Anonymous Proxy (DETECTED - High Anonymization Risk)" if geo.get("is_vpn_proxy") else "Direct Public IP (No VPN detected)"
+
             dossier_text = f"""=====================================================
-ATTACKER INTELLIGENCE DOSSIER // IP: {att['ip']}
+ATTACKER DOSSIER // IP: {att['ip']}
+DEVELOPED BY: TEAM WHITE HAT
 =====================================================
-[GEOLOCATION & NETWORK TELEMETRY]
-  Country / City: {geo.get('country')} ({geo.get('country_code')}), {geo.get('city')}
-  ISP / Hosting:  {geo.get('isp')}
-  Organization:   {geo.get('org')}
-  AS Number:      {geo.get('as_number')}
-  Reverse DNS:    {geo.get('reverse_dns')}
+[GEOLOCATION & NETWORK PROFILE]
+  Country / City:   {geo.get('country')} ({geo.get('country_code')}), {geo.get('city')}
+  ISP / Carrier:    {geo.get('isp')}
+  Organization:     {geo.get('org')}
+  AS Number:        {geo.get('as_number')}
+  Reverse DNS:      {geo.get('reverse_dns')}
+  VPN/Proxy Status: {vpn_status}
 
-[ATTACK ACTIVITY & VOLUME]
-  Threat Severity: {att['highest_severity'].upper()}
-  Malicious Probes: {att['malicious_hits']} / Total Requests: {att['total_requests']}
-  First Detected:   {att['first_seen']}
-  Last Detected:    {att['last_seen']}
-  Attack Categories: {', '.join(att['attack_types'])}
+[DEVICE HARDWARE & CLIENT MODEL FINGERPRINT]
+  Device Category:  {hw.get('device_category', 'Desktop / Workstation')}
+  Operating System: {hw.get('operating_system', 'Unknown OS')}
+  Hardware Model:   {hw.get('hardware_model', 'Generic Model')}
+  Mobile Brand:     {hw.get('mobile_brand', 'N/A')}
+  Spoofing Status:  {hw.get('spoofing_suspicion', 'Low')}
 
-[MITRE ATT&CK & OWASP MAPPING]
+[PROBING ACTIVITY]
+  Severity:         {att['highest_severity'].upper()}
+  Attacks:          {att['malicious_hits']} malicious / {att['total_requests']} total requests
+  First Seen:       {att['first_seen']}
+  Last Seen:        {att['last_seen']}
+  Categories:       {att['attack_types']}
+
+[MITRE ATT&CK & OWASP]
 {mitre_text if mitre_text else '  None mapped'}
 
-[SAMPLE ATTACK PAYLOADS INTERCEPTED]
-{payloads if payloads else '  No payload samples recorded'}
+[CAPTURED ATTACK PROBES]
+{payloads if payloads else '  None recorded'}
+
+=====================================================
+POLICE & CARRIER SUBPOENA INVESTIGATION PROTOCOL:
+=====================================================
+To legally identify the physical perpetrator (SIM, IMEI, GPS):
+1. Law Enforcement issues an expedited preservation order to ISP: {geo.get('isp')}
+2. Subpoena carrier NAT logs for IP {att['ip']} at timestamp {att['last_seen']}.
+3. Request Mobile Subscriber Name, MSISDN, Registered SIM Card ICCID,
+   and Hardware IMEI number associated with this connection.
+4. Obtain cellular tower sector and timing-advance triangulation GPS data.
 
 =====================================================
 INSTANT DEFENSIVE FIREWALL MITIGATION RULES:
@@ -633,14 +1902,8 @@ INSTANT DEFENSIVE FIREWALL MITIGATION RULES:
 [Linux UFW]
 {fw.get('ufw')}
 
-[Linux iptables]
-{fw.get('iptables')}
-
 [Nginx Block Directive]
 {fw.get('nginx')}
-
-[Apache .htaccess]
-{fw.get('apache')}
 """
             self.txt_dossier.setPlainText(dossier_text)
 
@@ -653,15 +1916,10 @@ INSTANT DEFENSIVE FIREWALL MITIGATION RULES:
         if row < len(self.current_attackers):
             att = self.current_attackers[row]
             fw = att.get("firewall_rules", {})
-            # Copy Windows powershell command on Windows, or multi-format text
             clipboard = QApplication.clipboard()
             clipboard.setText(fw.get("powershell", ""))
             self.terminal.log(f"Copied Windows Firewall block rule for {att['ip']} to clipboard.", "PASS")
             QMessageBox.information(self, "Rule Copied", f"Firewall block command for {att['ip']} copied to clipboard:\n\n{fw.get('powershell')}")
-
-    # -------------------------------------------------------------
-    # Playbooks & Reporting
-    # -------------------------------------------------------------
 
     def _on_playbook_changed(self, index: int):
         key = self.combo_playbook.currentData()

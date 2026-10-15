@@ -105,16 +105,21 @@ class WebAuditor:
     """Performs defensive posture audits against a target web server."""
 
     def __init__(self, target_url: str, timeout: int = 6):
+        target_url = target_url.strip()
         parsed = urllib.parse.urlparse(target_url)
         if not parsed.scheme:
-            target_url = "http://" + target_url
+            # If no scheme given, default to http for localhost/IPs, https for public domains
+            if "localhost" in target_url or "127.0.0.1" in target_url or target_url.startswith("192.168.") or target_url.startswith("10."):
+                target_url = "http://" + target_url
+            else:
+                target_url = "https://" + target_url
             parsed = urllib.parse.urlparse(target_url)
         self.target_url = target_url.rstrip("/")
         self.parsed = parsed
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers.update({
-            "User-Agent": "AegisHUD-DefensiveAuditor/1.0 (Localhost Security Inspector; +https://owasp.org)"
+            "User-Agent": "AegisHUD-DefensiveAuditor/2.0 (Localhost & Web Security Inspector; +https://github.com/unidentifiedcyberghost/AEGIS-DEFENSIVE-TOOLKITS)"
         })
 
     def run_full_audit(self, progress_callback=None) -> Dict[str, Any]:
@@ -153,7 +158,7 @@ class WebAuditor:
                 "severity": "Critical",
                 "title": "Target Server Unreachable",
                 "description": f"Could not connect to {self.target_url}. Ensure the web server or localhost service is running.",
-                "remediation": "Start your local development server (e.g., 'npm run dev', 'python -m http.server', or start Docker container)."
+                "remediation": "1. If scanning localhost, ensure your local app (e.g. 'npm run dev', 'python -m http.server 8000', Flask, Express) is currently running on that port.\n2. If scanning a public domain, ensure you specify 'https://' if the site requires SSL (e.g. https://yourdomain.com).\n3. Check if your firewall or antivirus is blocking connection."
             })
             report["summary"]["critical"] += 1
             return report
@@ -209,10 +214,104 @@ class WebAuditor:
         return ips
 
     def _test_connectivity(self) -> Optional[requests.Response]:
+        # 1. Try target_url directly
         try:
             return self.session.get(self.target_url, timeout=self.timeout, allow_redirects=True, verify=False)
         except Exception:
-            return None
+            pass
+
+        # 2. Try alternate scheme fallback (http <-> https)
+        alt_scheme = "https" if self.parsed.scheme == "http" else "http"
+        port_suffix = f":{self.parsed.port}" if self.parsed.port else ""
+        candidate_url = f"{alt_scheme}://{self.parsed.hostname}{port_suffix}{self.parsed.path or ''}"
+        try:
+            resp = self.session.get(candidate_url, timeout=self.timeout, allow_redirects=True, verify=False)
+            if resp is not None:
+                self.target_url = candidate_url.rstrip("/")
+                self.parsed = urllib.parse.urlparse(candidate_url)
+                return resp
+        except Exception:
+            pass
+
+        # 3. If localhost / local IP without explicit port, probe common active dev ports
+        if not self.parsed.port:
+            for alt_port in [8000, 3000, 5000, 8080, 5173, 4000, 8443]:
+                for sch in ["http", "https"]:
+                    try:
+                        cand = f"{sch}://{self.parsed.hostname}:{alt_port}"
+                        resp = self.session.get(cand, timeout=1.2, allow_redirects=True, verify=False)
+                        if resp is not None:
+                            self.target_url = cand
+                            self.parsed = urllib.parse.urlparse(cand)
+                            return resp
+                    except Exception:
+                        continue
+        return None
+
+    @staticmethod
+    def get_local_system_ips() -> Dict[str, Any]:
+        """Auto-discovers the machine's local loopback, LAN, and Wi-Fi IP addresses."""
+        hostname = "localhost"
+        try:
+            hostname = socket.gethostname()
+        except Exception:
+            pass
+
+        discovered_ips = [
+            {"ip": "127.0.0.1", "label": "Loopback (Localhost)", "type": "Loopback"}
+        ]
+        seen = {"127.0.0.1"}
+
+        try:
+            _, _, host_ips = socket.gethostbyname_ex(hostname)
+            for hip in host_ips:
+                if hip not in seen and not hip.startswith("127."):
+                    label = "LAN / Wi-Fi Network IP"
+                    if hip.startswith("169.254."):
+                        label = "Link-Local / Virtual Adapter"
+                    discovered_ips.append({
+                        "ip": hip,
+                        "label": label,
+                        "type": "LAN"
+                    })
+                    seen.add(hip)
+        except Exception:
+            pass
+
+        return {
+            "hostname": hostname,
+            "ips": discovered_ips
+        }
+
+    @staticmethod
+    def get_active_incoming_traffic() -> List[Dict[str, Any]]:
+        """Detects live active incoming network connections hitting local web server ports."""
+        import psutil
+        live_connections = []
+        try:
+            conns = psutil.net_connections(kind="inet")
+            for c in conns:
+                if c.status == psutil.CONN_ESTABLISHED and c.raddr:
+                    r_ip = c.raddr.ip
+                    r_port = c.raddr.port
+                    l_port = c.laddr.port
+                    l_ip = c.laddr.ip
+
+                    # Filter for web server or database ports
+                    if l_port in (80, 443, 3000, 5000, 8000, 8080, 5173, 3306, 5432, 27017, 6379):
+                        is_external = not (r_ip in ("127.0.0.1", "::1", "localhost") or r_ip == l_ip)
+                        live_connections.append({
+                            "remote_ip": r_ip,
+                            "remote_port": r_port,
+                            "local_port": l_port,
+                            "local_ip": l_ip,
+                            "is_external": is_external,
+                            "status": c.status,
+                            "pid": c.pid
+                        })
+        except Exception:
+            pass
+        return live_connections
 
     def _audit_headers(self, resp: requests.Response, report: Dict[str, Any]):
         headers = {k.lower(): v for k, v in resp.headers.items()}

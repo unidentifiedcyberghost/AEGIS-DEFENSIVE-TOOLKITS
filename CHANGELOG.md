@@ -6,6 +6,56 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [2.2.0] - 2026-10-16
+
+### 🛡️ Full Categorized Architecture & Cyber Defense War Room Release
+Major feature release restructuring the entire defensive platform into 8 clearly defined, intuitive categories across both the PyQt6 Desktop GUI and the Localhost Web HUD, developed by **Team White Hat**.
+
+### 🌟 New Features & Implementations
+- **[CAT 1] Vulnerability Auditor & Compliance:**
+  - Automated OWASP header auditing, insecure cookie inspections, and credential leak checks (`.env`, `.git`).
+  - Added automatic HTTPS/HTTP fallback and dev port probing in `aegis/auditor.py` to eliminate connection errors.
+- **[CAT 2] Cyber OSINT & Attack Surface Intelligence (`aegis/osint_engine.py`):**
+  - Passive multi-record DNS resolution (A, AAAA, MX, NS, PTR, TXT).
+  - Certificate Transparency (`crt.sh`) and SAN logs subdomain enumeration with a dedicated **"📋 COPY ALL SUBDOMAINS"** button.
+  - SSL/TLS cryptographic cipher suite analysis and certificate expiry tracking.
+  - BGP Autonomous System (ASN), ISP, and geolocation resolution with datacenter/proxy hosting flags.
+  - RFC 9116 `security.txt` compliance verification and threat pivots (Shodan, Censys, VirusTotal, URLScan).
+- **[CAT 3] Malware, Web Shell & Infected Path Scanner (`aegis/malware_scanner.py`):**
+  - Real-time scanner identifying malicious files, backdoors, PHP `eval(base64_decode())` shells, and JS cryptominers.
+  - **Bright Red Highlighting:** Detected infected paths and files are styled in bold bright red (`#FF3366`) with warning indicators for instant visibility.
+  - One-click **⚠️ Quarantine** (moves to `.aegis_quarantine/` with read-only permissions) and **🗑️ Permanent Remove** actions.
+  - Generates defensive anti-script execution configurations for Nginx and Apache.
+- **[CAT 4] Anti-XSS & Data Injection Shield (`aegis/injection_defense.py`):**
+  - Comprehensive auditing of Content-Security-Policy (CSP), MIME sniffing, and Clickjacking.
+  - Generates strict, production-ready CSP directives.
+  - Generates context-aware input sanitization templates for Python (Flask/FastAPI), Node.js (Express), and PHP.
+  - Provides ModSecurity WAF core script execution blocking rules.
+- **[CAT 5] Localhost Ports & Host Server Rootkit Auditor (`aegis/server_auditor.py`):**
+  - Sockets inspector for open ports and dangerous `0.0.0.0` wildcard interface bindings.
+  - **Host Server Machine Auditor:** Scans running OS processes for cryptominers (`xmrig`, `minerd`), reverse shells (`nc -e`, `powershell -enc`), backdoor ports (4444, 1337), hosts file hijacking, and dropped executable payloads in Temp directories.
+  - Integrated 1-click **"⚡ Terminate Rogue Process (Kill PID)"** capability.
+- **[CAT 6] Attacker Tracker & Log IDS (`aegis/log_ids.py`, `aegis/threat_intel.py`):**
+  - Live access log parsing identifying SQLi, XSS, Path Traversal, and brute-force probing.
+  - Profiles attacker IPs, detects commercial VPN, Proxy, and Tor exit nodes.
+  - Mobile device hardware model fingerprinting (decoding Samsung Galaxy, iPhone, Xiaomi hardware models from HTTP headers).
+- **[CAT 7] Cyber Attack Matrix & Remediation Dashboard (`aegis/attack_matrix.py`):**
+  - Dedicated interactive War Room dashboard covering 10 major attack vectors (SQLi, XSS, Web Shells, RCE, Path Traversal, DDoS, Brute Force, .env leaks, CSRF, SSRF).
+  - Displays exact log symptoms, real-time attack detection status, immediate emergency containment actions, permanent architectural fixes, and ready-to-deploy code fixes for Nginx, Apache, Python, Node.js, and PHP.
+  - One-click automated PowerShell / Bash firewall drop script generation.
+- **[CAT 8] Law Enforcement & Carrier Subpoena Dossier (`aegis/active_defense.py`):**
+  - Synthesizes ISO/IEC 27037 compliant forensic evidence reports with 18 U.S.C. § 2703 preservation procedures for police authorities to legally request subscriber SIM ICCID, hardware IMEI, and cell tower GPS coordinates from mobile carriers.
+- **Dedicated Application Launchers:**
+  - Added `gui.py` for direct launching of the PyQt6 desktop interface (`python gui.py`).
+  - Added `web.py` for direct launching of the Localhost Web HUD on port 5000 (`python web.py`).
+- **Prominent Developer Credits:**
+  - Added official contributor links in both GUI and Web HUD footers for **Team White Hat**:
+    - GitHub: `https://github.com/unidentifiedcyberghost`
+    - GitHub: `https://github.com/pinoyUnknown`
+    - X / Twitter: `https://x.com/TeamWhiteHatDev`
+
+---
+
 ## [1.0.1] - 2026-10-16
 
 ### 🌐 Added Localhost Web Browser Tactical HUD & NPM Launcher

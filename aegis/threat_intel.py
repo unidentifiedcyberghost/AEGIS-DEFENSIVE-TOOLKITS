@@ -1,10 +1,15 @@
 """
 Aegis Defensive Threat Intelligence & Attacker Profiler
-Enriches attacker IP telemetry with Reverse DNS, ASN/ISP lookup, scanner fingerprinting,
-and OWASP / MITRE ATT&CK threat mapping for incident response.
+Enriches attacker IP telemetry with:
+- VPN, Proxy, Tor & Datacenter Hosting Detection
+- Mobile Device, Hardware Model & OS Fingerprinting (Android Build, iPhone Model, Client Hints)
+- Reverse DNS & IP Spoofing Verification
+- MITRE ATT&CK & OWASP Threat Matrix Correlation
+- Forensic Carrier Investigation Advisory for Police & Law Enforcement Subpoenas
 """
 
 import socket
+import re
 import ipaddress
 from typing import Dict, Any, List
 import requests
@@ -40,7 +45,7 @@ class ThreatIntelAnalyzer:
             return True
 
     def enrich_attacker_ip(self, ip_str: str) -> Dict[str, Any]:
-        """Resolves Reverse DNS, Geolocation, ASN, and ISP intelligence for an attacker IP."""
+        """Resolves Reverse DNS, Geolocation, ASN, VPN/Proxy, and ISP intelligence for an attacker IP."""
         ip = ip_str.strip()
         if ip in self.cache:
             return self.cache[ip]
@@ -56,22 +61,25 @@ class ThreatIntelAnalyzer:
             "isp": "Local / Private Network",
             "org": "Internal / Non-Routable",
             "as_number": "N/A",
+            "is_vpn_proxy": False,
+            "is_datacenter_hosting": False,
+            "connection_type": "Broadband / Cellular",
             "threat_score": 0,
             "threat_rating": "Low"
         }
 
-        # 1. Reverse DNS Lookup
+        # 1. Reverse DNS Lookup (PTR)
         try:
             host, _, _ = socket.gethostbyaddr(ip)
             profile["reverse_dns"] = host
         except Exception:
-            profile["reverse_dns"] = "No PTR Record"
+            profile["reverse_dns"] = "No PTR Record Configured"
 
-        # 2. Public IP Geolocation & ASN Lookup (Online passive intelligence)
+        # 2. Public IP Geolocation, ASN & VPN/Hosting Detection
         if not profile["is_private"]:
             try:
                 resp = requests.get(
-                    f"http://ip-api.com/json/{ip}?fields=status,message,country,countryCode,regionName,city,isp,org,as,query",
+                    f"http://ip-api.com/json/{ip}?fields=status,message,country,countryCode,regionName,city,isp,org,as,proxy,hosting,query",
                     timeout=self.timeout
                 )
                 if resp.status_code == 200:
@@ -84,11 +92,98 @@ class ThreatIntelAnalyzer:
                         profile["isp"] = data.get("isp", "Unknown")
                         profile["org"] = data.get("org", "Unknown")
                         profile["as_number"] = data.get("as", "Unknown")
+                        profile["is_vpn_proxy"] = bool(data.get("proxy", False))
+                        profile["is_datacenter_hosting"] = bool(data.get("hosting", False))
+
+                        # Determine probable connection type
+                        if profile["is_vpn_proxy"]:
+                            profile["connection_type"] = "VPN / Anonymous Proxy / Tor Relay"
+                        elif profile["is_datacenter_hosting"]:
+                            profile["connection_type"] = "Cloud / Datacenter Server (VPS)"
+                        else:
+                            profile["connection_type"] = "Residential / Mobile Cellular Carrier"
             except Exception:
                 profile["isp"] = "Lookup Timeout / Offline"
 
         self.cache[ip] = profile
         return profile
+
+    def fingerprint_device_hardware(self, user_agents: List[str]) -> Dict[str, Any]:
+        """
+        Extracts hardware device models, mobile OS build numbers, and architecture from User-Agent headers.
+        Detects specific mobile models (Samsung Galaxy, Xiaomi, Google Pixel, iPhone, iPad).
+        """
+        device_intel = {
+            "device_category": "Desktop / Generic Client",
+            "operating_system": "Unknown OS",
+            "hardware_model": "Standard Hardware",
+            "mobile_brand": "N/A",
+            "client_browser": "Unknown Browser",
+            "spoofing_suspicion": "Low"
+        }
+
+        if not user_agents:
+            return device_intel
+
+        ua_str = " | ".join(user_agents)
+
+        # Android Device & Model Detection
+        android_match = re.search(r'Android\s+([0-9\.]+);\s*([^;)]+)\s*Build/([^;)]+)', ua_str, re.IGNORECASE)
+        if not android_match:
+            android_match = re.search(r'Android\s+([0-9\.]+);\s*([^;)]+)', ua_str, re.IGNORECASE)
+
+        if android_match:
+            version = android_match.group(1)
+            model_raw = android_match.group(2).strip()
+            device_intel["device_category"] = "Mobile Cellular Device (Android)"
+            device_intel["operating_system"] = f"Android {version}"
+            device_intel["hardware_model"] = model_raw
+
+            # Brand heuristics
+            if any(k in model_raw.upper() for k in ["SM-", "SAMSUNG", "GALAXY"]):
+                device_intel["mobile_brand"] = "Samsung Electronics"
+            elif any(k in model_raw.upper() for k in ["PIXEL"]):
+                device_intel["mobile_brand"] = "Google Pixel"
+            elif any(k in model_raw.upper() for k in ["XIAOMI", "REDMI", "POCO", "2201", "2109"]):
+                device_intel["mobile_brand"] = "Xiaomi / Redmi"
+            elif any(k in model_raw.upper() for k in ["HUAWEI", "HONOR"]):
+                device_intel["mobile_brand"] = "Huawei"
+            elif any(k in model_raw.upper() for k in ["ONEPLUS"]):
+                device_intel["mobile_brand"] = "OnePlus"
+            else:
+                device_intel["mobile_brand"] = "Generic Android OEM"
+
+        # Apple iOS Hardware Detection
+        elif "iPhone" in ua_str:
+            device_intel["device_category"] = "Mobile Cellular Device (Apple iPhone)"
+            ios_ver = re.search(r'OS\s+([0-9_]+)', ua_str)
+            ver_str = ios_ver.group(1).replace("_", ".") if ios_ver else "iOS"
+            device_intel["operating_system"] = f"Apple iOS {ver_str}"
+            device_intel["hardware_model"] = "Apple iPhone (A-Series Bionic Hardware)"
+            device_intel["mobile_brand"] = "Apple Inc."
+        elif "iPad" in ua_str:
+            device_intel["device_category"] = "Tablet Device (Apple iPad)"
+            device_intel["operating_system"] = "Apple iPadOS"
+            device_intel["hardware_model"] = "Apple iPad"
+            device_intel["mobile_brand"] = "Apple Inc."
+        elif "Windows NT" in ua_str:
+            device_intel["device_category"] = "Desktop PC / Workstation"
+            device_intel["operating_system"] = "Microsoft Windows"
+            device_intel["hardware_model"] = "x86_64 PC Architecture"
+        elif "Linux" in ua_str:
+            device_intel["device_category"] = "Linux Host / Server"
+            device_intel["operating_system"] = "GNU/Linux"
+            device_intel["hardware_model"] = "Linux x86_64 / ARM"
+        elif "Macintosh" in ua_str:
+            device_intel["device_category"] = "Desktop / Laptop (Mac)"
+            device_intel["operating_system"] = "Apple macOS"
+            device_intel["hardware_model"] = "Apple Silicon / Intel Mac"
+
+        # Check for tool-based or spoofed User-Agents
+        if any(tool in ua_str.lower() for tool in ["sqlmap", "nikto", "curl", "python", "go-http", "masscan"]):
+            device_intel["spoofing_suspicion"] = "High (Automated Attack Utility / Non-Browser Header)"
+
+        return device_intel
 
     def fingerprint_user_agents(self, user_agents: List[str]) -> List[Dict[str, str]]:
         """Identifies automated attack utilities and security scanners in User-Agent headers."""
