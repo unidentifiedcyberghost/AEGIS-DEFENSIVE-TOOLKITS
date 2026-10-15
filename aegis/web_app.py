@@ -57,7 +57,27 @@ HUD_HTML = """<!DOCTYPE html>
             --font-sans: 'Space Grotesk', sans-serif;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            scrollbar-width: none !important; /* Firefox */
+            -ms-overflow-style: none !important; /* IE/Edge */
+        }
+
+        *::-webkit-scrollbar,
+        body::-webkit-scrollbar,
+        div::-webkit-scrollbar,
+        pre::-webkit-scrollbar,
+        table::-webkit-scrollbar,
+        .table-container::-webkit-scrollbar,
+        .matrix-list-box::-webkit-scrollbar,
+        .matrix-detail-box::-webkit-scrollbar,
+        .hud-console::-webkit-scrollbar {
+            display: none !important;
+            width: 0px !important;
+            height: 0px !important;
+        }
 
         body {
             background-color: var(--bg-void);
@@ -68,6 +88,8 @@ HUD_HTML = """<!DOCTYPE html>
             line-height: 1.5;
             position: relative;
             overflow-x: hidden;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
         }
 
         /* 60fps Animated HUD Canvas Background */
@@ -158,12 +180,12 @@ HUD_HTML = """<!DOCTYPE html>
             background: rgba(7, 11, 20, 0.95);
             border: 1px solid var(--border-dim);
             border-radius: 6px;
-            padding: 8px 12px;
+            padding: 10px 14px;
             display: flex;
-            gap: 6px;
+            gap: 8px;
             align-items: center;
             margin-bottom: 14px;
-            overflow-x: auto;
+            flex-wrap: wrap;
         }
 
         .cat-label {
@@ -172,34 +194,38 @@ HUD_HTML = """<!DOCTYPE html>
             font-weight: 800;
             letter-spacing: 1.5px;
             white-space: nowrap;
-            margin-right: 4px;
+            margin-right: 6px;
         }
 
         .cat-pill {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid var(--border-dim);
+            background: #0B1428;
+            border: 1.5px solid #223555;
             color: #94A3B8;
-            padding: 5px 12px;
+            padding: 6px 14px;
             border-radius: 4px;
             font-size: 11px;
-            font-weight: bold;
+            font-weight: 800;
             cursor: pointer;
             transition: all 0.2s;
             white-space: nowrap;
             user-select: none;
+            letter-spacing: 0.5px;
+            box-sizing: border-box !important;
+            margin: 2px 3px !important;
         }
 
         .cat-pill:hover {
-            color: var(--text-bright);
-            border-color: #38BDF8;
-            background: rgba(15, 23, 42, 1);
+            color: #00FF88;
+            border-color: #00FF88;
+            background: rgba(0, 255, 136, 0.12);
+            box-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
         }
 
         .cat-pill.active {
-            background: rgba(0, 240, 255, 0.14);
-            color: var(--cyan);
-            border-color: var(--cyan);
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+            background: rgba(0, 240, 255, 0.2);
+            color: #00F0FF;
+            border-color: #00F0FF;
+            box-shadow: 0 0 14px rgba(0, 240, 255, 0.45);
         }
 
         /* Automated Threat Alert Banner */
@@ -234,7 +260,7 @@ HUD_HTML = """<!DOCTYPE html>
             color: var(--text-main);
         }
 
-        /* Target Control Bar */
+        /* Target Control Bar - Organized Multi-Row Grid for Flawless Alignment */
         .target-bar {
             background: var(--bg-panel);
             backdrop-filter: blur(10px);
@@ -242,29 +268,36 @@ HUD_HTML = """<!DOCTYPE html>
             border-radius: 6px;
             padding: 14px 18px;
             display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .target-bar-top {
+            display: flex;
             gap: 10px;
             align-items: center;
-            margin-bottom: 14px;
             flex-wrap: wrap;
+            width: 100%;
         }
 
         .target-input-group {
             display: flex;
             flex: 1;
-            min-width: 260px;
+            min-width: 280px;
         }
 
         .target-input {
             width: 100%;
             background: #070B14;
-            border: 1px solid var(--border-dim);
+            border: 1.5px solid var(--border-dim);
             color: var(--cyan);
             font-family: var(--font-mono);
             font-size: 12px;
             padding: 8px 14px;
             border-radius: 4px;
             outline: none;
-            transition: border-color 0.2s;
+            transition: all 0.2s;
         }
 
         .target-input:focus {
@@ -275,82 +308,140 @@ HUD_HTML = """<!DOCTYPE html>
         .presets {
             display: flex;
             gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .target-bar-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        /* Global Button Sizing & Border Isolation (Zero Collision Guarantee) */
+        .btn-preset, .btn-master, .btn-primary, .btn-danger, .btn-action, .hud-tab-btn {
+            box-sizing: border-box !important;
+            margin: 2px 4px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            vertical-align: middle !important;
         }
 
         .btn-preset {
-            background: #0B132B;
-            border: 1px solid var(--border-dim);
-            color: var(--text-muted);
-            padding: 6px 10px;
-            font-size: 10px;
+            background: #0B1736;
+            border: 1.5px solid #38BDF8;
+            color: #38BDF8;
+            padding: 7px 14px;
+            font-size: 11px;
+            font-weight: 800;
             border-radius: 4px;
             cursor: pointer;
             font-family: var(--font-mono);
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
             transition: all 0.2s;
         }
 
         .btn-preset:hover {
-            color: var(--text-bright);
-            border-color: #334155;
+            color: #FFFFFF;
+            border-color: #00F0FF;
+            background: rgba(0, 240, 255, 0.25);
+            box-shadow: 0 0 14px rgba(0, 240, 255, 0.4);
+        }
+
+        .btn-master {
+            background: linear-gradient(135deg, #00F0FF 0%, #00FF88 100%);
+            border: 2px solid #FFFFFF;
+            color: #05080E;
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            font-weight: 900;
+            padding: 9px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
+            animation: pulseMaster 2s infinite alternate;
+            transition: all 0.2s;
+        }
+
+        @keyframes pulseMaster {
+            from { box-shadow: 0 0 14px rgba(0, 240, 255, 0.5); }
+            to { box-shadow: 0 0 26px rgba(0, 255, 136, 0.9); }
+        }
+
+        .btn-master:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 0 35px rgba(0, 255, 136, 1);
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 255, 136, 0.2));
-            border: 1px solid var(--cyan);
-            color: var(--cyan);
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.3), rgba(0, 255, 136, 0.3));
+            border: 2px solid #00F0FF;
+            color: #00F0FF;
             font-family: var(--font-mono);
             font-size: 11px;
-            font-weight: 800;
-            padding: 8px 18px;
+            font-weight: 900;
+            padding: 9px 18px;
             border-radius: 4px;
             cursor: pointer;
-            letter-spacing: 1px;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            box-shadow: 0 0 14px rgba(0, 240, 255, 0.35);
             transition: all 0.2s;
         }
 
         .btn-primary:hover {
-            background: linear-gradient(135deg, rgba(0, 240, 255, 0.35), rgba(0, 255, 136, 0.35));
-            box-shadow: 0 0 16px rgba(0, 240, 255, 0.4);
-            color: #FFF;
+            background: linear-gradient(135deg, #00F0FF, #00FF88);
+            box-shadow: 0 0 24px rgba(0, 240, 255, 0.8);
+            color: #05080E;
+            border-color: #FFFFFF;
         }
 
         .btn-danger {
-            background: linear-gradient(135deg, rgba(255, 51, 102, 0.25), rgba(255, 184, 0, 0.15));
-            border: 1px solid var(--red);
-            color: var(--red);
+            background: linear-gradient(135deg, rgba(255, 51, 102, 0.35), rgba(255, 184, 0, 0.25));
+            border: 2px solid #FF3366;
+            color: #FF3366;
             font-family: var(--font-mono);
             font-size: 11px;
-            font-weight: 800;
-            padding: 8px 18px;
+            font-weight: 900;
+            padding: 9px 18px;
             border-radius: 4px;
             cursor: pointer;
-            letter-spacing: 1px;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            box-shadow: 0 0 14px rgba(255, 51, 102, 0.4);
             transition: all 0.2s;
         }
 
         .btn-danger:hover {
-            background: linear-gradient(135deg, rgba(255, 51, 102, 0.4), rgba(255, 184, 0, 0.3));
-            box-shadow: 0 0 16px rgba(255, 51, 102, 0.5);
-            color: #FFF;
+            background: linear-gradient(135deg, #FF3366, #FFB800);
+            box-shadow: 0 0 24px rgba(255, 51, 102, 0.8);
+            color: #05080E;
+            border-color: #FFFFFF;
         }
 
         .btn-action {
-            background: #0B132B;
-            border: 1px solid #1E293B;
-            color: var(--text-main);
+            background: #0E1A38;
+            border: 1.5px solid #00F0FF;
+            color: #F8FAFC;
             font-family: var(--font-mono);
             font-size: 11px;
-            font-weight: bold;
-            padding: 8px 14px;
+            font-weight: 800;
+            padding: 8px 16px;
             border-radius: 4px;
             cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
             transition: all 0.2s;
         }
 
         .btn-action:hover {
-            border-color: var(--cyan);
-            color: var(--cyan);
-            background: rgba(0, 240, 255, 0.08);
+            border-color: #00FF88;
+            color: #00FF88;
+            background: rgba(0, 255, 136, 0.15);
+            box-shadow: 0 0 16px rgba(0, 255, 136, 0.4);
         }
 
         /* Metrics Row */
@@ -467,40 +558,50 @@ HUD_HTML = """<!DOCTYPE html>
         }
 
         /* Main Tabs Bar */
+        /* Main Tabs Bar */
         .hud-tabs {
             display: flex;
             gap: 6px;
-            border-bottom: 1px solid var(--border-dim);
+            border-bottom: 1.5px solid var(--border-dim);
             margin-bottom: 14px;
             overflow-x: auto;
-            padding-bottom: 4px;
+            padding-bottom: 6px;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+        }
+        .hud-tabs::-webkit-scrollbar {
+            display: none !important;
+            width: 0px !important;
+            height: 0px !important;
         }
 
         .hud-tab-btn {
-            background: transparent;
-            border: 1px solid transparent;
-            color: var(--text-muted);
+            background: #0A1224;
+            border: 1.5px solid #1E2E4E;
+            color: #CBD5E1;
             font-family: var(--font-mono);
             font-size: 11px;
-            font-weight: bold;
-            padding: 8px 14px;
-            border-radius: 4px 4px 0 0;
+            font-weight: 800;
+            padding: 8px 16px;
+            border-radius: 4px;
             cursor: pointer;
             transition: all 0.2s;
             white-space: nowrap;
+            box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
         }
 
         .hud-tab-btn:hover {
-            color: var(--text-bright);
-            background: rgba(15, 23, 42, 0.6);
+            color: #00F0FF;
+            border-color: #00F0FF;
+            background: rgba(0, 240, 255, 0.12);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
         }
 
         .hud-tab-btn.active {
-            color: var(--cyan);
-            border: 1px solid var(--border-dim);
-            border-bottom: 2px solid var(--cyan);
-            background: var(--bg-card);
-            box-shadow: 0 -2px 10px rgba(0, 240, 255, 0.1);
+            color: #00F0FF;
+            border: 1.5px solid #00F0FF;
+            background: rgba(0, 240, 255, 0.22);
+            box-shadow: 0 0 16px rgba(0, 240, 255, 0.5), inset 0 0 8px rgba(0, 240, 255, 0.2);
         }
 
         /* Tab Content Panes */
@@ -763,18 +864,18 @@ HUD_HTML = """<!DOCTYPE html>
             </div>
         </header>
 
-        <!-- Category Ribbon -->
+        <!-- Security Modules Ribbon -->
         <div class="category-ribbon">
-            <span class="cat-label">CATEGORIES:</span>
-            <div class="cat-pill active" onclick="filterCategory('all', this)">⚡ ALL TOOLS</div>
-            <div class="cat-pill" onclick="filterCategory('cat1', this)">🛡️ [CAT 1] VULNERABILITY AUDITOR</div>
-            <div class="cat-pill" onclick="filterCategory('cat2', this)">🕵️ [CAT 2] CYBER OSINT ENGINE</div>
-            <div class="cat-pill" onclick="filterCategory('cat3', this)">🦠 [CAT 3] MALWARE SCANNER</div>
-            <div class="cat-pill" onclick="filterCategory('cat4', this)">💉 [CAT 4] ANTI-XSS & INJECTION</div>
-            <div class="cat-pill" onclick="filterCategory('cat5', this)">📡 [CAT 5] LOCALHOST & PORTS</div>
-            <div class="cat-pill" onclick="filterCategory('cat6', this)">🚨 [CAT 6] ATTACKER IDS & LOGS</div>
-            <div class="cat-pill" onclick="filterCategory('cat7', this)">⚔️ [CAT 7] ATTACK MATRIX & HOW TO FIX</div>
-            <div class="cat-pill" onclick="filterCategory('cat8', this)">📜 [CAT 8] CARRIER SUBPOENA DOSSIER</div>
+            <span class="cat-label">DEFENSE DOMAINS:</span>
+            <div class="cat-pill active" onclick="filterCategory('all', this)">⚡ ALL MODULES</div>
+            <div class="cat-pill" onclick="filterCategory('cat1', this)">🛡️ VULNERABILITY AUDITOR</div>
+            <div class="cat-pill" onclick="filterCategory('cat2', this)">🕵️ CYBER OSINT ENGINE</div>
+            <div class="cat-pill" onclick="filterCategory('cat3', this)">🦠 MALWARE SCANNER</div>
+            <div class="cat-pill" onclick="filterCategory('cat4', this)">💉 ANTI-XSS & INJECTION</div>
+            <div class="cat-pill" onclick="filterCategory('cat5', this)">📡 LOCALHOST & PORTS</div>
+            <div class="cat-pill" onclick="filterCategory('cat6', this)">🚨 ATTACKER IDS & LOGS</div>
+            <div class="cat-pill" onclick="filterCategory('cat7', this)">⚔️ ATTACK MATRIX & HOW TO FIX</div>
+            <div class="cat-pill" onclick="filterCategory('cat8', this)">📜 EVIDENCE & SUBPOENA DOSSIER</div>
         </div>
 
         <!-- Automated Threat Alert Banner -->
@@ -785,22 +886,27 @@ HUD_HTML = """<!DOCTYPE html>
 
         <!-- Target Control Bar -->
         <div class="target-bar">
-            <div class="target-input-group">
-                <input type="text" id="targetUrl" class="target-input" value="http://127.0.0.1:8000" placeholder="Enter target website URL or localhost (e.g. http://localhost:3000, http://127.0.0.1:8080)">
+            <div class="target-bar-top">
+                <div class="target-input-group">
+                    <input type="text" id="targetUrl" class="target-input" value="http://127.0.0.1:8000" placeholder="Enter target website URL or IP address (e.g. http://localhost:3000, 127.0.0.1:8080, 192.168.1.1, https://yoursite.com)">
+                </div>
+                <div class="presets">
+                    <button class="btn-preset" onclick="setTarget('http://localhost:3000')">localhost:3000</button>
+                    <button class="btn-preset" onclick="setTarget('http://localhost:8000')">localhost:8000</button>
+                    <button class="btn-preset" onclick="setTarget('http://127.0.0.1:8080')">127.0.0.1:8080</button>
+                </div>
             </div>
-            <div class="presets">
-                <button class="btn-preset" onclick="setTarget('http://localhost:3000')">localhost:3000</button>
-                <button class="btn-preset" onclick="setTarget('http://localhost:8000')">localhost:8000</button>
-                <button class="btn-preset" onclick="setTarget('http://127.0.0.1:8080')">127.0.0.1:8080</button>
+            <div class="target-bar-actions">
+                <button class="btn-master" onclick="runMasterScan()">🚀 RUN MASTER DEFENSE SCAN (ALL PANELS)</button>
+                <button class="btn-primary" id="btnAudit" onclick="runAudit()">🛡️ RUN DEFENSIVE AUDIT</button>
+                <button class="btn-danger" onclick="triggerEmergencyLockdown()">⚡ ONE-CLICK EMERGENCY LOCKDOWN</button>
+                <button class="btn-action" onclick="scanPorts()">📡 SCAN PORTS</button>
             </div>
-            <button class="btn-primary" id="btnAudit" onclick="runAudit()">🛡️ RUN DEFENSIVE AUDIT</button>
-            <button class="btn-danger" onclick="triggerEmergencyLockdown()">⚡ ONE-CLICK EMERGENCY LOCKDOWN</button>
-            <button class="btn-action" onclick="scanPorts()">📡 SCAN PORTS</button>
-            <div style="width: 100%; display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap;">
-                <span style="color: var(--cyan); font-size: 11px; font-weight: bold;">🎯 MY DETECTED LOCAL IPs:</span>
+            <div style="width: 100%; display: flex; gap: 8px; align-items: center; margin-top: 4px; flex-wrap: wrap;">
+                <span style="color: var(--cyan); font-size: 11px; font-weight: bold;">🎯 DETECTED HOST INTERFACES & LOCAL IPs:</span>
                 <div id="myIpsList" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
-                <button class="btn-action" style="padding: 4px 8px; font-size: 10px;" onclick="loadMyIps()">🔄 REFRESH IPs</button>
-                <button class="btn-action" style="padding: 4px 8px; font-size: 10px; border-color: var(--amber); color: var(--amber);" onclick="sendTestProbe()">🧪 TEST ATTACK PROBE ON MY IP</button>
+                <button class="btn-action" style="padding: 4px 10px; font-size: 10px;" onclick="loadMyIps()">🔄 REFRESH IPs</button>
+                <button class="btn-action" style="padding: 4px 10px; font-size: 10px; border-color: var(--amber); color: var(--amber);" onclick="sendTestProbe()">🧪 TEST ATTACK PROBE ON MY IP</button>
             </div>
         </div>
 
@@ -841,25 +947,25 @@ HUD_HTML = """<!DOCTYPE html>
 
         <!-- Tabs Navigation Bar -->
         <div class="hud-tabs">
-            <button class="hud-tab-btn active" data-category="cat1" onclick="switchTab('tab-findings', this)">🌐 [CAT 1] OWASP VULN AUDIT</button>
-            <button class="hud-tab-btn" data-category="cat2" onclick="switchTab('tab-osint', this)">🕵️ [CAT 2] CYBER OSINT & ATTACK SURFACE</button>
-            <button class="hud-tab-btn" data-category="cat3" onclick="switchTab('tab-malware', this)">🦠 [CAT 3] MALWARE & WEBSHELL SCANNER</button>
-            <button class="hud-tab-btn" data-category="cat4" onclick="switchTab('tab-injection', this)">💉 [CAT 4] ANTI-XSS & DATA INJECTION</button>
-            <button class="hud-tab-btn" data-category="cat5" onclick="switchTab('tab-ports', this)">📡 [CAT 5] LOCALHOST & PORTS</button>
-            <button class="hud-tab-btn" data-category="cat5" onclick="switchTab('tab-server', this)">💻 [CAT 5] SERVER ROOTKIT AUDITOR</button>
-            <button class="hud-tab-btn" data-category="cat6" onclick="switchTab('tab-attackers', this)">🚨 [CAT 6] ATTACKER IDS & LOGS</button>
-            <button class="hud-tab-btn" data-category="cat6" onclick="switchTab('tab-live-traffic', this)">📡 [CAT 6] LIVE TRAFFIC SNIFFER</button>
-            <button class="hud-tab-btn" data-category="cat7" onclick="switchTab('tab-attack-matrix', this)">⚔️ [CAT 7] ATTACK MATRIX & HOW TO FIX</button>
-            <button class="hud-tab-btn" data-category="cat7" onclick="switchTab('tab-playbooks', this)">📋 [CAT 7] SERVER PLAYBOOKS</button>
-            <button class="hud-tab-btn" data-category="cat8" onclick="switchTab('tab-dossier', this)">📜 [CAT 8] CARRIER SUBPOENA DOSSIER</button>
+            <button class="hud-tab-btn active" data-category="cat1" onclick="switchTab('tab-findings', this)">🌐 OWASP VULN AUDIT</button>
+            <button class="hud-tab-btn" data-category="cat2" onclick="switchTab('tab-osint', this)">🕵️ CYBER OSINT, IP ROUTES & TABLES</button>
+            <button class="hud-tab-btn" data-category="cat3" onclick="switchTab('tab-malware', this)">🦠 MALWARE & WEBSHELL SCANNER</button>
+            <button class="hud-tab-btn" data-category="cat4" onclick="switchTab('tab-injection', this)">💉 ANTI-XSS & DATA INJECTION</button>
+            <button class="hud-tab-btn" data-category="cat5" onclick="switchTab('tab-ports', this)">📡 LOCALHOST & PORTS</button>
+            <button class="hud-tab-btn" data-category="cat5" onclick="switchTab('tab-server', this)">💻 SERVER ROOTKIT AUDITOR</button>
+            <button class="hud-tab-btn" data-category="cat6" onclick="switchTab('tab-attackers', this)">🚨 ATTACKER IDS & LOGS</button>
+            <button class="hud-tab-btn" data-category="cat6" onclick="switchTab('tab-live-traffic', this)">📡 LIVE TRAFFIC SNIFFER</button>
+            <button class="hud-tab-btn" data-category="cat7" onclick="switchTab('tab-attack-matrix', this)">⚔️ ATTACK MATRIX & HOW TO FIX</button>
+            <button class="hud-tab-btn" data-category="cat7" onclick="switchTab('tab-playbooks', this)">📋 SERVER PLAYBOOKS</button>
+            <button class="hud-tab-btn" data-category="cat8" onclick="switchTab('tab-dossier', this)">📜 CARRIER SUBPOENA DOSSIER</button>
             <button class="hud-tab-btn" data-category="all" onclick="switchTab('tab-console', this)">🖥️ TACTICAL LOGS</button>
         </div>
 
-        <!-- Tab 1: OWASP Vulnerability Findings (CAT 1) -->
+        <!-- Tab 1: OWASP Vulnerability Findings -->
         <div id="tab-findings" class="tab-pane active">
             <div class="category-header-banner">
                 <div>
-                    <h2>CATEGORY 1: VULNERABILITY AUDITOR & COMPLIANCE</h2>
+                    <h2>🌐 VULNERABILITY AUDITOR & OWASP COMPLIANCE</h2>
                     <p>Scans target website/localhost for missing OWASP security headers (CSP, HSTS, X-Frame), .env/private credential leaks, and insecure cookies.</p>
                 </div>
             </div>
@@ -880,12 +986,12 @@ HUD_HTML = """<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- Tab 2: Cyber OSINT Engine (CAT 2) -->
+        <!-- Tab 2: Cyber OSINT Engine -->
         <div id="tab-osint" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>CATEGORY 2: CYBER OSINT & ATTACK SURFACE INTELLIGENCE ENGINE</h2>
-                    <p>Passive DNS enumeration, Certificate Transparency subdomains, SSL/TLS cryptanalysis, BGP routing/ASN, and security.txt compliance.</p>
+                    <h2>🕵️ CYBER OSINT & ATTACK SURFACE INTELLIGENCE ENGINE</h2>
+                    <p>Passive DNS enumeration, Certificate Transparency subdomains, SSL/TLS cryptanalysis, BGP routing/ASN, IP Tables, Routes, Details, and Origins.</p>
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <button class="btn-action" id="btnRunOsint" onclick="runOsintRecon()">🕵️ RUN PASSIVE OSINT RECON</button>
@@ -917,6 +1023,68 @@ HUD_HTML = """<!DOCTYPE html>
                 </div>
             </div>
 
+            <!-- Section: IP Infrastructure & Network Route Intelligence -->
+            <div style="margin-top: 14px; margin-bottom: 8px;">
+                <span style="color: var(--cyan); font-weight: 900; font-size: 12px; letter-spacing: 1px;">📡 TARGET IP INFRASTRUCTURE, ROUTES & FIREWALL IP TABLES:</span>
+            </div>
+            <div class="osint-grid">
+                <!-- IP Details Card -->
+                <div class="osint-card">
+                    <h4>📌 IP DETAILS & SCOPE VERIFICATION</h4>
+                    <div class="table-container" style="max-height: 220px;">
+                        <table>
+                            <thead><tr><th style="width: 140px;">PROPERTY</th><th>VALUE / VERIFICATION</th></tr></thead>
+                            <tbody id="tbodyIpDetails">
+                                <tr><td colspan="2" style="color: var(--text-muted); text-align: center;">Execute OSINT to inspect target IP details.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- IP Origins Card -->
+                <div class="osint-card">
+                    <h4>🌍 IP ORIGINS & GEOLOCATION TELEMETRY</h4>
+                    <div class="table-container" style="max-height: 220px;">
+                        <table>
+                            <thead><tr><th style="width: 140px;">ORIGIN ATTRIBUTE</th><th>TELEMETRY DATA</th></tr></thead>
+                            <tbody id="tbodyIpOrigins">
+                                <tr><td colspan="2" style="color: var(--text-muted); text-align: center;">Execute OSINT to resolve IP origin gateway.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- IP Routes Card -->
+                <div class="osint-card">
+                    <h4>🛣️ IP ROUTES & BGP ROUTING INFRASTRUCTURE</h4>
+                    <div class="table-container" style="max-height: 220px;">
+                        <table>
+                            <thead><tr><th style="width: 140px;">ROUTING LAYER</th><th>METRIC / PATHWAY</th></tr></thead>
+                            <tbody id="tbodyIpRoutes">
+                                <tr><td colspan="2" style="color: var(--text-muted); text-align: center;">Execute OSINT to trace BGP prefixes and default routes.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- IP Tables & Drop Rules Card -->
+                <div class="osint-card">
+                    <h4>🛡️ IP TABLES & DEFENSIVE FIREWALL ENFORCEMENT</h4>
+                    <div class="table-container" style="max-height: 220px;">
+                        <table>
+                            <thead><tr><th style="width: 140px;">FIREWALL ENGINE</th><th>SYNTHESIZED DROP RULE</th></tr></thead>
+                            <tbody id="tbodyIpTables">
+                                <tr><td colspan="2" style="color: var(--text-muted); text-align: center;">Execute OSINT to generate IP table block directives.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Existing OSINT Recon Cards -->
+            <div style="margin-top: 14px; margin-bottom: 8px;">
+                <span style="color: var(--green); font-weight: 900; font-size: 12px; letter-spacing: 1px;">🌐 DOMAIN ATTACK SURFACE & PUBLIC TELEMETRY:</span>
+            </div>
             <div class="osint-grid">
                 <!-- Subdomains Card -->
                 <div class="osint-card">
@@ -980,11 +1148,11 @@ HUD_HTML = """<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- Tab 3: Malware & Web Shell Scanner (CAT 3) -->
+        <!-- Tab 3: Malware & Web Shell Scanner -->
         <div id="tab-malware" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>CATEGORY 3: MALWARE & WEB SHELL INFECTED PATH SCANNER</h2>
+                    <h2>🦠 MALWARE & WEB SHELL INFECTED PATH SCANNER</h2>
                     <p>Inspects website and server paths for malicious files, backdoors, obfuscated PHP eval/base64 shells, JS cryptominers, and double extensions.</p>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center;">
@@ -1030,11 +1198,11 @@ HUD_HTML = """<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- Tab 4: Anti-XSS & Data Injection Shield (CAT 4) -->
+        <!-- Tab 4: Anti-XSS & Data Injection Shield -->
         <div id="tab-injection" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>CATEGORY 4: ANTI-XSS, DATA INJECTION & SCRIPT EXECUTION DEFENSE SHIELD</h2>
+                    <h2>💉 ANTI-XSS, DATA INJECTION & SCRIPT EXECUTION DEFENSE SHIELD</h2>
                     <p>Audits Content-Security-Policy (CSP), MIME sniffing, clickjacking, and generates context-aware input sanitization templates.</p>
                 </div>
                 <button class="btn-primary" onclick="runInjectionAudit()">💉 AUDIT ANTI-XSS DEFENSES</button>
@@ -1081,11 +1249,11 @@ HUD_HTML = """<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- Tab 5: Localhost Ports (CAT 5) -->
+        <!-- Tab 5: Localhost Ports -->
         <div id="tab-ports" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>CATEGORY 5: LOCALHOST OPEN PORTS & SOCKETS AUDITOR</h2>
+                    <h2>📡 LOCALHOST OPEN PORTS & SOCKETS AUDITOR</h2>
                     <p>Scans system TCP listeners to identify dangerous wildcard (0.0.0.0) exposures, unauthenticated dev databases, and rogue services.</p>
                 </div>
                 <button class="btn-action" onclick="scanPorts()">🔄 REFRESH PORTS</button>
@@ -1109,11 +1277,11 @@ HUD_HTML = """<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- Tab 6: Server Machine Rootkit Auditor (CAT 5 Sub) -->
+        <!-- Tab 6: Server Machine Rootkit Auditor -->
         <div id="tab-server" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>CATEGORY 5: SERVER MACHINE & COMPUTER HOST ROOTKIT AUDITOR</h2>
+                    <h2>💻 SERVER MACHINE & COMPUTER HOST ROOTKIT AUDITOR</h2>
                     <p>Deep host audit: scans running processes for cryptominers, reverse shells, backdoor ports, hosts file tampering, and dropped temp files.</p>
                 </div>
                 <button class="btn-danger" id="btnAuditServer" onclick="runServerAudit()">💻 RUN FULL SYSTEM INTEGRITY SCAN</button>
@@ -1155,11 +1323,11 @@ HUD_HTML = """<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- Tab 7: Attacker Tracker & IDS (CAT 6) -->
+        <!-- Tab 7: Attacker Tracker & IDS -->
         <div id="tab-attackers" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>CATEGORY 6: LOG INTRUSION DETECTION & ATTACKER TRACKING ENGINE</h2>
+                    <h2>🚨 LOG INTRUSION DETECTION & ATTACKER TRACKING ENGINE</h2>
                     <p>Detects automated attack probes (SQLi, XSS, Path Traversal), fingerprints attacker toolkits (SQLmap, Nikto), mobile hardware, and resolves VPN/Tor proxies.</p>
                 </div>
                 <div style="display: flex; gap: 8px;">
@@ -1187,11 +1355,11 @@ HUD_HTML = """<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- Tab 8: Live Traffic Sniffer (CAT 6) -->
+        <!-- Tab 8: Live Traffic Sniffer -->
         <div id="tab-live-traffic" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>CATEGORY 6: LIVE TRAFFIC SNIFFER & CONNECTION MONITOR</h2>
+                    <h2>📡 LIVE TRAFFIC SNIFFER & CONNECTION MONITOR</h2>
                     <p>Real-time telemetry showing live network connections entering your localhost web server.</p>
                 </div>
                 <button class="btn-action" onclick="pollActiveTraffic()">🔄 REFRESH LIVE CONNECTIONS</button>
@@ -1215,11 +1383,11 @@ HUD_HTML = """<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- Tab 9: Attack Matrix & How to Fix (CAT 7) -->
+        <!-- Tab 9: Attack Matrix & How to Fix -->
         <div id="tab-attack-matrix" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>CATEGORY 7: CYBER ATTACK MATRIX & DEFENSE REMEDIATION DASHBOARD</h2>
+                    <h2>⚔️ CYBER ATTACK MATRIX & DEFENSE REMEDIATION DASHBOARD</h2>
                     <p>Comprehensive interactive defense runbook: displays all known attacks, exact symptoms, immediate emergency actions, and multi-framework code fixes.</p>
                 </div>
                 <button class="btn-danger" onclick="triggerEmergencyLockdown()">⚡ ONE-CLICK EMERGENCY FIREWALL SCRIPT</button>
@@ -1263,11 +1431,11 @@ HUD_HTML = """<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- Tab 10: Server Playbooks (CAT 7) -->
+        <!-- Tab 10: Server Playbooks -->
         <div id="tab-playbooks" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>CATEGORY 7: SERVER HARDENING PLAYBOOKS</h2>
+                    <h2>📋 SERVER HARDENING PLAYBOOKS</h2>
                     <p>Production-ready security configurations to instantly eliminate OWASP vulnerabilities across major web servers.</p>
                 </div>
                 <div style="display: flex; gap: 6px;">
@@ -1283,11 +1451,11 @@ HUD_HTML = """<!DOCTYPE html>
             <pre id="playbookCode" style="height: 380px;">Select a playbook above...</pre>
         </div>
 
-        <!-- Tab 11: Carrier Subpoena Dossier (CAT 8) -->
+        <!-- Tab 11: Carrier Subpoena Dossier -->
         <div id="tab-dossier" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>CATEGORY 8: LAW ENFORCEMENT & MOBILE CARRIER SUBPOENA EVIDENCE DOSSIER</h2>
+                    <h2>📜 LAW ENFORCEMENT & MOBILE CARRIER SUBPOENA EVIDENCE DOSSIER</h2>
                     <p>Cryptographically hashed evidence report formatted for submission to Police Cybercrime Divisions, CERTs, and Mobile Carrier Subpoenas (SIM / IMEI / GPS).</p>
                 </div>
                 <button class="btn-action" onclick="exportForensicDossier()">💾 EXPORT FORMAL DOSSIER (.TXT)</button>
@@ -1623,7 +1791,67 @@ HUD_HTML = """<!DOCTYPE html>
                     addTableRow(tbodySsl, ['Status', 'No active public SSL/TLS certificate detected on port 443']);
                 }
 
-                // 5. BGP & Routing Table
+                // 5. IP Infrastructure: Details, Origins, Routes, and Tables
+                const details = recon.ip_details || {};
+                const tbodyDetails = document.getElementById('tbodyIpDetails');
+                if (tbodyDetails) {
+                    tbodyDetails.innerHTML = '';
+                    addTableRow(tbodyDetails, ['Target IP Address', details.target_ip || 'N/A']);
+                    addTableRow(tbodyDetails, ['Target Hostname', details.hostname || 'N/A']);
+                    addTableRow(tbodyDetails, ['Reverse DNS (PTR)', details.reverse_dns || 'N/A']);
+                    addTableRow(tbodyDetails, ['Scope / Classification', details.ip_type || 'N/A']);
+                    addTableRow(tbodyDetails, ['IP Version', details.ip_version || 'IPv4']);
+                    addTableRow(tbodyDetails, ['Bogon Verification', details.bogon_status || 'Legitimate Routable']);
+                }
+
+                const origins = recon.ip_origins || {};
+                const tbodyOrigins = document.getElementById('tbodyIpOrigins');
+                if (tbodyOrigins) {
+                    tbodyOrigins.innerHTML = '';
+                    addTableRow(tbodyOrigins, ['Country', `${origins.country || 'Unknown'} (${origins.country_code || '--'})`]);
+                    addTableRow(tbodyOrigins, ['Region / City', `${origins.city || 'Unknown'}, ${origins.region || ''}`]);
+                    addTableRow(tbodyOrigins, ['GPS Coordinates', origins.coordinates || 'N/A']);
+                    addTableRow(tbodyOrigins, ['Timezone', origins.timezone || 'UTC']);
+                    addTableRow(tbodyOrigins, ['Internet Service Provider', origins.isp || 'N/A']);
+                    addTableRow(tbodyOrigins, ['Organization', origins.org || 'N/A']);
+                    addTableRow(tbodyOrigins, ['Public Origin IP', origins.public_origin_ip || origins.ip || 'N/A']);
+                    addTableRow(tbodyOrigins, ['Hosting / VPN / Proxy', origins.is_vpn_or_hosting ? '⚠️ YES (Datacenter / Proxy IP)' : '🛡️ NO (Residential/Direct Origin)']);
+                }
+
+                const routes = recon.ip_routes || {};
+                const tbodyRoutes = document.getElementById('tbodyIpRoutes');
+                if (tbodyRoutes) {
+                    tbodyRoutes.innerHTML = '';
+                    addTableRow(tbodyRoutes, ['Autonomous System (ASN)', `${routes.asn || 'N/A'} (${routes.as_name || 'N/A'})`]);
+                    addTableRow(tbodyRoutes, ['BGP Routing CIDR', routes.bgp_prefix || 'N/A']);
+                    addTableRow(tbodyRoutes, ['Default Gateway', routes.default_gateway || '127.0.0.1']);
+                    const sysRoutes = routes.active_system_routes || [];
+                    if (sysRoutes.length > 0) {
+                        const topRoute = sysRoutes[0];
+                        addTableRow(tbodyRoutes, ['Active Host Route [0]', `Dest: ${topRoute.destination} | Mask: ${topRoute.netmask} | Gateway: ${topRoute.gateway} | Iface: ${topRoute.interface}`]);
+                        if (sysRoutes.length > 1) {
+                            const secondRoute = sysRoutes[1];
+                            addTableRow(tbodyRoutes, ['Active Host Route [1]', `Dest: ${secondRoute.destination} | Mask: ${secondRoute.netmask} | Gateway: ${secondRoute.gateway} | Iface: ${secondRoute.interface}`]);
+                        }
+                    }
+                }
+
+                const tables = recon.ip_tables || {};
+                const tbodyTables = document.getElementById('tbodyIpTables');
+                if (tbodyTables) {
+                    tbodyTables.innerHTML = '';
+                    addTableRow(tbodyTables, ['Linux iptables Drop', tables.iptables_drop || `iptables -I INPUT -s ${details.target_ip || '127.0.0.1'} -j DROP`]);
+                    addTableRow(tbodyTables, ['Linux nftables Drop', tables.nftables_drop || `nft add rule ip filter input ip saddr ${details.target_ip || '127.0.0.1'} drop`]);
+                    addTableRow(tbodyTables, ['Windows PowerShell Block', tables.powershell_block || `New-NetFirewallRule -DisplayName 'Aegis-Drop' -RemoteAddress ${details.target_ip || '127.0.0.1'} -Action Block`]);
+                    addTableRow(tbodyTables, ['Nginx Web Server Deny', tables.nginx_deny || `deny ${details.target_ip || '127.0.0.1'};`]);
+                    addTableRow(tbodyTables, ['Apache .htaccess Deny', tables.apache_deny || `Require not ip ${details.target_ip || '127.0.0.1'}`]);
+                    const ifaces = tables.active_interfaces || [];
+                    if (ifaces.length > 0) {
+                        addTableRow(tbodyTables, ['Host Network Adapter', `${ifaces[0].name}: ${ifaces[0].ip} (MAC: ${ifaces[0].mac})`]);
+                    }
+                }
+
+                // 6. BGP & Routing Table
                 const tbodyBgp = document.getElementById('tbodyOsintBgp');
                 tbodyBgp.innerHTML = '';
                 const bgp = recon.network_routing || {};
@@ -1634,7 +1862,7 @@ HUD_HTML = """<!DOCTYPE html>
                 addTableRow(tbodyBgp, ['Location', `${bgp.city || 'Unknown'}, ${bgp.country || 'Unknown'}`]);
                 addTableRow(tbodyBgp, ['Hosting / Proxy Flag', bgp.is_vpn_or_hosting ? 'Yes (Datacenter / Cloud / Proxy)' : 'No (Residential/Origin)']);
 
-                // 6. Threat Pivots
+                // 7. Threat Pivots
                 const pivotsBox = document.getElementById('osintPivotsList');
                 pivotsBox.innerHTML = '';
                 for (const [name, pUrl] of Object.entries(recon.external_intelligence_links || {})) {
@@ -1653,6 +1881,34 @@ HUD_HTML = """<!DOCTYPE html>
             } finally {
                 btn.innerText = '🕵️ RUN PASSIVE OSINT RECON';
                 btn.disabled = false;
+            }
+        }
+
+        async function runMasterScan() {
+            logToConsole('🚀 MASTER DEFENSE SCAN ENGAGED: Executing all defensive domains across all panels...', 'INFO');
+            const masterBtn = document.querySelector('.btn-master');
+            if (masterBtn) {
+                masterBtn.innerText = '⏳ SCANNING ALL PANELS...';
+                masterBtn.disabled = true;
+            }
+            try {
+                await Promise.allSettled([
+                    runAudit(),
+                    runOsintRecon(),
+                    runMalwareScan(),
+                    runInjectionAudit(),
+                    scanPorts(),
+                    runServerAudit(),
+                    analyzeLogs(true)
+                ]);
+                logToConsole('✅ MASTER DEFENSE SCAN COMPLETE: All panels populated with live telemetry!', 'PASS');
+            } catch (err) {
+                logToConsole('Master scan notice: ' + err, 'WARN');
+            } finally {
+                if (masterBtn) {
+                    masterBtn.innerText = '🚀 RUN MASTER DEFENSE SCAN (ALL PANELS)';
+                    masterBtn.disabled = false;
+                }
             }
         }
 

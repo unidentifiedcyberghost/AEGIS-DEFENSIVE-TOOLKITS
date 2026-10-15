@@ -18,7 +18,7 @@ import os
 import urllib.parse
 from datetime import datetime
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
     QLineEdit, QPushButton, QProgressBar, QTabWidget, QTableWidget,
     QTableWidgetItem, QHeaderView, QFrame, QSplitter, QTextEdit,
     QFileDialog, QMessageBox, QComboBox, QApplication,
@@ -92,16 +92,16 @@ class AegisMainWindow(QMainWindow):
         self.tab_playbooks = self._build_playbooks_tab()
         self.tab_terminal = self._build_terminal_tab()
 
-        self.tabs.addTab(self.tab_overview, "🛡️ [CAT 1] OVERVIEW & SCORE")
-        self.tabs.addTab(self.tab_web, "🌐 [CAT 1] OWASP VULN AUDIT")
-        self.tabs.addTab(self.tab_osint, "🕵️ [CAT 2] CYBER OSINT & ATTACK SURFACE")
-        self.tabs.addTab(self.tab_malware, "🦠 [CAT 3] MALWARE & WEBSHELL SCANNER")
-        self.tabs.addTab(self.tab_injection, "💉 [CAT 4] ANTI-XSS & DATA INJECTION")
-        self.tabs.addTab(self.tab_ports, "📡 [CAT 5] LOCALHOST & PORTS")
-        self.tabs.addTab(self.tab_attackers, "🚨 [CAT 6] ATTACKER IDS & LOGS")
-        self.tabs.addTab(self.tab_attack_matrix, "⚔️ [CAT 7] ATTACK MATRIX & HOW TO FIX")
-        self.tabs.addTab(self.tab_playbooks, "📋 [CAT 7] HARDENING PLAYBOOKS")
-        self.tabs.addTab(self.tab_terminal, "🖥️ [CAT 8] TACTICAL CONSOLE")
+        self.tabs.addTab(self.tab_overview, "🛡️ OVERVIEW & SCORE")
+        self.tabs.addTab(self.tab_web, "🌐 OWASP VULN AUDIT")
+        self.tabs.addTab(self.tab_osint, "🕵️ CYBER OSINT, IP ROUTES & TABLES")
+        self.tabs.addTab(self.tab_malware, "🦠 MALWARE & WEBSHELL SCANNER")
+        self.tabs.addTab(self.tab_injection, "💉 ANTI-XSS & DATA INJECTION")
+        self.tabs.addTab(self.tab_ports, "📡 LOCALHOST & PORTS")
+        self.tabs.addTab(self.tab_attackers, "🚨 ATTACKER IDS & LOGS")
+        self.tabs.addTab(self.tab_attack_matrix, "⚔️ ATTACK MATRIX & HOW TO FIX")
+        self.tabs.addTab(self.tab_playbooks, "📋 HARDENING PLAYBOOKS")
+        self.tabs.addTab(self.tab_terminal, "🖥️ TACTICAL CONSOLE")
 
         main_layout.addWidget(self.tabs, stretch=1)
 
@@ -142,85 +142,161 @@ class AegisMainWindow(QMainWindow):
         top_row.addWidget(lbl_mode)
         layout.addLayout(top_row)
 
-        # Input & Action Controls
-        ctrl_row = QHBoxLayout()
-        lbl_target = QLabel("TARGET URL / HOST:")
+        # Input & Action Controls (Organized in 2 Well-Aligned Rows to Prevent Any Overlap)
+        ctrl_layout = QVBoxLayout()
+        ctrl_layout.setSpacing(8)
+
+        # Row 1: Target Host / IP and Presets
+        row_target = QHBoxLayout()
+        row_target.setSpacing(8)
+        lbl_target = QLabel("TARGET URL / HOST / IP:")
         lbl_target.setStyleSheet("color: #8899B5; font-weight: bold; font-size: 11px;")
         
         self.txt_target = QLineEdit("http://127.0.0.1:8000")
-        self.txt_target.setPlaceholderText("e.g., http://localhost:3000, http://127.0.0.1:8080")
+        self.txt_target.setPlaceholderText("e.g., http://localhost:3000, http://127.0.0.1:8080, 192.168.1.1, google.com")
         self.txt_target.setFixedHeight(32)
 
-        # Preset Quick Targets
         btn_preset1 = QPushButton("localhost:3000")
+        btn_preset1.setFixedHeight(30)
         btn_preset1.clicked.connect(lambda: self.txt_target.setText("http://localhost:3000"))
+
         btn_preset2 = QPushButton("localhost:8000")
+        btn_preset2.setFixedHeight(30)
         btn_preset2.clicked.connect(lambda: self.txt_target.setText("http://localhost:8000"))
+
+        row_target.addWidget(lbl_target)
+        row_target.addWidget(self.txt_target, stretch=1)
+        row_target.addWidget(btn_preset1)
+        row_target.addWidget(btn_preset2)
+        ctrl_layout.addLayout(row_target)
+
+        # Row 2: Defense Actions (Well-Spaced, Cyber Highlighting, Zero Overlap)
+        row_actions = QHBoxLayout()
+        row_actions.setSpacing(10)
+
+        self.btn_master = QPushButton("🚀 RUN MASTER DEFENSE SCAN (ALL PANELS)")
+        self.btn_master.setFixedHeight(34)
+        self.btn_master.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #00F0FF, stop:1 #00FF88);
+                color: #05080E;
+                font-weight: 900;
+                font-size: 11px;
+                padding: 6px 16px;
+                border: 2px solid #FFFFFF;
+                border-radius: 4px;
+                margin: 2px 4px;
+            }
+            QPushButton:hover {
+                background: #00FF88;
+                border-color: #00F0FF;
+            }
+        """)
+        self.btn_master.clicked.connect(self.start_master_scan)
 
         self.btn_scan = QPushButton("🛡️ INITIATE DEFENSIVE AUDIT")
         self.btn_scan.setObjectName("btnPrimary")
-        self.btn_scan.setFixedHeight(32)
+        self.btn_scan.setFixedHeight(34)
         self.btn_scan.clicked.connect(self.start_audit)
 
         self.btn_export = QPushButton("💾 EXPORT REPORT")
-        self.btn_export.setFixedHeight(32)
+        self.btn_export.setFixedHeight(34)
         self.btn_export.clicked.connect(self.export_report)
 
-        ctrl_row.addWidget(lbl_target)
-        ctrl_row.addWidget(self.txt_target, stretch=1)
-        ctrl_row.addWidget(btn_preset1)
-        ctrl_row.addWidget(btn_preset2)
-        ctrl_row.addWidget(self.btn_scan)
-        ctrl_row.addWidget(self.btn_export)
+        row_actions.addWidget(self.btn_master)
+        row_actions.addWidget(self.btn_scan)
+        row_actions.addWidget(self.btn_export)
+        row_actions.addStretch()
 
-        layout.addLayout(ctrl_row)
+        ctrl_layout.addLayout(row_actions)
+        layout.addLayout(ctrl_layout)
         return frame
 
     def _build_category_ribbon(self) -> QFrame:
-        """Ribbon providing instant category explanation and one-click navigation."""
+        """Ribbon providing instant category navigation with zero border overlapping."""
         frame = QFrame()
         frame.setObjectName("hudPanel")
-        layout = QHBoxLayout(frame)
-        layout.setContentsMargins(10, 6, 10, 6)
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(6)
 
-        lbl = QLabel("CATEGORIES:")
-        lbl.setStyleSheet("color: #00F0FF; font-weight: bold; font-size: 10px; letter-spacing: 1px;")
-        layout.addWidget(lbl)
+        # Top Category Label
+        top_lbl_row = QHBoxLayout()
+        lbl = QLabel("CYBER DEFENSE CATEGORIES // QUICK ACCESS NAVIGATION:")
+        lbl.setStyleSheet("color: #00F0FF; font-weight: 800; font-size: 10px; letter-spacing: 1.5px;")
+        top_lbl_row.addWidget(lbl)
+        top_lbl_row.addStretch()
+        layout.addLayout(top_lbl_row)
 
-        cats = [
-            ("🛡️ [CAT 1] VULNERABILITY AUDITOR", 1, "#00F0FF"),
-            ("🕵️ [CAT 2] CYBER OSINT ENGINE", 2, "#00FF88"),
-            ("🦠 [CAT 3] MALWARE SCANNER", 3, "#FF3366"),
-            ("💉 [CAT 4] ANTI-XSS & INJECTION", 4, "#00F0FF"),
-            ("📡 [CAT 5] LOCALHOST & PORTS", 5, "#FFB800"),
-            ("🚨 [CAT 6] ATTACKER IDS & LOGS", 6, "#FF3366"),
-            ("⚔️ [CAT 7] ATTACK MATRIX & HOW TO FIX", 7, "#00FF88"),
-            ("📋 [CAT 7] PLAYBOOKS", 8, "#8899B5"),
-            ("🖥️ [CAT 8] TACTICAL CONSOLE", 9, "#64748B")
+        # Row 1 (Categories 1 - 5)
+        row1 = QHBoxLayout()
+        row1.setSpacing(8)
+        cats_row1 = [
+            ("🛡️ VULNERABILITY AUDITOR", 1, "#00F0FF"),
+            ("🕵️ CYBER OSINT ENGINE", 2, "#00FF88"),
+            ("🦠 MALWARE SCANNER", 3, "#FF3366"),
+            ("💉 ANTI-XSS & INJECTION", 4, "#00F0FF"),
+            ("📡 LOCALHOST & PORTS", 5, "#FFB800"),
         ]
-
-        for text, tab_idx, col in cats:
+        for text, tab_idx, col in cats_row1:
             btn = QPushButton(text)
+            btn.setFixedHeight(28)
             btn.setStyleSheet(f"""
                 QPushButton {{
-                    background: rgba(15, 23, 42, 0.7);
+                    background: rgba(15, 23, 42, 0.85);
                     color: {col};
-                    border: 1px solid #1E293B;
-                    padding: 3px 8px;
+                    border: 1.5px solid {col};
+                    padding: 4px 10px;
                     border-radius: 4px;
-                    font-size: 10px;
-                    font-weight: bold;
+                    font-size: 10.5px;
+                    font-weight: 800;
+                    margin: 2px 3px;
                 }}
                 QPushButton:hover {{
-                    border-color: {col};
-                    background: rgba(15, 23, 42, 0.95);
+                    background: {col};
+                    color: #05080E;
+                    border-color: #FFFFFF;
                 }}
             """)
             btn.clicked.connect(lambda checked, idx=tab_idx: self.tabs.setCurrentIndex(idx))
-            layout.addWidget(btn)
+            row1.addWidget(btn)
+        row1.addStretch()
+        layout.addLayout(row1)
 
-        layout.addStretch()
+        # Row 2 (Categories 6 - 9)
+        row2 = QHBoxLayout()
+        row2.setSpacing(8)
+        cats_row2 = [
+            ("🚨 ATTACKER IDS & LOGS", 6, "#FF3366"),
+            ("⚔️ ATTACK MATRIX & HOW TO FIX", 7, "#00FF88"),
+            ("📋 HARDENING PLAYBOOKS", 8, "#38BDF8"),
+            ("🖥️ STREAMING TACTICAL CONSOLE", 9, "#94A3B8")
+        ]
+        for text, tab_idx, col in cats_row2:
+            btn = QPushButton(text)
+            btn.setFixedHeight(28)
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: rgba(15, 23, 42, 0.85);
+                    color: {col};
+                    border: 1.5px solid {col};
+                    padding: 4px 10px;
+                    border-radius: 4px;
+                    font-size: 10.5px;
+                    font-weight: 800;
+                    margin: 2px 3px;
+                }}
+                QPushButton:hover {{
+                    background: {col};
+                    color: #05080E;
+                    border-color: #FFFFFF;
+                }}
+            """)
+            btn.clicked.connect(lambda checked, idx=tab_idx: self.tabs.setCurrentIndex(idx))
+            row2.addWidget(btn)
+        row2.addStretch()
+        layout.addLayout(row2)
+
         return frame
 
     def _build_footer(self) -> QFrame:
@@ -296,6 +372,8 @@ class AegisMainWindow(QMainWindow):
         self.table_overview.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self.table_overview.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.table_overview.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.table_overview.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_overview.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.table_overview.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_overview.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
@@ -310,12 +388,17 @@ class AegisMainWindow(QMainWindow):
 
         # Filters Row
         filter_row = QHBoxLayout()
+        filter_row.setSpacing(8)
         lbl_filter = QLabel("FILTER FINDINGS:")
+        lbl_filter.setStyleSheet("color: #00F0FF; font-weight: bold; font-size: 11px;")
         btn_all = QPushButton("ALL RESULTS")
+        btn_all.setFixedHeight(28)
         btn_all.clicked.connect(lambda: self._filter_findings("all"))
         btn_threats = QPushButton("THREATS ONLY")
+        btn_threats.setFixedHeight(28)
         btn_threats.clicked.connect(lambda: self._filter_findings("threats"))
         btn_passes = QPushButton("PASSES ONLY")
+        btn_passes.setFixedHeight(28)
         btn_passes.clicked.connect(lambda: self._filter_findings("passes"))
 
         filter_row.addWidget(lbl_filter)
@@ -332,6 +415,8 @@ class AegisMainWindow(QMainWindow):
         self.table_web.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.table_web.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         self.table_web.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        self.table_web.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_web.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.table_web.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_web.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.table_web)
@@ -393,6 +478,78 @@ class AegisMainWindow(QMainWindow):
         # Sub-tabs for deep OSINT drilldown
         osint_subtabs = QTabWidget()
 
+        # Sub-tab 0: IP Infrastructure, Routes, Tables, Details & Origins
+        tab_ip_infra = QWidget()
+        infra_layout = QGridLayout(tab_ip_infra)
+        infra_layout.setContentsMargins(8, 8, 8, 8)
+        infra_layout.setSpacing(10)
+
+        # 1. IP Details
+        box_details = QFrame()
+        box_details.setObjectName("hudPanel")
+        b_det_layout = QVBoxLayout(box_details)
+        b_det_layout.addWidget(QLabel("📌 TARGET IP DETAILS & BOGON STATUS:"))
+        self.table_osint_ip_details = QTableWidget(0, 2)
+        self.table_osint_ip_details.setHorizontalHeaderLabels(["PROPERTY", "VALUE / VERIFICATION"])
+        self.table_osint_ip_details.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_osint_ip_details.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table_osint_ip_details.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_osint_ip_details.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_osint_ip_details.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table_osint_ip_details.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        b_det_layout.addWidget(self.table_osint_ip_details)
+        infra_layout.addWidget(box_details, 0, 0)
+
+        # 2. IP Origins
+        box_origins = QFrame()
+        box_origins.setObjectName("hudPanel")
+        b_orig_layout = QVBoxLayout(box_origins)
+        b_orig_layout.addWidget(QLabel("🌍 IP ORIGINS & GEOLOCATION TELEMETRY:"))
+        self.table_osint_ip_origins = QTableWidget(0, 2)
+        self.table_osint_ip_origins.setHorizontalHeaderLabels(["ORIGIN ATTRIBUTE", "TELEMETRY DATA"])
+        self.table_osint_ip_origins.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_osint_ip_origins.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table_osint_ip_origins.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_osint_ip_origins.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_osint_ip_origins.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table_osint_ip_origins.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        b_orig_layout.addWidget(self.table_osint_ip_origins)
+        infra_layout.addWidget(box_origins, 0, 1)
+
+        # 3. IP Routes
+        box_routes = QFrame()
+        box_routes.setObjectName("hudPanel")
+        b_rt_layout = QVBoxLayout(box_routes)
+        b_rt_layout.addWidget(QLabel("🛣️ IP ROUTES & BGP ASN INFRASTRUCTURE:"))
+        self.table_osint_ip_routes = QTableWidget(0, 2)
+        self.table_osint_ip_routes.setHorizontalHeaderLabels(["ROUTING LAYER", "PATHWAY / METRIC"])
+        self.table_osint_ip_routes.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_osint_ip_routes.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table_osint_ip_routes.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_osint_ip_routes.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_osint_ip_routes.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table_osint_ip_routes.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        b_rt_layout.addWidget(self.table_osint_ip_routes)
+        infra_layout.addWidget(box_routes, 1, 0)
+
+        # 4. IP Tables
+        box_tables = QFrame()
+        box_tables.setObjectName("hudPanel")
+        b_tbl_layout = QVBoxLayout(box_tables)
+        b_tbl_layout.addWidget(QLabel("🛡️ IP TABLES & DEFENSIVE FIREWALL DROP RULES:"))
+        self.table_osint_ip_tables = QTableWidget(0, 2)
+        self.table_osint_ip_tables.setHorizontalHeaderLabels(["FIREWALL ENGINE", "SYNTHESIZED RULE / INTERFACE"])
+        self.table_osint_ip_tables.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_osint_ip_tables.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table_osint_ip_tables.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_osint_ip_tables.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_osint_ip_tables.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table_osint_ip_tables.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        b_tbl_layout.addWidget(self.table_osint_ip_tables)
+        infra_layout.addWidget(box_tables, 1, 1)
+
+        osint_subtabs.addTab(tab_ip_infra, "📡 IP TABLES, ROUTES, DETAILS & ORIGINS")
+
         # Sub-tab 1: DNS & Email Security
         tab_dns = QWidget()
         dns_layout = QVBoxLayout(tab_dns)
@@ -401,6 +558,8 @@ class AegisMainWindow(QMainWindow):
         self.table_osint_dns.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self.table_osint_dns.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table_osint_dns.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_osint_dns.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_osint_dns.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.table_osint_dns.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_osint_dns.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         dns_layout.addWidget(self.table_osint_dns)
@@ -414,6 +573,8 @@ class AegisMainWindow(QMainWindow):
         self.table_osint_ssl.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self.table_osint_ssl.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table_osint_ssl.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_osint_ssl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_osint_ssl.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.table_osint_ssl.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_osint_ssl.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         ssl_layout.addWidget(self.table_osint_ssl)
@@ -436,6 +597,8 @@ class AegisMainWindow(QMainWindow):
         self.table_osint_subs.setHorizontalHeaderLabels(["DISCOVERED SUBDOMAIN", "SOURCE DISCOVERY"])
         self.table_osint_subs.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.table_osint_subs.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.table_osint_subs.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_osint_subs.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.table_osint_subs.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_osint_subs.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         subs_layout.addWidget(self.table_osint_subs)
@@ -448,6 +611,8 @@ class AegisMainWindow(QMainWindow):
         self.table_osint_bgp.setHorizontalHeaderLabels(["NETWORK TELEMETRY", "VALUE"])
         self.table_osint_bgp.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self.table_osint_bgp.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table_osint_bgp.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_osint_bgp.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.table_osint_bgp.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_osint_bgp.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         bgp_layout.addWidget(self.table_osint_bgp)
@@ -460,6 +625,8 @@ class AegisMainWindow(QMainWindow):
         self.table_osint_tech.setHorizontalHeaderLabels(["PERIMETER COMPONENT", "DETECTED TECHNOLOGY"])
         self.table_osint_tech.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self.table_osint_tech.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table_osint_tech.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_osint_tech.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.table_osint_tech.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_osint_tech.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         tech_layout.addWidget(self.table_osint_tech)
@@ -470,6 +637,8 @@ class AegisMainWindow(QMainWindow):
         pivots_layout = QVBoxLayout(tab_pivots)
         self.txt_pivots = QTextEdit()
         self.txt_pivots.setReadOnly(True)
+        self.txt_pivots.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.txt_pivots.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.txt_pivots.setPlaceholderText("External threat intelligence search links will appear here after running reconnaissance...")
         pivots_layout.addWidget(self.txt_pivots)
         osint_subtabs.addTab(tab_pivots, "🔍 CYBER THREAT PIVOTS (SHODAN/CENSYS)")
@@ -527,6 +696,44 @@ class AegisMainWindow(QMainWindow):
 
         subs = recon.get("subdomains_discovered", [])
         self.osint_card_subs.set_value(str(len(subs)), "Discovered Hosts")
+
+        # 0. Populate IP Infrastructure Tables (Details, Origins, Routes, Tables)
+        self.table_osint_ip_details.setRowCount(0)
+        details = recon.get("ip_details", {})
+        self._add_row_2col(self.table_osint_ip_details, "Target IP Address", details.get("target_ip", "N/A"))
+        self._add_row_2col(self.table_osint_ip_details, "Target Hostname", details.get("hostname", "N/A"))
+        self._add_row_2col(self.table_osint_ip_details, "Reverse DNS (PTR)", details.get("reverse_dns", "N/A"))
+        self._add_row_2col(self.table_osint_ip_details, "Scope / Classification", details.get("ip_type", "N/A"))
+        self._add_row_2col(self.table_osint_ip_details, "IP Version", details.get("ip_version", "IPv4"))
+        self._add_row_2col(self.table_osint_ip_details, "Bogon Status", details.get("bogon_status", "Legitimate Routable"))
+
+        self.table_osint_ip_origins.setRowCount(0)
+        origins = recon.get("ip_origins", {})
+        self._add_row_2col(self.table_osint_ip_origins, "Origin Country", f"{origins.get('country', 'Unknown')} ({origins.get('country_code', '--')})")
+        self._add_row_2col(self.table_osint_ip_origins, "Region / City", f"{origins.get('city', 'Unknown')}, {origins.get('region', '')}")
+        self._add_row_2col(self.table_osint_ip_origins, "GPS Coordinates", origins.get("coordinates", "N/A"))
+        self._add_row_2col(self.table_osint_ip_origins, "Timezone", origins.get("timezone", "UTC"))
+        self._add_row_2col(self.table_osint_ip_origins, "ISP / Organization", f"{origins.get('isp', 'N/A')} / {origins.get('org', 'N/A')}")
+        self._add_row_2col(self.table_osint_ip_origins, "Public Origin Gateway IP", origins.get("public_origin_ip", origins.get("ip", "N/A")))
+        self._add_row_2col(self.table_osint_ip_origins, "Hosting / VPN / Proxy", "⚠️ YES (Datacenter / Proxy IP)" if origins.get("is_vpn_or_hosting") else "🛡️ NO (Residential / Direct Origin)")
+
+        self.table_osint_ip_routes.setRowCount(0)
+        routes = recon.get("ip_routes", {})
+        self._add_row_2col(self.table_osint_ip_routes, "Autonomous System (ASN)", f"{routes.get('asn', 'N/A')} ({routes.get('as_name', 'N/A')})")
+        self._add_row_2col(self.table_osint_ip_routes, "BGP Routing CIDR", routes.get("bgp_prefix", "N/A"))
+        self._add_row_2col(self.table_osint_ip_routes, "Default Gateway", routes.get("default_gateway", "127.0.0.1"))
+        for idx, r in enumerate(routes.get("active_system_routes", [])[:6]):
+            self._add_row_2col(self.table_osint_ip_routes, f"Active Route [{idx}]", f"Dest: {r.get('destination')} | Mask: {r.get('netmask')} | Gateway: {r.get('gateway')} | Iface: {r.get('interface')}")
+
+        self.table_osint_ip_tables.setRowCount(0)
+        tables = recon.get("ip_tables", {})
+        self._add_row_2col(self.table_osint_ip_tables, "Linux iptables Drop", tables.get("iptables_drop", "N/A"))
+        self._add_row_2col(self.table_osint_ip_tables, "Linux nftables Drop", tables.get("nftables_drop", "N/A"))
+        self._add_row_2col(self.table_osint_ip_tables, "Windows PowerShell Block", tables.get("powershell_block", "N/A"))
+        self._add_row_2col(self.table_osint_ip_tables, "Nginx Deny Rule", tables.get("nginx_deny", "N/A"))
+        self._add_row_2col(self.table_osint_ip_tables, "Apache Deny Rule", tables.get("apache_deny", "N/A"))
+        for iface in tables.get("active_interfaces", [])[:4]:
+            self._add_row_2col(self.table_osint_ip_tables, f"Interface: {iface.get('name')}", f"IP: {iface.get('ip')} | MAC: {iface.get('mac')}")
 
         # 1. Populate DNS Table
         self.table_osint_dns.setRowCount(0)
@@ -624,6 +831,25 @@ class AegisMainWindow(QMainWindow):
         self.table_osint_tech.setItem(r, 0, QTableWidgetItem(comp))
         self.table_osint_tech.setItem(r, 1, QTableWidgetItem(tech))
 
+    def _add_row_2col(self, table: QTableWidget, col1: str, col2: str):
+        r = table.rowCount()
+        table.insertRow(r)
+        table.setItem(r, 0, QTableWidgetItem(col1))
+        table.setItem(r, 1, QTableWidgetItem(str(col2)))
+
+    def start_master_scan(self):
+        """Runs the complete defensive audit across all panels: Web Audit, OSINT, Ports, Malware, Injection, Server Integrity, and Sample Logs."""
+        self.terminal.log("🚀 MASTER DEFENSE SCAN ENGAGED: Executing comprehensive audit across all panels...", "INFO")
+        self.start_audit()
+        self._sync_osint_target()
+        self.start_osint_recon()
+        self.scan_ports()
+        self.start_malware_scan()
+        self.start_injection_audit()
+        self.start_server_audit()
+        self._load_sample_logs()
+        self.terminal.log("✅ Master defense scan initiated across all panels.", "PASS")
+
     def _copy_subdomains_to_clipboard(self):
         if not self.last_osint or not self.last_osint.get("subdomains_discovered"):
             QMessageBox.information(self, "No Subdomains", "Run an OSINT reconnaissance first.")
@@ -704,6 +930,8 @@ class AegisMainWindow(QMainWindow):
         self.table_malware.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
         self.table_malware.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_malware.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table_malware.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_malware.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.table_malware.itemSelectionChanged.connect(self._on_malware_selected)
 
         left_layout.addWidget(self.table_malware)
@@ -730,6 +958,8 @@ class AegisMainWindow(QMainWindow):
 
         self.txt_malware_log = QTextEdit()
         self.txt_malware_log.setReadOnly(True)
+        self.txt_malware_log.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.txt_malware_log.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.txt_malware_log.setPlaceholderText("Select an infected file from the table to view remediation actions, or view anti-execution web server rules below...")
         right_layout.addWidget(self.txt_malware_log)
 
@@ -943,6 +1173,8 @@ read-only non-executable permissions into .aegis_quarantine/.
         self.table_inj.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.table_inj.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         self.table_inj.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        self.table_inj.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_inj.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.table_inj.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_inj.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         left_layout.addWidget(self.table_inj)
@@ -964,6 +1196,8 @@ read-only non-executable permissions into .aegis_quarantine/.
         csp_layout = QVBoxLayout(tab_csp)
         self.txt_gen_csp = QTextEdit()
         self.txt_gen_csp.setReadOnly(True)
+        self.txt_gen_csp.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.txt_gen_csp.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         csp = InjectionDefenseEngine.generate_bulletproof_csp()
         self.txt_gen_csp.setPlainText(f"// Strict Production CSP:\nContent-Security-Policy: {csp['strict_production']}\n\n// Balanced CDN CSP:\nContent-Security-Policy: {csp['balanced_cdn']}")
         csp_layout.addWidget(self.txt_gen_csp)
@@ -974,6 +1208,8 @@ read-only non-executable permissions into .aegis_quarantine/.
         py_layout = QVBoxLayout(tab_py)
         txt_py = QTextEdit()
         txt_py.setReadOnly(True)
+        txt_py.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        txt_py.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         txt_py.setPlainText(InjectionDefenseEngine.generate_anti_injection_code("python"))
         py_layout.addWidget(txt_py)
         inj_subtabs.addTab(tab_py, "🐍 PYTHON (FLASK/FASTAPI)")
@@ -983,6 +1219,8 @@ read-only non-executable permissions into .aegis_quarantine/.
         js_layout = QVBoxLayout(tab_js)
         txt_js = QTextEdit()
         txt_js.setReadOnly(True)
+        txt_js.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        txt_js.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         txt_js.setPlainText(InjectionDefenseEngine.generate_anti_injection_code("javascript"))
         js_layout.addWidget(txt_js)
         inj_subtabs.addTab(tab_js, "⚡ NODE.JS (EXPRESS)")
@@ -992,6 +1230,8 @@ read-only non-executable permissions into .aegis_quarantine/.
         waf_layout = QVBoxLayout(tab_waf)
         txt_waf = QTextEdit()
         txt_waf.setReadOnly(True)
+        txt_waf.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        txt_waf.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         txt_waf.setPlainText(InjectionDefenseEngine.generate_modsecurity_waf_rules())
         waf_layout.addWidget(txt_waf)
         inj_subtabs.addTab(tab_waf, "🛡️ MODSECURITY WAF RULES")
@@ -1067,9 +1307,11 @@ read-only non-executable permissions into .aegis_quarantine/.
         sock_layout.setSpacing(8)
 
         top_row = QHBoxLayout()
+        top_row.setSpacing(8)
         lbl_info = QLabel("ACTIVE LISTENING SOCKETS & ACCIDENTAL EXPOSURE AUDIT")
         lbl_info.setStyleSheet("color: #00F0FF; font-weight: bold;")
         btn_refresh = QPushButton("🔄 SCAN LOCAL PORTS NOW")
+        btn_refresh.setFixedHeight(28)
         btn_refresh.clicked.connect(self.scan_ports)
 
         top_row.addWidget(lbl_info)
@@ -1085,6 +1327,8 @@ read-only non-executable permissions into .aegis_quarantine/.
         self.table_ports.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
         self.table_ports.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         self.table_ports.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
+        self.table_ports.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_ports.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.table_ports.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_ports.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         sock_layout.addWidget(self.table_ports)
@@ -1098,10 +1342,12 @@ read-only non-executable permissions into .aegis_quarantine/.
         srv_layout.setSpacing(8)
 
         srv_top = QHBoxLayout()
+        srv_top.setSpacing(8)
         lbl_srv = QLabel("SERVER MACHINE / COMPUTER MALWARE, MINERS & ROOTKIT AUDITOR")
         lbl_srv.setStyleSheet("color: #00FF88; font-weight: bold;")
         btn_scan_srv = QPushButton("💻 RUN FULL SYSTEM & SERVER INTEGRITY SCAN")
         btn_scan_srv.setObjectName("btnDanger")
+        btn_scan_srv.setFixedHeight(28)
         btn_scan_srv.clicked.connect(self.start_server_audit)
 
         srv_top.addWidget(lbl_srv)
@@ -1135,6 +1381,8 @@ read-only non-executable permissions into .aegis_quarantine/.
         self.table_server_threats.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         self.table_server_threats.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         self.table_server_threats.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        self.table_server_threats.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_server_threats.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.table_server_threats.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_server_threats.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         sl_layout.addWidget(self.table_server_threats)
@@ -1142,17 +1390,20 @@ read-only non-executable permissions into .aegis_quarantine/.
 
         # Right: Server telemetry & action
         pnl_srv_right = QFrame()
-        pnl_srv_right.setObjectName("hudPanel")
+        pnl_right.setObjectName("hudPanel")
         sr_layout = QVBoxLayout(pnl_srv_right)
         sr_layout.addWidget(QLabel("HOST INTEGRITY TELEMETRY & REMEDIATION:"))
 
         self.txt_server_log = QTextEdit()
         self.txt_server_log.setReadOnly(True)
+        self.txt_server_log.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.txt_server_log.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.txt_server_log.setPlaceholderText("Click 'RUN FULL SYSTEM & SERVER INTEGRITY SCAN' to audit running processes, cryptominers, reverse shells, and persistence mechanisms...")
         sr_layout.addWidget(self.txt_server_log)
 
         btn_kill_proc = QPushButton("⚡ TERMINATE SELECTED ROGUE PROCESS (KILL PID)")
         btn_kill_proc.setObjectName("btnDanger")
+        btn_kill_proc.setFixedHeight(28)
         btn_kill_proc.clicked.connect(self._kill_selected_server_process)
         sr_layout.addWidget(btn_kill_proc)
 
@@ -1298,9 +1549,12 @@ the system. Ensure all dropped executables in Temp are removed.
 
         # Controls Row
         ctrl_row = QHBoxLayout()
+        ctrl_row.setSpacing(8)
         btn_load_file = QPushButton("📁 LOAD ACCESS LOG FILE")
+        btn_load_file.setFixedHeight(28)
         btn_load_file.clicked.connect(self._load_log_file)
         btn_sample = QPushButton("⚡ LOAD SAMPLE ATTACK TELEMETRY")
+        btn_sample.setFixedHeight(28)
         btn_sample.clicked.connect(self._load_sample_logs)
 
         ctrl_row.addWidget(QLabel("ATTACKER INTRUSION DETECTION & GEO-INTEL TRACKING:"))
@@ -1327,6 +1581,8 @@ the system. Ensure all dropped executables in Temp are removed.
         self.table_attackers.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         self.table_attackers.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
         self.table_attackers.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
+        self.table_attackers.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_attackers.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.table_attackers.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_attackers.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table_attackers.itemSelectionChanged.connect(self._on_attacker_selected)
@@ -1345,11 +1601,14 @@ the system. Ensure all dropped executables in Temp are removed.
 
         self.txt_dossier = QTextEdit()
         self.txt_dossier.setReadOnly(True)
+        self.txt_dossier.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.txt_dossier.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.txt_dossier.setPlaceholderText("Select an attacker IP from the table to view intelligence dossier, reverse DNS, device fingerprint, and firewall block rules...")
         right_layout.addWidget(self.txt_dossier)
 
         btn_copy_rule = QPushButton("📋 COPY FIREWALL BLOCK RULE (POWERSHELL / IPTABLES)")
         btn_copy_rule.setObjectName("btnDanger")
+        btn_copy_rule.setFixedHeight(30)
         btn_copy_rule.clicked.connect(self._copy_current_firewall_rule)
         right_layout.addWidget(btn_copy_rule)
 
@@ -1381,6 +1640,7 @@ the system. Ensure all dropped executables in Temp are removed.
 
         btn_lockdown = QPushButton("⚡ ONE-CLICK EMERGENCY FIREWALL DROP SCRIPT")
         btn_lockdown.setObjectName("btnDanger")
+        btn_lockdown.setFixedHeight(30)
         btn_lockdown.clicked.connect(self._generate_emergency_lockdown_script)
         b_layout.addWidget(btn_lockdown)
 
@@ -1399,6 +1659,8 @@ the system. Ensure all dropped executables in Temp are removed.
         left_layout.addWidget(lbl_list)
 
         self.list_matrix = QListWidget()
+        self.list_matrix.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.list_matrix.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.list_matrix.setStyleSheet("""
             QListWidget {
                 background: #070B14;
@@ -1461,6 +1723,8 @@ the system. Ensure all dropped executables in Temp are removed.
         sym_layout = QVBoxLayout(tab_symptoms)
         self.txt_mat_symptoms = QTextEdit()
         self.txt_mat_symptoms.setReadOnly(True)
+        self.txt_mat_symptoms.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.txt_mat_symptoms.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         sym_layout.addWidget(self.txt_mat_symptoms)
         self.tab_mat_details.addTab(tab_symptoms, "🔍 OVERVIEW & SYMPTOMS")
 
@@ -1469,6 +1733,8 @@ the system. Ensure all dropped executables in Temp are removed.
         imm_layout = QVBoxLayout(tab_immediate)
         self.txt_mat_immediate = QTextEdit()
         self.txt_mat_immediate.setReadOnly(True)
+        self.txt_mat_immediate.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.txt_mat_immediate.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         imm_layout.addWidget(self.txt_mat_immediate)
         self.tab_mat_details.addTab(tab_immediate, "⚡ EMERGENCY ACTION (WHAT TO DO NOW)")
 
@@ -1477,6 +1743,8 @@ the system. Ensure all dropped executables in Temp are removed.
         perm_layout = QVBoxLayout(tab_perm)
         self.txt_mat_perm = QTextEdit()
         self.txt_mat_perm.setReadOnly(True)
+        self.txt_mat_perm.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.txt_mat_perm.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         perm_layout.addWidget(self.txt_mat_perm)
         self.tab_mat_details.addTab(tab_perm, "🛠️ PERMANENT FIX (HOW TO RESOLVE)")
 
@@ -1490,9 +1758,12 @@ the system. Ensure all dropped executables in Temp are removed.
 
         self.txt_mat_code = QTextEdit()
         self.txt_mat_code.setReadOnly(True)
+        self.txt_mat_code.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.txt_mat_code.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         code_layout.addWidget(self.txt_mat_code)
 
         btn_copy_code = QPushButton("📋 COPY READY-TO-DEPLOY CODE FIX")
+        btn_copy_code.setFixedHeight(30)
         btn_copy_code.clicked.connect(lambda: QApplication.clipboard().setText(self.txt_mat_code.toPlainText()))
         code_layout.addWidget(btn_copy_code)
 
@@ -1605,6 +1876,7 @@ the system. Ensure all dropped executables in Temp are removed.
         top_row.addWidget(self.combo_playbook, stretch=1)
 
         btn_copy_playbook = QPushButton("📋 COPY HARDENED CONFIGURATION")
+        btn_copy_playbook.setFixedHeight(30)
         btn_copy_playbook.clicked.connect(self._copy_playbook)
         top_row.addWidget(btn_copy_playbook)
         layout.addLayout(top_row)
@@ -1615,6 +1887,8 @@ the system. Ensure all dropped executables in Temp are removed.
 
         self.txt_playbook = QTextEdit()
         self.txt_playbook.setReadOnly(True)
+        self.txt_playbook.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.txt_playbook.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         layout.addWidget(self.txt_playbook, stretch=1)
 
         self._on_playbook_changed(0)

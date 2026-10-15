@@ -68,6 +68,10 @@ class OsintEngine:
             "ssl_certificate": {},
             "subdomains_discovered": [],
             "network_routing": {},
+            "ip_details": {},
+            "ip_origins": {},
+            "ip_routes": {},
+            "ip_tables": {},
             "technologies": {},
             "email_security": {},
             "security_txt": {},
@@ -89,9 +93,14 @@ class OsintEngine:
         all_subs = sorted(list(san_subs.union(ct_subs)))
         result["subdomains_discovered"] = all_subs
 
-        # 4. BGP Network & ASN Intelligence
+        # 4. IP Intelligence: Details, Origins, Routes & Tables
         primary_ip = result["dns"].get("ipv4_addresses", ["127.0.0.1"])[0] if result["dns"].get("ipv4_addresses") else "127.0.0.1"
-        result["network_routing"] = self._audit_bgp_network(primary_ip)
+        ip_infra = self._audit_ip_infrastructure(primary_ip)
+        result["ip_details"] = ip_infra["details"]
+        result["ip_origins"] = ip_infra["origins"]
+        result["ip_routes"] = ip_infra["routes"]
+        result["ip_tables"] = ip_infra["tables"]
+        result["network_routing"] = ip_infra["origins"]
 
         # 5. Tech Stack & Perimeter Detection
         result["technologies"] = self._audit_tech_stack()
@@ -278,38 +287,205 @@ class OsintEngine:
         return sorted(list(subdomains))
 
     def _audit_bgp_network(self, ip_str: str) -> Dict[str, Any]:
-        """Resolves ASN, BGP Routing prefix, ISP, and geographic origin."""
-        routing = {
-            "ip": ip_str,
-            "asn": "N/A",
-            "org": "Local / Intranet",
-            "isp": "Local Loopback",
-            "country": "Local",
-            "city": "Internal",
-            "is_vpn_or_hosting": False
-        }
+        """Backwards compatible routing origin resolver."""
+        return self._audit_ip_infrastructure(ip_str)["origins"]
 
-        if ip_str in ("127.0.0.1", "::1") or ip_str.startswith("192.168.") or ip_str.startswith("10.") or ip_str.startswith("172.16."):
-            return routing
+    def _audit_ip_infrastructure(self, ip_str: str) -> Dict[str, Any]:
+        """Audits target IP Details, Geolocation Origins, BGP Routes & Local IP Tables."""
+        import platform
+        import psutil
+        import subprocess
 
+        # 1. IP Details
+        reverse_dns = "N/A"
         try:
-            resp = self.session.get(
-                f"http://ip-api.com/json/{ip_str}?fields=status,country,city,isp,org,as,hosting,proxy",
-                timeout=self.timeout
-            )
-            if resp.status_code == 200:
-                d = resp.json()
-                if d.get("status") == "success":
-                    routing["asn"] = d.get("as", "N/A")
-                    routing["org"] = d.get("org", "N/A")
-                    routing["isp"] = d.get("isp", "N/A")
-                    routing["country"] = d.get("country", "Unknown")
-                    routing["city"] = d.get("city", "Unknown")
-                    routing["is_vpn_or_hosting"] = bool(d.get("hosting", False) or d.get("proxy", False))
+            reverse_dns = socket.gethostbyaddr(ip_str)[0]
         except Exception:
             pass
 
-        return routing
+        is_loopback = ip_str in ("127.0.0.1", "::1", "localhost")
+        is_private = (
+            is_loopback
+            or ip_str.startswith("192.168.")
+            or ip_str.startswith("10.")
+            or ip_str.startswith("172.16.")
+            or ip_str.startswith("172.17.")
+            or ip_str.startswith("172.18.")
+            or ip_str.startswith("172.19.")
+            or ip_str.startswith("172.20.")
+            or ip_str.startswith("172.21.")
+            or ip_str.startswith("172.22.")
+            or ip_str.startswith("172.23.")
+            or ip_str.startswith("172.24.")
+            or ip_str.startswith("172.25.")
+            or ip_str.startswith("172.26.")
+            or ip_str.startswith("172.27.")
+            or ip_str.startswith("172.28.")
+            or ip_str.startswith("172.29.")
+            or ip_str.startswith("172.30.")
+            or ip_str.startswith("172.31.")
+            or ip_str.startswith("169.254.")
+        )
+
+        ip_type = "Loopback / Localhost (127.0.0.1)" if is_loopback else ("Private RFC 1918 (LAN/Internal)" if is_private else "Public Routable Internet")
+
+        details = {
+            "target_ip": ip_str,
+            "hostname": self.hostname,
+            "reverse_dns": reverse_dns,
+            "ip_type": ip_type,
+            "ip_version": "IPv6" if ":" in ip_str else "IPv4",
+            "is_private": is_private,
+            "is_loopback": is_loopback,
+            "bogon_status": "Legitimate Routable" if not is_private else "Private/Internal Scope"
+        }
+
+        # 2. IP Origins
+        origins = {
+            "ip": ip_str,
+            "country": "Localhost / Internal LAN" if is_private else "Unknown",
+            "country_code": "LOC" if is_private else "--",
+            "region": "Internal" if is_private else "N/A",
+            "city": "Internal Workstation" if is_private else "N/A",
+            "postal": "N/A",
+            "coordinates": "0.0, 0.0",
+            "timezone": "UTC",
+            "isp": "Local Host Interface" if is_private else "Unknown",
+            "org": "Internal Network" if is_private else "Unknown",
+            "asn": "N/A",
+            "is_vpn_or_hosting": False,
+            "public_origin_ip": "Checking..."
+        }
+
+        # Query public origin IP if target is localhost or query target IP if public
+        query_ip = "" if is_private else ip_str
+        d = {}
+        try:
+            url = f"http://ip-api.com/json/{query_ip}?fields=status,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,hosting,proxy,query"
+            resp = self.session.get(url, timeout=self.timeout)
+            if resp.status_code == 200:
+                d = resp.json()
+                if d.get("status") == "success":
+                    if is_private:
+                        origins["public_origin_ip"] = d.get("query", "N/A")
+                        origins["country"] = f"Localhost (Gateway: {d.get('country', 'Local')})"
+                        origins["country_code"] = d.get("countryCode", "LOC")
+                        origins["city"] = f"{d.get('city', 'Internal')} ({d.get('regionName', '')})"
+                        origins["region"] = d.get("regionName", "Local")
+                        origins["postal"] = d.get("zip", "N/A")
+                        origins["coordinates"] = f"{d.get('lat')}, {d.get('lon')}"
+                        origins["timezone"] = d.get("timezone", "UTC")
+                        origins["isp"] = d.get("isp", "Localhost Interface")
+                        origins["org"] = d.get("org", "Internal")
+                        origins["asn"] = d.get("as", "N/A")
+                    else:
+                        origins["country"] = d.get("country", "Unknown")
+                        origins["country_code"] = d.get("countryCode", "--")
+                        origins["city"] = d.get("city", "Unknown")
+                        origins["region"] = d.get("regionName", "Unknown")
+                        origins["postal"] = d.get("zip", "N/A")
+                        origins["coordinates"] = f"{d.get('lat')}, {d.get('lon')}"
+                        origins["timezone"] = d.get("timezone", "UTC")
+                        origins["isp"] = d.get("isp", "N/A")
+                        origins["org"] = d.get("org", "N/A")
+                        origins["asn"] = d.get("as", "N/A")
+                        origins["is_vpn_or_hosting"] = bool(d.get("hosting", False) or d.get("proxy", False))
+        except Exception:
+            pass
+
+        # 3. IP Routes & BGP ASN
+        asn_val = origins.get("asn", "N/A")
+        as_name = "Internal Routing"
+        bgp_prefix = "127.0.0.0/8" if is_loopback else ("Private CIDR" if is_private else "Public CIDR")
+        if not is_private and d.get("as"):
+            asn_parts = d.get("as", "").split(" ", 1)
+            asn_val = asn_parts[0]
+            as_name = asn_parts[1] if len(asn_parts) > 1 else d.get("org", "N/A")
+
+        # Discover system routes
+        system_routes = []
+        try:
+            if platform.system() == "Windows":
+                cmd = ["route", "print", "-4"]
+                out = subprocess.check_output(cmd, text=True, stderr=subprocess.DEVNULL, timeout=3)
+                lines = out.splitlines()
+                start_parsing = False
+                for line in lines:
+                    if "Active Routes:" in line:
+                        start_parsing = True
+                        continue
+                    if start_parsing and line.strip().startswith("=="):
+                        continue
+                    if start_parsing and "Persistent Routes:" in line:
+                        break
+                    if start_parsing:
+                        parts = line.split()
+                        if len(parts) >= 5 and parts[0][0].isdigit():
+                            system_routes.append({
+                                "destination": parts[0],
+                                "netmask": parts[1],
+                                "gateway": parts[2],
+                                "interface": parts[3],
+                                "metric": parts[4]
+                            })
+                            if len(system_routes) >= 8:
+                                break
+            else:
+                out = subprocess.check_output(["ip", "route", "show"], text=True, stderr=subprocess.DEVNULL, timeout=3)
+                for line in out.splitlines()[:8]:
+                    if line.strip():
+                        system_routes.append({"destination": line.strip(), "netmask": "N/A", "gateway": "default", "interface": "eth0", "metric": "1"})
+        except Exception:
+            pass
+
+        routes = {
+            "asn": asn_val,
+            "as_name": as_name,
+            "bgp_prefix": bgp_prefix,
+            "default_gateway": system_routes[0].get("gateway", "N/A") if system_routes else "127.0.0.1",
+            "active_system_routes": system_routes
+        }
+
+        # 4. IP Tables & Network Interface Bindings
+        active_interfaces = []
+        try:
+            for if_name, if_addrs in psutil.net_if_addrs().items():
+                mac = "N/A"
+                ip_addr = "N/A"
+                mask = "N/A"
+                for a in if_addrs:
+                    if getattr(psutil, "AF_LINK", None) and a.family == psutil.AF_LINK:
+                        mac = a.address
+                    elif getattr(socket, "AF_LINK", None) and a.family == socket.AF_LINK:
+                        mac = a.address
+                    elif a.family == socket.AF_INET:
+                        ip_addr = a.address
+                        mask = a.netmask or "N/A"
+                if ip_addr != "N/A":
+                    active_interfaces.append({
+                        "name": if_name,
+                        "ip": ip_addr,
+                        "netmask": mask,
+                        "mac": mac
+                    })
+        except Exception:
+            pass
+
+        tables = {
+            "active_interfaces": active_interfaces[:10],
+            "iptables_drop": f"iptables -I INPUT -s {ip_str} -j DROP",
+            "nftables_drop": f"nft add rule ip filter input ip saddr {ip_str} drop",
+            "powershell_block": f"New-NetFirewallRule -DisplayName 'Aegis-Drop-{ip_str}' -Direction Inbound -RemoteAddress {ip_str} -Action Block",
+            "nginx_deny": f"deny {ip_str};",
+            "apache_deny": f"Require not ip {ip_str}"
+        }
+
+        return {
+            "details": details,
+            "origins": origins,
+            "routes": routes,
+            "tables": tables
+        }
 
     def _audit_tech_stack(self) -> Dict[str, Any]:
         """Fingerprints server headers, web frameworks, and edge CDNs/WAFs."""

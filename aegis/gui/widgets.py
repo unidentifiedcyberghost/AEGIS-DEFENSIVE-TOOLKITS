@@ -105,6 +105,8 @@ class HudTerminal(QTextEdit):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setReadOnly(True)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
     def log(self, message: str, level: str = "INFO"):
         now = datetime.now().strftime("%H:%M:%S")
