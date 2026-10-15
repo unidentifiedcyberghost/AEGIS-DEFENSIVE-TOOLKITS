@@ -1851,17 +1851,27 @@ the system. Ensure all dropped executables in Temp are removed.
         self.last_report = report
         self.btn_scan.setEnabled(True)
         self.progress_bar.setValue(100)
-        self.lbl_status.setText(f"AUDIT COMPLETE // TARGET: {report['target']} // GRADE: {report['score_grade']}")
+        
+        target = report.get("target", "Target")
+        grade = report.get("score_grade", report.get("grade", "A+"))
+        score = report.get("score", report.get("security_score", 100))
+        summary = report.get("summary", report.get("findings_summary", {}))
+        crit_count = report.get("critical_count", summary.get("critical", 0))
+        high_count = report.get("high_count", summary.get("high", 0))
+        med_count = report.get("medium_count", summary.get("medium", 0))
+        pass_count = report.get("pass_count", summary.get("pass", 0))
 
-        self.gauge.set_score(report["score"], report["score_grade"])
-        self.card_crit.set_value(report["critical_count"])
-        self.card_high.set_value(report["high_count"])
-        self.card_med.set_value(report["medium_count"])
-        self.card_pass.set_value(report["pass_count"])
+        self.lbl_status.setText(f"AUDIT COMPLETE // TARGET: {target} // GRADE: {grade}")
 
-        self._populate_findings_tables(report["findings"])
+        self.gauge.set_score(score, grade)
+        self.card_crit.set_value(crit_count)
+        self.card_high.set_value(high_count)
+        self.card_med.set_value(med_count)
+        self.card_pass.set_value(pass_count)
+
+        self._populate_findings_tables(report.get("findings", []))
         self.tabs.setCurrentIndex(1)
-        self.terminal.log(f"Audit completed: Score {report['score']}/100, Grade {report['score_grade']}.", "PASS")
+        self.terminal.log(f"Audit completed: Score {score}/100, Grade {grade}.", "PASS")
 
     def _on_audit_error(self, err_msg: str):
         self.btn_scan.setEnabled(True)
@@ -1896,8 +1906,8 @@ the system. Ensure all dropped executables in Temp are removed.
                 s_item.setForeground(QColor(sev_color))
                 s_item.setFont(QFont("Consolas", 10, QFont.Weight.Bold))
                 self.table_overview.setItem(ov_row, 0, s_item)
-                self.table_overview.setItem(ov_row, 1, QTableWidgetItem(f["category"]))
-                self.table_overview.setItem(ov_row, 2, QTableWidgetItem(f"{f['title']}: {f['description']}"))
+                self.table_overview.setItem(ov_row, 1, QTableWidgetItem(f.get("category", "OWASP Security")))
+                self.table_overview.setItem(ov_row, 2, QTableWidgetItem(f"{f.get('title', 'Vulnerability')}: {f.get('description', '')}"))
 
     def _filter_findings(self, mode: str):
         if not self.last_report:

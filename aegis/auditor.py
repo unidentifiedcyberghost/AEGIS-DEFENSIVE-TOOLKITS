@@ -168,6 +168,7 @@ class WebAuditor:
                 "remediation": "1. If scanning localhost, ensure your local app (e.g. 'npm run dev', 'python -m http.server 8000', Flask, Express) is currently running on that port.\n2. If scanning a public domain, ensure you specify 'https://' if the site requires SSL (e.g. https://yourdomain.com).\n3. Check if your firewall or antivirus is blocking connection."
             })
             report["summary"]["critical"] += 1
+            self._finalize_score(report)
             return report
 
         report["status_code"] = base_resp.status_code
@@ -504,3 +505,19 @@ class WebAuditor:
             report["grade"] = "D"
         else:
             report["grade"] = "F"
+
+        report["score_grade"] = report["grade"]
+        report["security_score"] = report["score"]
+        report["critical_count"] = report["summary"].get("critical", 0)
+        report["high_count"] = report["summary"].get("high", 0)
+        report["medium_count"] = report["summary"].get("medium", 0)
+        report["pass_count"] = report["summary"].get("pass", 0)
+        report["findings_summary"] = report["summary"]
+
+        for f in report.get("findings", []):
+            if "check_name" not in f:
+                f["check_name"] = f.get("title", "Vulnerability Check")
+            if "title" not in f:
+                f["title"] = f.get("check_name", "Vulnerability Check")
+            if "category" not in f:
+                f["category"] = "OWASP Security"

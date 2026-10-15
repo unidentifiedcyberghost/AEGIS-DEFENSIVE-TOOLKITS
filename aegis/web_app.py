@@ -1590,7 +1590,7 @@ HUD_HTML = """<!DOCTYPE html>
         // ==========================================
         async function runAudit() {
             const url = document.getElementById('targetUrl').value.trim();
-            if (!url) return alert('Please enter target URL.');
+            if (!url) return alert('Please enter target URL or IP.');
             currentTarget = url;
 
             const btn = document.getElementById('btnAudit');
@@ -1607,36 +1607,55 @@ HUD_HTML = """<!DOCTYPE html>
                 const report = await res.json();
                 lastAuditReport = report;
 
-                updateScore(report.security_score, report.grade);
-                document.getElementById('valCrit').innerText = report.findings_summary.critical;
-                document.getElementById('valHigh').innerText = report.findings_summary.high;
-                document.getElementById('valMed').innerText = report.findings_summary.medium;
-                document.getElementById('valPass').innerText = report.findings_summary.pass;
+                const score = (report.score !== undefined) ? report.score : (report.security_score !== undefined ? report.security_score : 100);
+                const grade = report.grade || report.score_grade || 'A+';
+                const summary = report.summary || report.findings_summary || {};
+                const critCount = (summary.critical !== undefined) ? summary.critical : (report.critical_count || 0);
+                const highCount = (summary.high !== undefined) ? summary.high : (report.high_count || 0);
+                const medCount = (summary.medium !== undefined) ? summary.medium : (report.medium_count || 0);
+                const passCount = (summary.pass !== undefined) ? summary.pass : (report.pass_count || 0);
+
+                updateScore(score, grade);
+                document.getElementById('valCrit').innerText = critCount;
+                document.getElementById('valHigh').innerText = highCount;
+                document.getElementById('valMed').innerText = medCount;
+                document.getElementById('valPass').innerText = passCount;
 
                 // Check automated alert
-                if (report.findings_summary.critical > 0 || report.findings_summary.high > 0) {
+                if (critCount > 0 || highCount > 0) {
                     const alertBanner = document.getElementById('threatAlertBanner');
-                    alertBanner.style.display = 'block';
-                    document.getElementById('threatAlertDesc').innerText =
-                        `Detected ${report.findings_summary.critical} CRITICAL and ${report.findings_summary.high} HIGH OWASP vulnerabilities. Missing core defenses on target server!`;
+                    if (alertBanner) {
+                        alertBanner.style.display = 'block';
+                        document.getElementById('threatAlertDesc').innerText =
+                            `Detected ${critCount} CRITICAL and ${highCount} HIGH OWASP vulnerabilities. Missing core defenses on target server!`;
+                    }
                 }
 
                 const tbody = document.getElementById('tbodyFindings');
                 tbody.innerHTML = '';
 
-                report.findings.forEach(f => {
-                    const tr = document.createElement('tr');
-                    const sevClass = f.severity === 'Critical' ? 'badge-crit' : (f.severity === 'High' ? 'badge-high' : (f.severity === 'Medium' ? 'badge-med' : 'badge-pass'));
-                    tr.innerHTML = `
-                        <td><span class="badge-sev ${sevClass}">${f.severity.toUpperCase()}</span></td>
-                        <td style="font-weight: bold; color: var(--cyan);">${f.check_name}</td>
-                        <td>${f.description}</td>
-                        <td style="color: var(--green);">${f.remediation}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
+                const findings = report.findings || [];
+                if (findings.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--green); padding: 24px;">🛡️ Audit Complete: No critical or high vulnerabilities detected. All baseline security checks passed!</td></tr>`;
+                } else {
+                    findings.forEach(f => {
+                        const tr = document.createElement('tr');
+                        const sev = f.severity || 'Medium';
+                        const sevClass = sev === 'Critical' ? 'badge-crit' : (sev === 'High' ? 'badge-high' : (sev === 'Medium' ? 'badge-med' : 'badge-pass'));
+                        const title = f.title || f.check_name || f.name || 'Defensive Vulnerability Check';
+                        const desc = f.description || '';
+                        const rem = f.remediation || 'Apply defensive hardening configuration.';
+                        tr.innerHTML = `
+                            <td><span class="badge-sev ${sevClass}">${sev.toUpperCase()}</span></td>
+                            <td style="font-weight: bold; color: var(--cyan);">${title}</td>
+                            <td>${desc}</td>
+                            <td style="color: var(--green);">${rem}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
 
-                logToConsole(`Audit complete. Score: ${report.security_score}/100. Grade: ${report.grade}.`, report.security_score >= 80 ? 'PASS' : 'WARN');
+                logToConsole(`Audit complete for ${report.target || url}. Score: ${score}/100. Grade: ${grade}. Findings: ${findings.length}`, score >= 80 ? 'PASS' : 'WARN');
             } catch (err) {
                 logToConsole('Audit failed: ' + err, 'THREAT');
             } finally {
