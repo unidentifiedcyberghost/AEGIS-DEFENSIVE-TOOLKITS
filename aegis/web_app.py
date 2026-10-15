@@ -15,6 +15,13 @@ Features:
 """
 
 import os
+import warnings
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings("ignore", message=".*Unverified HTTPS request.*")
+
 from flask import Flask, request, jsonify, render_template_string
 from aegis.auditor import WebAuditor
 from aegis.port_auditor import PortAuditor
@@ -175,58 +182,7 @@ HUD_HTML = """<!DOCTYPE html>
             letter-spacing: 1px;
         }
 
-        /* Category Ribbon */
-        .category-ribbon {
-            background: rgba(7, 11, 20, 0.95);
-            border: 1px solid var(--border-dim);
-            border-radius: 6px;
-            padding: 10px 14px;
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            margin-bottom: 14px;
-            flex-wrap: wrap;
-        }
 
-        .cat-label {
-            color: var(--cyan);
-            font-size: 10px;
-            font-weight: 800;
-            letter-spacing: 1.5px;
-            white-space: nowrap;
-            margin-right: 6px;
-        }
-
-        .cat-pill {
-            background: #0B1428;
-            border: 1.5px solid #223555;
-            color: #94A3B8;
-            padding: 6px 14px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 800;
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-            user-select: none;
-            letter-spacing: 0.5px;
-            box-sizing: border-box !important;
-            margin: 2px 3px !important;
-        }
-
-        .cat-pill:hover {
-            color: #00FF88;
-            border-color: #00FF88;
-            background: rgba(0, 255, 136, 0.12);
-            box-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
-        }
-
-        .cat-pill.active {
-            background: rgba(0, 240, 255, 0.2);
-            color: #00F0FF;
-            border-color: #00F0FF;
-            box-shadow: 0 0 14px rgba(0, 240, 255, 0.45);
-        }
 
         /* Automated Threat Alert Banner */
         .threat-alert-banner {
@@ -864,20 +820,6 @@ HUD_HTML = """<!DOCTYPE html>
             </div>
         </header>
 
-        <!-- Security Modules Ribbon -->
-        <div class="category-ribbon">
-            <span class="cat-label">DEFENSE DOMAINS:</span>
-            <div class="cat-pill active" onclick="filterCategory('all', this)">⚡ ALL MODULES</div>
-            <div class="cat-pill" onclick="filterCategory('cat1', this)">🛡️ VULNERABILITY AUDITOR</div>
-            <div class="cat-pill" onclick="filterCategory('cat2', this)">🕵️ CYBER OSINT ENGINE</div>
-            <div class="cat-pill" onclick="filterCategory('cat3', this)">🦠 MALWARE SCANNER</div>
-            <div class="cat-pill" onclick="filterCategory('cat4', this)">💉 ANTI-XSS & INJECTION</div>
-            <div class="cat-pill" onclick="filterCategory('cat5', this)">📡 LOCALHOST & PORTS</div>
-            <div class="cat-pill" onclick="filterCategory('cat6', this)">🚨 ATTACKER IDS & LOGS</div>
-            <div class="cat-pill" onclick="filterCategory('cat7', this)">⚔️ ATTACK MATRIX & HOW TO FIX</div>
-            <div class="cat-pill" onclick="filterCategory('cat8', this)">📜 EVIDENCE & SUBPOENA DOSSIER</div>
-        </div>
-
         <!-- Automated Threat Alert Banner -->
         <div id="threatAlertBanner" class="threat-alert-banner">
             <h3>🚨 AUTOMATED DEFENSE ALERT: CRITICAL ATTACK PATTERNS DETECTED!</h3>
@@ -899,8 +841,7 @@ HUD_HTML = """<!DOCTYPE html>
             <div class="target-bar-actions">
                 <button class="btn-master" onclick="runMasterScan()">🚀 RUN MASTER DEFENSE SCAN (ALL PANELS)</button>
                 <button class="btn-primary" id="btnAudit" onclick="runAudit()">🛡️ RUN DEFENSIVE AUDIT</button>
-                <button class="btn-danger" onclick="triggerEmergencyLockdown()">⚡ ONE-CLICK EMERGENCY LOCKDOWN</button>
-                <button class="btn-action" onclick="scanPorts()">📡 SCAN PORTS</button>
+                <button class="btn-action" onclick="exportAuditReport()">💾 EXPORT AUDIT REPORT (HTML)</button>
             </div>
             <div style="width: 100%; display: flex; gap: 8px; align-items: center; margin-top: 4px; flex-wrap: wrap;">
                 <span style="color: var(--cyan); font-size: 11px; font-weight: bold;">🎯 DETECTED HOST INTERFACES & LOCAL IPs:</span>
@@ -1590,6 +1531,8 @@ HUD_HTML = """<!DOCTYPE html>
             currentTarget = val;
         }
 
+        let lastAuditReport = null;
+
         function switchTab(tabId, btn) {
             document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.hud-tab-btn').forEach(el => el.classList.remove('active'));
@@ -1598,27 +1541,31 @@ HUD_HTML = """<!DOCTYPE html>
             if (btn) btn.classList.add('active');
         }
 
-        function filterCategory(cat, pillEl) {
-            document.querySelectorAll('.cat-pill').forEach(el => el.classList.remove('active'));
-            if (pillEl) pillEl.classList.add('active');
-
-            const tabButtons = document.querySelectorAll('.hud-tab-btn');
-            let firstMatchingBtn = null;
-
-            tabButtons.forEach(btn => {
-                const btnCat = btn.getAttribute('data-category');
-                if (cat === 'all' || btnCat === cat || btnCat === 'all') {
-                    btn.style.display = 'inline-block';
-                    if (!firstMatchingBtn && (cat === 'all' || btnCat === cat)) {
-                        firstMatchingBtn = btn;
-                    }
-                } else {
-                    btn.style.display = 'none';
+        async function exportAuditReport() {
+            if (!lastAuditReport) {
+                logToConsole('Generating live audit report for export...', 'INFO');
+                await runAudit();
+            }
+            if (!lastAuditReport) {
+                return alert('Please enter a target URL and run an audit first.');
+            }
+            try {
+                const res = await fetch('/api/export-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ report: lastAuditReport })
+                });
+                const data = await res.json();
+                if (data.html) {
+                    const blob = new Blob([data.html], { type: 'text/html' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `Aegis_Security_Audit_${new Date().toISOString().slice(0, 10)}.html`;
+                    link.click();
+                    logToConsole('Exported formal defensive audit report (HTML) to downloads.', 'PASS');
                 }
-            });
-
-            if (firstMatchingBtn) {
-                firstMatchingBtn.click();
+            } catch (err) {
+                logToConsole('Report export notice: ' + err, 'WARN');
             }
         }
 
@@ -1658,6 +1605,7 @@ HUD_HTML = """<!DOCTYPE html>
                     body: JSON.stringify({ target: url })
                 });
                 const report = await res.json();
+                lastAuditReport = report;
 
                 updateScore(report.security_score, report.grade);
                 document.getElementById('valCrit').innerText = report.findings_summary.critical;
@@ -2576,6 +2524,15 @@ def api_export_dossier():
     attackers = data.get("attackers", [])
     dossier = ActiveDefenseManager.generate_law_enforcement_dossier(target, attackers)
     return jsonify({"dossier": dossier})
+
+
+@app.route("/api/export-report", methods=["POST"])
+def api_export_report():
+    data = request.get_json() or {}
+    report = data.get("report", {})
+    from aegis.reporter import ReportGenerator
+    html = ReportGenerator.to_html(report)
+    return jsonify({"status": "success", "html": html})
 
 
 @app.route("/api/scan-malware", methods=["POST"])

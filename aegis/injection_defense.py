@@ -8,6 +8,12 @@ Developed by Team White Hat.
 import urllib.parse
 from typing import Dict, Any, List
 import requests
+import warnings
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings("ignore", message=".*Unverified HTTPS request.*")
 
 
 class InjectionDefenseEngine:

@@ -17,6 +17,12 @@ import urllib.parse
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 import requests
+import warnings
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings("ignore", message=".*Unverified HTTPS request.*")
 
 # Cloud & CDN Detection Signatures
 CDN_SIGNATURES = {

@@ -7,6 +7,13 @@ import socket
 import urllib.parse
 from typing import Dict, List, Any, Optional
 import requests
+import warnings
+import urllib3
+
+# Suppress unverified HTTPS warnings for defensive scanning of test/self-signed environments
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings("ignore", message=".*Unverified HTTPS request.*")
 
 # Recommended OWASP Security Headers
 SECURITY_HEADERS = {

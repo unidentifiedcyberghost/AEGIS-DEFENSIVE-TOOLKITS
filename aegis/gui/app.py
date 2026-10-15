@@ -75,11 +75,7 @@ class AegisMainWindow(QMainWindow):
         header_frame = self._build_header()
         main_layout.addWidget(header_frame)
 
-        # 2. Category Quick Ribbon
-        category_ribbon = self._build_category_ribbon()
-        main_layout.addWidget(category_ribbon)
-
-        # 3. Main Categorized Tabs
+        # 2. Main Categorized Tabs
         self.tabs = QTabWidget()
         self.tab_overview = self._build_overview_tab()
         self.tab_web = self._build_web_tab()
@@ -210,93 +206,6 @@ class AegisMainWindow(QMainWindow):
 
         ctrl_layout.addLayout(row_actions)
         layout.addLayout(ctrl_layout)
-        return frame
-
-    def _build_category_ribbon(self) -> QFrame:
-        """Ribbon providing instant category navigation with zero border overlapping."""
-        frame = QFrame()
-        frame.setObjectName("hudPanel")
-        layout = QVBoxLayout(frame)
-        layout.setContentsMargins(12, 8, 12, 8)
-        layout.setSpacing(6)
-
-        # Top Category Label
-        top_lbl_row = QHBoxLayout()
-        lbl = QLabel("CYBER DEFENSE CATEGORIES // QUICK ACCESS NAVIGATION:")
-        lbl.setStyleSheet("color: #00F0FF; font-weight: 800; font-size: 10px; letter-spacing: 1.5px;")
-        top_lbl_row.addWidget(lbl)
-        top_lbl_row.addStretch()
-        layout.addLayout(top_lbl_row)
-
-        # Row 1 (Categories 1 - 5)
-        row1 = QHBoxLayout()
-        row1.setSpacing(8)
-        cats_row1 = [
-            ("🛡️ VULNERABILITY AUDITOR", 1, "#00F0FF"),
-            ("🕵️ CYBER OSINT ENGINE", 2, "#00FF88"),
-            ("🦠 MALWARE SCANNER", 3, "#FF3366"),
-            ("💉 ANTI-XSS & INJECTION", 4, "#00F0FF"),
-            ("📡 LOCALHOST & PORTS", 5, "#FFB800"),
-        ]
-        for text, tab_idx, col in cats_row1:
-            btn = QPushButton(text)
-            btn.setFixedHeight(28)
-            btn.setStyleSheet(f"""
-                QPushButton {{
-                    background: rgba(15, 23, 42, 0.85);
-                    color: {col};
-                    border: 1.5px solid {col};
-                    padding: 4px 10px;
-                    border-radius: 4px;
-                    font-size: 10.5px;
-                    font-weight: 800;
-                    margin: 2px 3px;
-                }}
-                QPushButton:hover {{
-                    background: {col};
-                    color: #05080E;
-                    border-color: #FFFFFF;
-                }}
-            """)
-            btn.clicked.connect(lambda checked, idx=tab_idx: self.tabs.setCurrentIndex(idx))
-            row1.addWidget(btn)
-        row1.addStretch()
-        layout.addLayout(row1)
-
-        # Row 2 (Categories 6 - 9)
-        row2 = QHBoxLayout()
-        row2.setSpacing(8)
-        cats_row2 = [
-            ("🚨 ATTACKER IDS & LOGS", 6, "#FF3366"),
-            ("⚔️ ATTACK MATRIX & HOW TO FIX", 7, "#00FF88"),
-            ("📋 HARDENING PLAYBOOKS", 8, "#38BDF8"),
-            ("🖥️ STREAMING TACTICAL CONSOLE", 9, "#94A3B8")
-        ]
-        for text, tab_idx, col in cats_row2:
-            btn = QPushButton(text)
-            btn.setFixedHeight(28)
-            btn.setStyleSheet(f"""
-                QPushButton {{
-                    background: rgba(15, 23, 42, 0.85);
-                    color: {col};
-                    border: 1.5px solid {col};
-                    padding: 4px 10px;
-                    border-radius: 4px;
-                    font-size: 10.5px;
-                    font-weight: 800;
-                    margin: 2px 3px;
-                }}
-                QPushButton:hover {{
-                    background: {col};
-                    color: #05080E;
-                    border-color: #FFFFFF;
-                }}
-            """)
-            btn.clicked.connect(lambda checked, idx=tab_idx: self.tabs.setCurrentIndex(idx))
-            row2.addWidget(btn)
-        row2.addStretch()
-        layout.addLayout(row2)
-
         return frame
 
     def _build_footer(self) -> QFrame:

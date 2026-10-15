@@ -6,6 +6,13 @@ Main launcher supporting both the interactive PyQt6 Sci-Fi HUD and headless CLI 
 import sys
 import argparse
 import json
+import warnings
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings("ignore", message=".*Unverified HTTPS request.*")
+
 from aegis.auditor import WebAuditor
 from aegis.port_auditor import PortAuditor
 from aegis.log_ids import LogIntrusionDetector
