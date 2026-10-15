@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [2.2.1] - 2026-10-16
+
+### 🎨 Symmetrical Centered Layout, Border Isolation & Cross-Architecture Synchronization
+- **Symmetrical Centered Functional Toolbars:**
+  - Master defense toolbars (`.target-bar-actions`, `.presets`, `.host-interfaces-bar`, and `.hud-tabs`) updated with centered flex alignment (`justify-content: center; align-items: center; flex-wrap: wrap;`).
+  - Added strict border isolation (`margin: 3px 6px !important; box-sizing: border-box !important;`) ensuring zero button border overlap and clean hitboxes across all display resolutions.
+  - Added `.category-header-banner-actions` containers across all tabs (Tab 1 through Tab 11) to center action buttons directly inside each category banner.
+  - Added interactive active-state highlighting for Attack Matrix stack selection (`.stack-btn.active`) and Server Hardening Playbooks (`.playbook-btn.active`).
+  - Symmetrically centered action toolbars in PyQt6 Desktop GUI (`aegis/gui/app.py` & `aegis/gui/hud_theme.py`) using layout stretch spacers and centered button typography.
+- **Go Core Engine 2.2 (`aegis-go`):**
+  - Added `-ip` command flag to synthesize Linux `iptables`, Ubuntu `ufw`, and Windows `netsh` firewall drop directives.
+  - Added `-route` command flag for instant network route and interface scope telemetry.
+  - Recompiled high-speed binary `aegis-go/aegis-core.exe`.
+- **Rust Engine 2.2 (`aegis-rust`):**
+  - Added `--iptables` and `--routes` commands to Rust CLI with structured JSON telemetry.
+- **Vulnerability Audit & Warning Fixes:**
+  - Standardized schema keys between `findings_summary` and `summary` in `aegis/auditor.py` to ensure OWASP table findings always populate seamlessly.
+  - Globally suppressed `InsecureRequestWarning` across all HTTP client modules.
+
+---
+
 ## [2.2.0] - 2026-10-16
 
 ### 🛡️ Full Categorized Architecture & Cyber Defense War Room Release

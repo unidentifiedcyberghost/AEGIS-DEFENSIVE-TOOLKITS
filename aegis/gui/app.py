@@ -166,9 +166,10 @@ class AegisMainWindow(QMainWindow):
         row_target.addWidget(btn_preset2)
         ctrl_layout.addLayout(row_target)
 
-        # Row 2: Defense Actions (Well-Spaced, Cyber Highlighting, Zero Overlap)
+        # Row 2: Defense Actions (Well-Spaced, Cyber Highlighting, Zero Overlap, Centered Alignment)
         row_actions = QHBoxLayout()
-        row_actions.setSpacing(10)
+        row_actions.setSpacing(12)
+        row_actions.addStretch()
 
         self.btn_master = QPushButton("🚀 RUN MASTER DEFENSE SCAN (ALL PANELS)")
         self.btn_master.setFixedHeight(34)
@@ -178,10 +179,11 @@ class AegisMainWindow(QMainWindow):
                 color: #05080E;
                 font-weight: 900;
                 font-size: 11px;
-                padding: 6px 16px;
+                padding: 6px 18px;
                 border: 2px solid #FFFFFF;
                 border-radius: 4px;
-                margin: 2px 4px;
+                margin: 2px 6px;
+                text-align: center;
             }
             QPushButton:hover {
                 background: #00FF88;

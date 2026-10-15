@@ -217,22 +217,27 @@ HUD_HTML = """<!DOCTYPE html>
         }
 
         /* Target Control Bar - Organized Multi-Row Grid for Flawless Alignment */
+        /* Target Control Bar - Symmetrical Centered Layout for Maximum Visual Precision */
         .target-bar {
             background: var(--bg-panel);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(12px);
             border: 1px solid var(--border-dim);
             border-radius: 6px;
-            padding: 14px 18px;
+            padding: 16px 20px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin-bottom: 14px;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
 
         .target-bar-top {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             align-items: center;
+            justify-content: center;
             flex-wrap: wrap;
             width: 100%;
         }
@@ -240,7 +245,8 @@ HUD_HTML = """<!DOCTYPE html>
         .target-input-group {
             display: flex;
             flex: 1;
-            min-width: 280px;
+            max-width: 650px;
+            min-width: 320px;
         }
 
         .target-input {
@@ -250,49 +256,72 @@ HUD_HTML = """<!DOCTYPE html>
             color: var(--cyan);
             font-family: var(--font-mono);
             font-size: 12px;
-            padding: 8px 14px;
-            border-radius: 4px;
+            padding: 9px 16px;
+            border-radius: 5px;
             outline: none;
             transition: all 0.2s;
+            box-sizing: border-box;
         }
 
         .target-input:focus {
             border-color: var(--cyan);
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
         }
 
         .presets {
             display: flex;
-            gap: 6px;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
             flex-wrap: wrap;
         }
 
         .target-bar-actions {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             align-items: center;
+            justify-content: center;
             flex-wrap: wrap;
             width: 100%;
+            padding: 4px 0;
+        }
+
+        .host-interfaces-bar {
+            width: 100%;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            margin-top: 6px;
+            flex-wrap: wrap;
+            padding: 8px 14px;
+            background: rgba(7, 11, 20, 0.7);
+            border: 1px solid var(--border-dim);
+            border-radius: 5px;
+            text-align: center;
         }
 
         /* Global Button Sizing & Border Isolation (Zero Collision Guarantee) */
         .btn-preset, .btn-master, .btn-primary, .btn-danger, .btn-action, .hud-tab-btn {
             box-sizing: border-box !important;
-            margin: 2px 4px !important;
+            margin: 3px 6px !important;
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
+            text-align: center !important;
             vertical-align: middle !important;
+            white-space: nowrap !important;
+            user-select: none !important;
+            border-radius: 4px !important;
         }
 
         .btn-preset {
             background: #0B1736;
             border: 1.5px solid #38BDF8;
             color: #38BDF8;
-            padding: 7px 14px;
+            padding: 7px 15px;
             font-size: 11px;
             font-weight: 800;
-            border-radius: 4px;
             cursor: pointer;
             font-family: var(--font-mono);
             box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
@@ -304,6 +333,14 @@ HUD_HTML = """<!DOCTYPE html>
             border-color: #00F0FF;
             background: rgba(0, 240, 255, 0.25);
             box-shadow: 0 0 14px rgba(0, 240, 255, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-preset.active {
+            color: #00F0FF;
+            border-color: #00F0FF;
+            background: rgba(0, 240, 255, 0.3);
+            box-shadow: 0 0 14px rgba(0, 240, 255, 0.5), inset 0 0 6px rgba(0, 240, 255, 0.2);
         }
 
         .btn-master {
@@ -313,8 +350,7 @@ HUD_HTML = """<!DOCTYPE html>
             font-family: var(--font-mono);
             font-size: 11.5px;
             font-weight: 900;
-            padding: 9px 20px;
-            border-radius: 4px;
+            padding: 9px 22px;
             cursor: pointer;
             letter-spacing: 1.5px;
             text-transform: uppercase;
@@ -340,8 +376,7 @@ HUD_HTML = """<!DOCTYPE html>
             font-family: var(--font-mono);
             font-size: 11px;
             font-weight: 900;
-            padding: 9px 18px;
-            border-radius: 4px;
+            padding: 9px 20px;
             cursor: pointer;
             letter-spacing: 1.2px;
             text-transform: uppercase;
@@ -354,6 +389,7 @@ HUD_HTML = """<!DOCTYPE html>
             box-shadow: 0 0 24px rgba(0, 240, 255, 0.8);
             color: #05080E;
             border-color: #FFFFFF;
+            transform: translateY(-1px);
         }
 
         .btn-danger {
@@ -363,8 +399,7 @@ HUD_HTML = """<!DOCTYPE html>
             font-family: var(--font-mono);
             font-size: 11px;
             font-weight: 900;
-            padding: 9px 18px;
-            border-radius: 4px;
+            padding: 9px 20px;
             cursor: pointer;
             letter-spacing: 1.2px;
             text-transform: uppercase;
@@ -377,6 +412,7 @@ HUD_HTML = """<!DOCTYPE html>
             box-shadow: 0 0 24px rgba(255, 51, 102, 0.8);
             color: #05080E;
             border-color: #FFFFFF;
+            transform: translateY(-1px);
         }
 
         .btn-action {
@@ -386,8 +422,7 @@ HUD_HTML = """<!DOCTYPE html>
             font-family: var(--font-mono);
             font-size: 11px;
             font-weight: 800;
-            padding: 8px 16px;
-            border-radius: 4px;
+            padding: 8px 18px;
             cursor: pointer;
             box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
             transition: all 0.2s;
@@ -398,6 +433,7 @@ HUD_HTML = """<!DOCTYPE html>
             color: #00FF88;
             background: rgba(0, 255, 136, 0.15);
             box-shadow: 0 0 16px rgba(0, 255, 136, 0.4);
+            transform: translateY(-1px);
         }
 
         /* Metrics Row */
@@ -513,22 +549,17 @@ HUD_HTML = """<!DOCTYPE html>
             margin-top: 2px;
         }
 
-        /* Main Tabs Bar */
-        /* Main Tabs Bar */
+        /* Main Tabs Bar - Symmetrical Centered Layout */
         .hud-tabs {
             display: flex;
-            gap: 6px;
+            justify-content: center;
+            align-items: center;
+            gap: 8px 10px;
+            flex-wrap: wrap;
             border-bottom: 1.5px solid var(--border-dim);
-            margin-bottom: 14px;
-            overflow-x: auto;
-            padding-bottom: 6px;
-            scrollbar-width: none !important;
-            -ms-overflow-style: none !important;
-        }
-        .hud-tabs::-webkit-scrollbar {
-            display: none !important;
-            width: 0px !important;
-            height: 0px !important;
+            margin-bottom: 16px;
+            padding: 6px 0 12px 0;
+            width: 100%;
         }
 
         .hud-tab-btn {
@@ -551,6 +582,7 @@ HUD_HTML = """<!DOCTYPE html>
             border-color: #00F0FF;
             background: rgba(0, 240, 255, 0.12);
             box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+            transform: translateY(-1px);
         }
 
         .hud-tab-btn.active {
@@ -566,7 +598,7 @@ HUD_HTML = """<!DOCTYPE html>
             background: var(--bg-panel);
             border: 1px solid var(--border-dim);
             border-radius: 6px;
-            padding: 18px;
+            padding: 20px;
             min-height: 480px;
         }
 
@@ -581,16 +613,27 @@ HUD_HTML = """<!DOCTYPE html>
         }
 
         .category-header-banner {
-            background: rgba(15, 23, 42, 0.6);
+            background: rgba(15, 23, 42, 0.75);
             border-left: 4px solid var(--cyan);
-            padding: 10px 14px;
-            border-radius: 4px;
-            margin-bottom: 14px;
+            border-right: 1px solid var(--border-dim);
+            border-top: 1px solid var(--border-dim);
+            border-bottom: 1px solid var(--border-dim);
+            padding: 12px 18px;
+            border-radius: 6px;
+            margin-bottom: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .category-header-banner-actions {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             gap: 8px;
+            flex-wrap: wrap;
         }
 
         .category-header-banner h2 {
@@ -843,11 +886,11 @@ HUD_HTML = """<!DOCTYPE html>
                 <button class="btn-primary" id="btnAudit" onclick="runAudit()">🛡️ RUN DEFENSIVE AUDIT</button>
                 <button class="btn-action" onclick="exportAuditReport()">💾 EXPORT AUDIT REPORT (HTML)</button>
             </div>
-            <div style="width: 100%; display: flex; gap: 8px; align-items: center; margin-top: 4px; flex-wrap: wrap;">
-                <span style="color: var(--cyan); font-size: 11px; font-weight: bold;">🎯 DETECTED HOST INTERFACES & LOCAL IPs:</span>
-                <div id="myIpsList" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
-                <button class="btn-action" style="padding: 4px 10px; font-size: 10px;" onclick="loadMyIps()">🔄 REFRESH IPs</button>
-                <button class="btn-action" style="padding: 4px 10px; font-size: 10px; border-color: var(--amber); color: var(--amber);" onclick="sendTestProbe()">🧪 TEST ATTACK PROBE ON MY IP</button>
+            <div class="host-interfaces-bar">
+                <span style="color: var(--cyan); font-size: 11px; font-weight: bold; margin-right: 4px;">🎯 DETECTED HOST INTERFACES & LOCAL IPs:</span>
+                <div id="myIpsList" style="display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap;"></div>
+                <button class="btn-action" style="padding: 5px 12px; font-size: 10px;" onclick="loadMyIps()">🔄 REFRESH IPs</button>
+                <button class="btn-action" style="padding: 5px 12px; font-size: 10px; border-color: var(--amber); color: var(--amber);" onclick="sendTestProbe()">🧪 TEST ATTACK PROBE ON MY IP</button>
             </div>
         </div>
 
@@ -909,6 +952,10 @@ HUD_HTML = """<!DOCTYPE html>
                     <h2>🌐 VULNERABILITY AUDITOR & OWASP COMPLIANCE</h2>
                     <p>Scans target website/localhost for missing OWASP security headers (CSP, HSTS, X-Frame), .env/private credential leaks, and insecure cookies.</p>
                 </div>
+                <div class="category-header-banner-actions">
+                    <button class="btn-primary" onclick="runAudit()">🛡️ RUN DEFENSIVE AUDIT</button>
+                    <button class="btn-action" onclick="exportAuditReport()">💾 EXPORT AUDIT REPORT</button>
+                </div>
             </div>
             <div class="table-container">
                 <table>
@@ -934,7 +981,7 @@ HUD_HTML = """<!DOCTYPE html>
                     <h2>🕵️ CYBER OSINT & ATTACK SURFACE INTELLIGENCE ENGINE</h2>
                     <p>Passive DNS enumeration, Certificate Transparency subdomains, SSL/TLS cryptanalysis, BGP routing/ASN, IP Tables, Routes, Details, and Origins.</p>
                 </div>
-                <div style="display: flex; gap: 8px;">
+                <div class="category-header-banner-actions">
                     <button class="btn-action" id="btnRunOsint" onclick="runOsintRecon()">🕵️ RUN PASSIVE OSINT RECON</button>
                     <button class="btn-preset" onclick="copyDiscoveredSubdomains()">📋 COPY ALL SUBDOMAINS</button>
                 </div>
@@ -1096,8 +1143,8 @@ HUD_HTML = """<!DOCTYPE html>
                     <h2>🦠 MALWARE & WEB SHELL INFECTED PATH SCANNER</h2>
                     <p>Inspects website and server paths for malicious files, backdoors, obfuscated PHP eval/base64 shells, JS cryptominers, and double extensions.</p>
                 </div>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <input type="text" id="malwareDirInput" class="target-input" value="." style="width: 200px; padding: 4px 8px;" placeholder="Directory to scan (e.g. . or ./uploads)">
+                <div class="category-header-banner-actions">
+                    <input type="text" id="malwareDirInput" class="target-input" value="." style="width: 180px; padding: 6px 12px;" placeholder="Directory (e.g. . or uploads)">
                     <button class="btn-danger" id="btnScanMalware" onclick="runMalwareScan()">🔍 SCAN PATHS FOR MALWARE</button>
                 </div>
             </div>
@@ -1146,7 +1193,9 @@ HUD_HTML = """<!DOCTYPE html>
                     <h2>💉 ANTI-XSS, DATA INJECTION & SCRIPT EXECUTION DEFENSE SHIELD</h2>
                     <p>Audits Content-Security-Policy (CSP), MIME sniffing, clickjacking, and generates context-aware input sanitization templates.</p>
                 </div>
-                <button class="btn-primary" onclick="runInjectionAudit()">💉 AUDIT ANTI-XSS DEFENSES</button>
+                <div class="category-header-banner-actions">
+                    <button class="btn-primary" onclick="runInjectionAudit()">💉 AUDIT ANTI-XSS DEFENSES</button>
+                </div>
             </div>
 
             <div class="metrics-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 12px;">
@@ -1197,7 +1246,9 @@ HUD_HTML = """<!DOCTYPE html>
                     <h2>📡 LOCALHOST OPEN PORTS & SOCKETS AUDITOR</h2>
                     <p>Scans system TCP listeners to identify dangerous wildcard (0.0.0.0) exposures, unauthenticated dev databases, and rogue services.</p>
                 </div>
-                <button class="btn-action" onclick="scanPorts()">🔄 REFRESH PORTS</button>
+                <div class="category-header-banner-actions">
+                    <button class="btn-action" onclick="scanPorts()">🔄 REFRESH PORTS</button>
+                </div>
             </div>
             <div class="table-container">
                 <table>
@@ -1225,7 +1276,9 @@ HUD_HTML = """<!DOCTYPE html>
                     <h2>💻 SERVER MACHINE & COMPUTER HOST ROOTKIT AUDITOR</h2>
                     <p>Deep host audit: scans running processes for cryptominers, reverse shells, backdoor ports, hosts file tampering, and dropped temp files.</p>
                 </div>
-                <button class="btn-danger" id="btnAuditServer" onclick="runServerAudit()">💻 RUN FULL SYSTEM INTEGRITY SCAN</button>
+                <div class="category-header-banner-actions">
+                    <button class="btn-danger" id="btnAuditServer" onclick="runServerAudit()">💻 RUN FULL SYSTEM INTEGRITY SCAN</button>
+                </div>
             </div>
 
             <div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 12px;">
@@ -1271,7 +1324,7 @@ HUD_HTML = """<!DOCTYPE html>
                     <h2>🚨 LOG INTRUSION DETECTION & ATTACKER TRACKING ENGINE</h2>
                     <p>Detects automated attack probes (SQLi, XSS, Path Traversal), fingerprints attacker toolkits (SQLmap, Nikto), mobile hardware, and resolves VPN/Tor proxies.</p>
                 </div>
-                <div style="display: flex; gap: 8px;">
+                <div class="category-header-banner-actions">
                     <button class="btn-action" onclick="analyzeLogs(true)">🧪 LOAD ATTACK LOGS (TELEMETRY SIMULATION)</button>
                 </div>
             </div>
@@ -1303,7 +1356,9 @@ HUD_HTML = """<!DOCTYPE html>
                     <h2>📡 LIVE TRAFFIC SNIFFER & CONNECTION MONITOR</h2>
                     <p>Real-time telemetry showing live network connections entering your localhost web server.</p>
                 </div>
-                <button class="btn-action" onclick="pollActiveTraffic()">🔄 REFRESH LIVE CONNECTIONS</button>
+                <div class="category-header-banner-actions">
+                    <button class="btn-action" onclick="pollActiveTraffic()">🔄 REFRESH LIVE CONNECTIONS</button>
+                </div>
             </div>
             <div class="table-container">
                 <table>
@@ -1331,7 +1386,9 @@ HUD_HTML = """<!DOCTYPE html>
                     <h2>⚔️ CYBER ATTACK MATRIX & DEFENSE REMEDIATION DASHBOARD</h2>
                     <p>Comprehensive interactive defense runbook: displays all known attacks, exact symptoms, immediate emergency actions, and multi-framework code fixes.</p>
                 </div>
-                <button class="btn-danger" onclick="triggerEmergencyLockdown()">⚡ ONE-CLICK EMERGENCY FIREWALL SCRIPT</button>
+                <div class="category-header-banner-actions">
+                    <button class="btn-danger" onclick="triggerEmergencyLockdown()">⚡ ONE-CLICK EMERGENCY FIREWALL SCRIPT</button>
+                </div>
             </div>
 
             <div class="matrix-split">
@@ -1359,12 +1416,12 @@ HUD_HTML = """<!DOCTYPE html>
                     <div id="matPermanent" style="background: rgba(0, 255, 136, 0.08); border-left: 3px solid var(--green); padding: 10px; font-size: 11.5px; line-height: 1.6; margin-bottom: 12px;"></div>
 
                     <h4 style="color: var(--cyan); font-size: 12px; margin-top: 14px; margin-bottom: 6px;">💻 READY-TO-DEPLOY CODE FIX:</h4>
-                    <div style="display: flex; gap: 6px; margin-bottom: 8px;">
-                        <button class="btn-preset" onclick="switchMatrixStack('nginx')">Nginx</button>
-                        <button class="btn-preset" onclick="switchMatrixStack('apache')">Apache</button>
-                        <button class="btn-preset" onclick="switchMatrixStack('python')">Python</button>
-                        <button class="btn-preset" onclick="switchMatrixStack('nodejs')">Node.js</button>
-                        <button class="btn-preset" onclick="switchMatrixStack('php')">PHP</button>
+                    <div class="category-header-banner-actions" style="justify-content: flex-start; margin-bottom: 8px;">
+                        <button class="btn-preset stack-btn active" id="btnStack-nginx" onclick="switchMatrixStack('nginx', this)">Nginx</button>
+                        <button class="btn-preset stack-btn" id="btnStack-apache" onclick="switchMatrixStack('apache', this)">Apache</button>
+                        <button class="btn-preset stack-btn" id="btnStack-python" onclick="switchMatrixStack('python', this)">Python</button>
+                        <button class="btn-preset stack-btn" id="btnStack-nodejs" onclick="switchMatrixStack('nodejs', this)">Node.js</button>
+                        <button class="btn-preset stack-btn" id="btnStack-php" onclick="switchMatrixStack('php', this)">PHP</button>
                     </div>
                     <pre id="matCodeBox" style="height: 180px;"></pre>
                     <button class="btn-action" style="margin-top: 6px;" onclick="copyMatrixCode()">📋 COPY CODE FIX TO CLIPBOARD</button>
@@ -1379,12 +1436,12 @@ HUD_HTML = """<!DOCTYPE html>
                     <h2>📋 SERVER HARDENING PLAYBOOKS</h2>
                     <p>Production-ready security configurations to instantly eliminate OWASP vulnerabilities across major web servers.</p>
                 </div>
-                <div style="display: flex; gap: 6px;">
-                    <button class="btn-preset" onclick="loadPlaybook('nginx')">Nginx</button>
-                    <button class="btn-preset" onclick="loadPlaybook('apache')">Apache</button>
-                    <button class="btn-preset" onclick="loadPlaybook('express')">Express.js</button>
-                    <button class="btn-preset" onclick="loadPlaybook('caddy')">Caddy</button>
-                    <button class="btn-preset" onclick="loadPlaybook('python_fastapi')">FastAPI</button>
+                <div class="category-header-banner-actions">
+                    <button class="btn-preset playbook-btn active" id="pb-nginx" onclick="loadPlaybook('nginx', this)">Nginx</button>
+                    <button class="btn-preset playbook-btn" id="pb-apache" onclick="loadPlaybook('apache', this)">Apache</button>
+                    <button class="btn-preset playbook-btn" id="pb-express" onclick="loadPlaybook('express', this)">Express.js</button>
+                    <button class="btn-preset playbook-btn" id="pb-caddy" onclick="loadPlaybook('caddy', this)">Caddy</button>
+                    <button class="btn-preset playbook-btn" id="pb-python_fastapi" onclick="loadPlaybook('python_fastapi', this)">FastAPI</button>
                 </div>
             </div>
             <h3 id="playbookTitle" style="color: var(--cyan); font-size: 14px; margin-bottom: 4px;">Nginx Security Hardening</h3>
@@ -1399,7 +1456,9 @@ HUD_HTML = """<!DOCTYPE html>
                     <h2>📜 LAW ENFORCEMENT & MOBILE CARRIER SUBPOENA EVIDENCE DOSSIER</h2>
                     <p>Cryptographically hashed evidence report formatted for submission to Police Cybercrime Divisions, CERTs, and Mobile Carrier Subpoenas (SIM / IMEI / GPS).</p>
                 </div>
-                <button class="btn-action" onclick="exportForensicDossier()">💾 EXPORT FORMAL DOSSIER (.TXT)</button>
+                <div class="category-header-banner-actions">
+                    <button class="btn-action" onclick="exportForensicDossier()">💾 EXPORT FORMAL DOSSIER (.TXT)</button>
+                </div>
             </div>
             <pre id="formalDossierBox" style="height: 420px; overflow-y: auto;">Run an audit and load attack logs to synthesize the formal police & carrier subpoena evidence report...</pre>
         </div>
@@ -2309,8 +2368,18 @@ HUD_HTML = """<!DOCTYPE html>
             switchMatrixStack(activeMatrixStack);
         }
 
-        function switchMatrixStack(stack) {
+        function switchMatrixStack(stack, btn) {
             activeMatrixStack = stack;
+            if (btn) {
+                document.querySelectorAll('.stack-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            } else {
+                const el = document.getElementById(`btnStack-${stack}`);
+                if (el) {
+                    document.querySelectorAll('.stack-btn').forEach(b => b.classList.remove('active'));
+                    el.classList.add('active');
+                }
+            }
             const att = matrixData[activeMatrixKey];
             if (!att) return;
             const fixes = att.code_fixes || {};
@@ -2414,7 +2483,17 @@ HUD_HTML = """<!DOCTYPE html>
             } catch (e) {}
         }
 
-        function loadPlaybook(key) {
+        function loadPlaybook(key, btn) {
+            if (btn) {
+                document.querySelectorAll('.playbook-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            } else {
+                const el = document.getElementById(`pb-${key}`);
+                if (el) {
+                    document.querySelectorAll('.playbook-btn').forEach(b => b.classList.remove('active'));
+                    el.classList.add('active');
+                }
+            }
             const pb = playbooksData[key];
             if (!pb) return;
             document.getElementById('playbookTitle').innerText = pb.title;

@@ -84,11 +84,12 @@ QPushButton {
     color: #00F0FF;
     border: 1.5px solid #00F0FF;
     border-radius: 4px;
-    padding: 6px 14px;
+    padding: 6px 16px;
     font-weight: 800;
     letter-spacing: 0.8px;
-    margin: 3px 4px;
-    min-height: 22px;
+    text-align: center;
+    margin: 3px 6px;
+    min-height: 26px;
 }
 
 QPushButton:hover {
@@ -108,8 +109,9 @@ QPushButton#btnPrimary {
     border: 2px solid #FFFFFF;
     font-weight: 900;
     letter-spacing: 1px;
-    margin: 3px 4px;
-    min-height: 22px;
+    text-align: center;
+    margin: 3px 6px;
+    min-height: 26px;
 }
 
 QPushButton#btnPrimary:hover {
@@ -122,8 +124,9 @@ QPushButton#btnDanger {
     border: 2px solid #FF3366;
     color: #FF3366;
     font-weight: 800;
-    margin: 3px 4px;
-    min-height: 22px;
+    text-align: center;
+    margin: 3px 6px;
+    min-height: 26px;
 }
 
 QPushButton#btnDanger:hover {
