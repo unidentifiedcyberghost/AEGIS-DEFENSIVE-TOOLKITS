@@ -61,6 +61,7 @@ Both the **PyQt6 Desktop GUI** and the **Localhost Web HUD** are structured into
 | **CAT 8** | 📜 | **Carrier Subpoena Evidence Dossier** | Formal forensic evidence report formatted for police cybercrime units and carrier subpoenas (SIM/IMEI/GPS coordinates). |
 | **CAT 9** | 🪙 | **CryptoTrace AML & Money Flow Tracer** | Real-time on-chain tracing across Bitcoin, Ethereum, USDT TRC-20, and Solana; links scam wallets to mixers and exchange off-ramps with AML risk scoring. |
 | **CAT 10** | 🕷️ | **SpiderFoot Scam Infrastructure Recon** | Automated 8-module active sweep (DNS, WHOIS, CRT.SH subdomains, SSL/TLS, cloud buckets, dark web leaks, threat reputation) to expose scam infrastructure. |
+| **CAT 11** | 🔐 | **Security Exposure & Secret-Leak Audit Center** | Modular defensive security auditing: detect accidentally exposed credentials, misconfigured .gitignore files, historical git leaks, exposed database dumps/backups, vulnerable dependencies (OSV.dev), and pre-commit security guards. |
 
 ---
 

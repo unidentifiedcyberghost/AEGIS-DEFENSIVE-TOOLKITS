@@ -29,6 +29,12 @@ from aegis.playbook import PLAYBOOKS
 from aegis.osint_suite import AdvancedOsintSuite
 from aegis.crypto_tracer import CryptoTraceEngine
 from aegis.spiderfoot_recon import SpiderFootReconEngine
+from aegis.secret_auditor import (
+    SecurityExposureLab, SecretScanner, GitAuditor,
+    GitHistoryScanner, SensitiveFileHunter, DependencyAuditor,
+    PreCommitGuard, GitHubExposureInspector, WebsiteExposureScanner,
+    ExposureReporter
+)
 
 app = Flask(__name__)
 
@@ -887,6 +893,7 @@ HUD_HTML = """<!DOCTYPE html>
         <!-- Tabs Navigation Bar (Minimal Holographic) -->
         <div class="hud-tabs">
             <button class="hud-tab-btn active" data-category="cat1" onclick="switchTab('tab-findings', this)">[⬡] OWASP AUDIT</button>
+            <button class="hud-tab-btn" data-category="secret_audit" onclick="switchTab('tab-secret-audit', this)">[🔐] SECRET &amp; EXPOSURE LAB</button>
             <button class="hud-tab-btn" data-category="osint_user" onclick="switchTab('tab-username-osint', this)">[◈] USERNAME OSINT HUNT</button>
             <button class="hud-tab-btn" data-category="osint_suite" onclick="switchTab('tab-osint-suite', this)">[⌖] 20-IN-1 OSINT SUITE</button>
             <button class="hud-tab-btn" data-category="cryptotrace" onclick="switchTab('tab-cryptotrace', this)">[☵] CRYPTOTRACE AML</button>
@@ -956,6 +963,298 @@ HUD_HTML = """<!DOCTYPE html>
                         <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 25px;">Ready. Run a defensive audit to inspect 20+ sensitive website paths, webshells, and databases.</td></tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- TAB: SECURITY EXPOSURE & SECRET-LEAK AUDIT CENTER       -->
+        <!-- ======================================================= -->
+        <div id="tab-secret-audit" class="tab-pane">
+            <div class="category-header-banner">
+                <div>
+                    <h2><span class="holo-glyph">[🔐]</span> SECURITY EXPOSURE &amp; SECRET-LEAK AUDIT CENTER</h2>
+                    <p>Enterprise defensive security auditing: detect accidentally committed API keys, .gitignore flaws, historical git leaks, exposed database dumps/backups, and vulnerable dependencies.</p>
+                </div>
+                <div class="category-header-banner-actions">
+                    <button class="btn-primary" id="btnFullExposureAudit" onclick="runFullExposureAudit()"><span class="holo-glyph">[🔐]</span> RUN FULL EXPOSURE AUDIT</button>
+                    <button class="btn-action" onclick="exportExposureReportPrompt()"><span class="holo-glyph">[📥]</span> EXPORT AUDIT REPORT</button>
+                    <button class="btn-action" onclick="installPreCommitGuard()"><span class="holo-glyph">[🛡️]</span> INSTALL PRE-COMMIT GUARD</button>
+                </div>
+            </div>
+
+            <!-- Target Scope & Path Configuration Bar -->
+            <div class="target-bar" style="margin-bottom: 14px;">
+                <div class="target-bar-top" style="flex-wrap: wrap; gap: 8px;">
+                    <div style="flex: 2; min-width: 240px;">
+                        <span style="color: var(--cyan); font-size: 11px; font-weight: bold;"><span class="holo-glyph">[📁]</span> LOCAL REPOSITORY / PROJECT PATH:</span>
+                        <input type="text" id="secretAuditPath" class="target-input" value="." placeholder="Enter local project root (e.g. . or C:/Project/...)">
+                    </div>
+                    <div style="flex: 2; min-width: 220px;">
+                        <span style="color: var(--neon-blue); font-size: 11px; font-weight: bold;"><span class="holo-glyph">[🌐]</span> AUTHORIZED TARGET URL (OPTIONAL):</span>
+                        <input type="text" id="secretAuditUrl" class="target-input" value="http://127.0.0.1:8000" placeholder="https://example.com or http://127.0.0.1:8000">
+                    </div>
+                    <div style="flex: 2; min-width: 200px;">
+                        <span style="color: var(--violet); font-size: 11px; font-weight: bold;"><span class="holo-glyph">[🐙]</span> GITHUB REPO (OWNER/REPO):</span>
+                        <input type="text" id="secretAuditGithubRepo" class="target-input" placeholder="e.g. torvalds/linux or your-org/repo">
+                    </div>
+                    <div style="align-self: flex-end;">
+                        <button class="btn-master" onclick="runFullExposureAudit()"><span class="holo-glyph">[◈]</span> RUN FULL SCAN</button>
+                    </div>
+                </div>
+                <div class="presets" style="padding-top: 6px;">
+                    <span style="font-size: 10px; color: var(--text-muted);">Quick Targets:</span>
+                    <button class="btn-preset" onclick="setAuditPathAndRun('.')">. (Current Workspace)</button>
+                    <button class="btn-preset" onclick="setAuditPathAndRun('./aegis')">./aegis (Core Modules)</button>
+                    <button class="btn-preset" onclick="setAuditPathAndRun('./tests')">./tests (Test Suite)</button>
+                </div>
+            </div>
+
+            <!-- Exposure Posture Metrics Grid -->
+            <div class="metrics-grid" style="grid-template-columns: repeat(6, 1fr); margin-bottom: 14px;">
+                <div class="metric-card">
+                    <div class="metric-title">POSTURE SCORE</div>
+                    <div class="metric-value" id="valExposureScore" style="color: var(--cyan);">100/100</div>
+                    <div class="metric-sub" id="valExposureGrade" style="color: var(--green);">GRADE: A+</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">HARDCODED SECRETS</div>
+                    <div class="metric-value" id="valSecretsFound" style="color: var(--green);">0</div>
+                    <div class="metric-sub" id="valSecretsFiles">0 Files Scanned</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">TRACKED GIT LEAKS</div>
+                    <div class="metric-value" id="valTrackedGitLeaks" style="color: var(--green);">0</div>
+                    <div class="metric-sub" id="valGitMissingIgnores">0 Missing Ignores</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">HISTORICAL LEAKS</div>
+                    <div class="metric-value" id="valHistoryLeaks" style="color: var(--green);">0</div>
+                    <div class="metric-sub" id="valCommitsScanned">0 Commits Audited</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">RISKY FILES / DUMPS</div>
+                    <div class="metric-value" id="valRiskyFiles" style="color: var(--green);">0</div>
+                    <div class="metric-sub" id="valRiskyFilesEval">0 Files Evaluated</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">DEPENDENCY CVEs</div>
+                    <div class="metric-value" id="valDepVulns" style="color: var(--green);">0</div>
+                    <div class="metric-sub" id="valDepCount">OSV.dev Vulnerabilities</div>
+                </div>
+            </div>
+
+            <!-- Sub-Navigation Pills -->
+            <div style="display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; border-bottom: 1px solid var(--border-dim); padding-bottom: 8px;">
+                <button class="btn-preset active" id="pillSecretTab1" onclick="switchSecretSubView('subview-secrets', this)"><span class="holo-glyph">[🔑]</span> HARDCODED SECRETS (<span id="pillCountSecrets">0</span>)</button>
+                <button class="btn-preset" id="pillSecretTab2" onclick="switchSecretSubView('subview-git', this)"><span class="holo-glyph">[📁]</span> GIT &amp; .GITIGNORE (<span id="pillCountGit">0</span>)</button>
+                <button class="btn-preset" id="pillSecretTab3" onclick="switchSecretSubView('subview-history', this)"><span class="holo-glyph">[📜]</span> GIT HISTORY LEAKS (<span id="pillCountHistory">0</span>)</button>
+                <button class="btn-preset" id="pillSecretTab4" onclick="switchSecretSubView('subview-files', this)"><span class="holo-glyph">[💾]</span> SENSITIVE FILES &amp; DUMPS (<span id="pillCountFiles">0</span>)</button>
+                <button class="btn-preset" id="pillSecretTab5" onclick="switchSecretSubView('subview-dependencies', this)"><span class="holo-glyph">[📦]</span> DEPENDENCIES / OSV.DEV (<span id="pillCountDeps">0</span>)</button>
+                <button class="btn-preset" id="pillSecretTab6" onclick="switchSecretSubView('subview-website', this)"><span class="holo-glyph">[🌐]</span> WEBSITE PUBLIC EXPOSURE (<span id="pillCountWeb">0</span>)</button>
+                <button class="btn-preset" id="pillSecretTab7" onclick="switchSecretSubView('subview-github', this)"><span class="holo-glyph">[🐙]</span> GITHUB REPO INSPECTOR</button>
+                <button class="btn-preset" id="pillSecretTab8" onclick="switchSecretSubView('subview-precommit', this)"><span class="holo-glyph">[🛡️]</span> PRE-COMMIT GUARD</button>
+            </div>
+
+            <!-- Subview 1: Hardcoded Secrets -->
+            <div id="subview-secrets" class="secret-subview" style="display: block;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 11px; color: var(--cyan); font-weight: bold;"><span class="holo-glyph">[🔑]</span> DETECTED SECRETS &amp; CREDENTIALS (REDACTED FOR PRIVACY):</span>
+                    <button class="btn-preset" onclick="scanLocalSecrets()"><span class="holo-glyph">[↻]</span> SCAN SECRETS ONLY</button>
+                </div>
+                <div class="hud-table-container">
+                    <table class="hud-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 100px;">SEVERITY</th>
+                                <th style="width: 180px;">RULE &amp; CATEGORY</th>
+                                <th style="width: 220px;">FILE &amp; LINE</th>
+                                <th>REDACTED EVIDENCE SNIPPET</th>
+                                <th style="width: 240px;">DEFENSIVE REMEDIATION</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodySecrets">
+                            <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 25px;">Ready. Click 'RUN FULL EXPOSURE AUDIT' or 'SCAN SECRETS ONLY' to inspect files.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Subview 2: Git & .gitignore -->
+            <div id="subview-git" class="secret-subview" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 11px; color: var(--cyan); font-weight: bold;"><span class="holo-glyph">[📁]</span> GIT REPOSITORY &amp; .GITIGNORE CONFIGURATION AUDIT:</span>
+                    <button class="btn-preset" onclick="auditGitIgnore()"><span class="holo-glyph">[↻]</span> RE-AUDIT .GITIGNORE</button>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-dim); border-radius: 6px; padding: 12px;">
+                        <span style="color: var(--red); font-size: 11px; font-weight: bold;"><span class="holo-glyph">[⚠️]</span> SENSITIVE FILES TRACKED IN GIT INDEX:</span>
+                        <div id="gitTrackedList" style="margin-top: 8px; font-size: 11px; color: var(--text-muted); max-height: 180px; overflow-y: auto;">
+                            No tracked sensitive files.
+                        </div>
+                    </div>
+                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-dim); border-radius: 6px; padding: 12px;">
+                        <span style="color: var(--amber); font-size: 11px; font-weight: bold;"><span class="holo-glyph">[📋]</span> RECOMMENDED IGNORES MISSING FROM .GITIGNORE:</span>
+                        <div id="gitMissingList" style="margin-top: 8px; font-size: 11px; color: var(--text-muted); max-height: 180px; overflow-y: auto;">
+                            Audit pending.
+                        </div>
+                    </div>
+                </div>
+                <div class="hud-table-container">
+                    <table class="hud-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 180px;">TRACKED SENSITIVE FILE</th>
+                                <th style="width: 140px;">INDEX STATUS</th>
+                                <th>RISK ASSESSMENT</th>
+                                <th style="width: 280px;">SAFE REMEDIATION COMMAND</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyGitTracked">
+                            <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 25px;">No Git audit run yet.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Subview 3: Git History -->
+            <div id="subview-history" class="secret-subview" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 11px; color: var(--cyan); font-weight: bold;"><span class="holo-glyph">[📜]</span> GIT COMMIT LOG &amp; PATCH DIFF SECRET SCANNER:</span>
+                    <button class="btn-preset" onclick="scanGitHistory()"><span class="holo-glyph">[↻]</span> SCAN HISTORY COMMITS</button>
+                </div>
+                <div class="hud-table-container">
+                    <table class="hud-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 90px;">COMMIT</th>
+                                <th style="width: 140px;">AUTHOR &amp; DATE</th>
+                                <th style="width: 220px;">SUBJECT</th>
+                                <th style="width: 150px;">RULE MATCH</th>
+                                <th>REDACTED DIFF SNIPPET</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyHistory">
+                            <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 25px;">Ready. Scan commit patches to uncover secrets removed from HEAD but preserved in history.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Subview 4: Sensitive Files & Dumps -->
+            <div id="subview-files" class="secret-subview" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 11px; color: var(--cyan); font-weight: bold;"><span class="holo-glyph">[💾]</span> RISKY DATABASE DUMPS, KEYS, LOGS &amp; BACKUP HUNTER:</span>
+                    <button class="btn-preset" onclick="huntSensitiveFiles()"><span class="holo-glyph">[↻]</span> HUNT SUSPICIOUS FILES</button>
+                </div>
+                <div class="hud-table-container">
+                    <table class="hud-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 90px;">SEVERITY</th>
+                                <th style="width: 150px;">CATEGORY</th>
+                                <th style="width: 260px;">RELATIVE PATH</th>
+                                <th style="width: 80px;">SIZE</th>
+                                <th>REASON FOR CONCERN</th>
+                                <th style="width: 240px;">DEFENSIVE ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyRiskyFiles">
+                            <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 25px;">Ready. Scan selected folder for SQL dumps, SQLite databases, keys, and backups.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Subview 5: Dependencies / OSV.dev -->
+            <div id="subview-dependencies" class="secret-subview" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 11px; color: var(--cyan); font-weight: bold;"><span class="holo-glyph">[📦]</span> DEPENDENCY MANIFEST VULNERABILITY AUDITOR (OSV.DEV):</span>
+                    <button class="btn-preset" onclick="auditDependencies()"><span class="holo-glyph">[↻]</span> AUDIT MANIFESTS</button>
+                </div>
+                <div class="hud-table-container">
+                    <table class="hud-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 90px;">SEVERITY</th>
+                                <th style="width: 160px;">PACKAGE &amp; VERSION</th>
+                                <th style="width: 130px;">ADVISORY ID</th>
+                                <th>VULNERABILITY SUMMARY</th>
+                                <th style="width: 220px;">RECOMMENDED REMEDIATION</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyDependencies">
+                            <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 25px;">Ready. Inspect requirements.txt and package.json against the OSV.dev vulnerability database.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Subview 6: Website Public Exposure -->
+            <div id="subview-website" class="secret-subview" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 11px; color: var(--cyan); font-weight: bold;"><span class="holo-glyph">[🌐]</span> WEBSITE PUBLIC EXPOSURE &amp; SECURITY HEADERS:</span>
+                    <button class="btn-preset" onclick="auditWebsiteExposure()"><span class="holo-glyph">[↻]</span> TEST TARGET URL</button>
+                </div>
+                <div class="hud-table-container">
+                    <table class="hud-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 90px;">SEVERITY</th>
+                                <th style="width: 200px;">CHECK NAME</th>
+                                <th style="width: 220px;">PATH / URL</th>
+                                <th>EVIDENCE / OBSERVATION</th>
+                                <th style="width: 240px;">DEFENSIVE REMEDIATION</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyWebExposure">
+                            <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 25px;">Ready. Enter an authorized target URL above to check for exposed .env, .git, or missing headers.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Subview 7: GitHub Repo Inspector -->
+            <div id="subview-github" class="secret-subview" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 11px; color: var(--cyan); font-weight: bold;"><span class="holo-glyph">[🐙]</span> GITHUB REPOSITORY EXPOSURE &amp; TREE AUDITOR:</span>
+                    <button class="btn-preset" onclick="inspectGitHubRepo()"><span class="holo-glyph">[↻]</span> QUERY GITHUB API</button>
+                </div>
+                <div id="githubAuditResult" style="padding: 16px; background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-dim); border-radius: 6px; font-size: 12px; color: var(--text-muted);">
+                    Enter repository in <code>owner/repo</code> format (e.g. <code>torvalds/linux</code>) and click 'QUERY GITHUB API'.
+                </div>
+            </div>
+
+            <!-- Subview 8: Pre-Commit Guard -->
+            <div id="subview-precommit" class="secret-subview" style="display: none;">
+                <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-dim); border-radius: 6px; padding: 18px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div>
+                            <h3 style="color: var(--cyan); font-size: 14px; margin-bottom: 4px;"><span class="holo-glyph">[🛡️]</span> AEGIS PRE-COMMIT SECURITY GUARD</h3>
+                            <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Automated local hook that inspects staged files and commit diffs, blocking commits containing high-risk credentials, private keys, or .env files.</p>
+                        </div>
+                        <button class="btn-primary" onclick="installPreCommitGuard()"><span class="holo-glyph">[🛡️]</span> INSTALL TO .GIT/HOOKS</button>
+                    </div>
+                    <div id="precommitStatusBanner" style="padding: 10px 14px; border-radius: 4px; font-size: 12px; margin-bottom: 14px; background: rgba(0, 240, 255, 0.08); border-left: 3px solid var(--cyan); color: var(--text-main);">
+                        Status: Click 'INSTALL TO .GIT/HOOKS' to protect your repository against accidental secret commits.
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px; font-weight: bold;">HOOK LOGIC SCRIPT INSPECTION:</div>
+                    <pre style="background: #000; border: 1px solid var(--border-dim); border-radius: 4px; padding: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--cyan); max-height: 220px; overflow-y: auto;">#!/bin/sh
+# Aegis Defensive Pre-Commit Security Guard
+# Blocks commits containing sensitive keys, tokens, and .env files
+echo "[⬡] Aegis Pre-Commit Guard: Inspecting staged files for secrets..."
+STAGED_SENSITIVE=$(git diff --cached --name-only | grep -E '(\.env|id_rsa|\.pem$|\.key$|database\.sql$)')
+if [ ! -z "$STAGED_SENSITIVE" ]; then
+    echo "❌ COMMIT BLOCKED: Attempting to commit sensitive file(s):"
+    echo "$STAGED_SENSITIVE"
+    exit 1
+fi
+if git diff --cached | grep -E '(AKIA[0-9A-Z]{16}|ghp_[a-zA-Z0-9]{36}|sk_live_[0-9a-zA-Z]{24}|-----BEGIN (RSA|OPENSSH) PRIVATE KEY-----)'; then
+    echo "❌ COMMIT BLOCKED: High-confidence credential pattern detected in staged changes!"
+    exit 1
+fi
+echo "✔ Aegis Guard: Staged changes verified clean."
+exit 0</pre>
+                </div>
             </div>
         </div>
 
@@ -2000,6 +2299,7 @@ HUD_HTML = """<!DOCTYPE html>
                         `;
                         tbody.appendChild(tr);
                     });
+                }
                 // Render vulnerable & infected directories / webshells / databases
                 const vulnDirs = report.vulnerable_directories || [];
                 const tbodyDirs = document.getElementById('tbodyVulnerableDirs');
@@ -2811,6 +3111,437 @@ HUD_HTML = """<!DOCTYPE html>
             logToConsole('Exported SpiderFoot Scam Infrastructure JSON dossier.', 'PASS');
         }
 
+        // =======================================================
+        // TAB: SECURITY EXPOSURE & SECRET-LEAK AUDIT CENTER
+        // =======================================================
+        let currentExposureReport = null;
+
+        function switchSecretSubView(subviewId, btn) {
+            document.querySelectorAll('.secret-subview').forEach(v => v.style.display = 'none');
+            const target = document.getElementById(subviewId);
+            if (target) target.style.display = 'block';
+            document.querySelectorAll('#tab-secret-audit .btn-preset').forEach(b => {
+                if (b.id && b.id.startsWith('pillSecretTab')) b.classList.remove('active');
+            });
+            if (btn) btn.classList.add('active');
+        }
+
+        function setAuditPathAndRun(p) {
+            document.getElementById('secretAuditPath').value = p;
+            runFullExposureAudit();
+        }
+
+        async function runFullExposureAudit() {
+            const path = document.getElementById('secretAuditPath').value.trim() || '.';
+            const websiteUrl = document.getElementById('secretAuditUrl').value.trim();
+            const ghRepo = document.getElementById('secretAuditGithubRepo').value.trim();
+
+            const btn = document.getElementById('btnFullExposureAudit');
+            if (btn) { btn.innerText = 'AUDITING EXPOSURES...'; btn.disabled = true; }
+            logToConsole(`[🔐] Initiating full security exposure & secret-leak audit on: ${path}`, 'WARN');
+
+            try {
+                const res = await fetch('/api/secret-audit/full', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        target_dir: path,
+                        website_url: websiteUrl,
+                        github_repo: ghRepo
+                    })
+                });
+                const data = await res.json();
+                currentExposureReport = data;
+
+                // 1. Update Metrics Cards
+                const score = data.posture_score !== undefined ? data.posture_score : 100;
+                const grade = data.security_grade || 'A+';
+                const scoreEl = document.getElementById('valExposureScore');
+                scoreEl.innerText = `${score}/100`;
+                scoreEl.style.color = score >= 80 ? 'var(--green)' : (score >= 60 ? 'var(--amber)' : 'var(--red)');
+
+                const gradeEl = document.getElementById('valExposureGrade');
+                gradeEl.innerText = `GRADE: ${grade}`;
+                gradeEl.style.color = score >= 80 ? 'var(--green)' : (score >= 60 ? 'var(--amber)' : 'var(--red)');
+
+                const sum = data.summary || {};
+                const secretsCount = sum.secrets_found || 0;
+                const secEl = document.getElementById('valSecretsFound');
+                secEl.innerText = secretsCount;
+                secEl.style.color = secretsCount > 0 ? 'var(--red)' : 'var(--green)';
+                document.getElementById('valSecretsFiles').innerText = `${data.secrets_audit ? data.secrets_audit.files_scanned : 0} Files Scanned`;
+                document.getElementById('pillCountSecrets').innerText = secretsCount;
+
+                const gitLeaks = sum.tracked_sensitive_git || 0;
+                const gitEl = document.getElementById('valTrackedGitLeaks');
+                gitEl.innerText = gitLeaks;
+                gitEl.style.color = gitLeaks > 0 ? 'var(--red)' : 'var(--green)';
+                document.getElementById('valGitMissingIgnores').innerText = `${data.git_audit ? data.git_audit.missing_recommended_ignores.length : 0} Missing Ignores`;
+                document.getElementById('pillCountGit').innerText = gitLeaks;
+
+                const histLeaks = sum.history_leaks || 0;
+                const histEl = document.getElementById('valHistoryLeaks');
+                histEl.innerText = histLeaks;
+                histEl.style.color = histLeaks > 0 ? 'var(--amber)' : 'var(--green)';
+                document.getElementById('valCommitsScanned').innerText = `${data.history_audit ? data.history_audit.commits_inspected : 0} Commits Audited`;
+                document.getElementById('pillCountHistory').innerText = histLeaks;
+
+                const riskyCount = sum.risky_files || 0;
+                const riskyEl = document.getElementById('valRiskyFiles');
+                riskyEl.innerText = riskyCount;
+                riskyEl.style.color = riskyCount > 0 ? 'var(--amber)' : 'var(--green)';
+                document.getElementById('valRiskyFilesEval').innerText = `${data.file_hunt ? data.file_hunt.files_evaluated : 0} Files Evaluated`;
+                document.getElementById('pillCountFiles').innerText = riskyCount;
+
+                const depVulns = sum.vulnerable_dependencies || 0;
+                const depEl = document.getElementById('valDepVulns');
+                depEl.innerText = depVulns;
+                depEl.style.color = depVulns > 0 ? 'var(--red)' : 'var(--green)';
+                document.getElementById('pillCountDeps').innerText = depVulns;
+
+                // 2. Render Subview Tables
+                renderSecretsTable(data.secrets_audit ? data.secrets_audit.findings : []);
+                renderGitAuditView(data.git_audit || {});
+                renderHistoryTable(data.history_audit ? data.history_audit.findings : []);
+                renderRiskyFilesTable(data.file_hunt ? data.file_hunt.findings : []);
+                renderDependenciesTable(data.dependency_audit ? data.dependency_audit.advisories : []);
+
+                if (data.website_audit && data.website_audit.findings) {
+                    renderWebsiteExposureTable(data.website_audit.findings, data.website_audit.header_issues || []);
+                    document.getElementById('pillCountWeb').innerText = (data.website_audit.findings.length + (data.website_audit.header_issues || []).length);
+                }
+
+                if (data.github_audit && !data.github_audit.error) {
+                    renderGitHubAuditView(data.github_audit);
+                }
+
+                // Precommit status
+                const preBanner = document.getElementById('precommitStatusBanner');
+                if (data.precommit_installed) {
+                    preBanner.style.background = 'rgba(0, 255, 136, 0.12)';
+                    preBanner.style.borderColor = 'var(--green)';
+                    preBanner.innerHTML = '<span style="color:var(--green);font-weight:bold;">✔ ACTIVE:</span> Aegis Pre-Commit Security Guard is installed and actively guarding .git/hooks/pre-commit.';
+                } else {
+                    preBanner.style.background = 'rgba(255, 184, 0, 0.12)';
+                    preBanner.style.borderColor = 'var(--amber)';
+                    preBanner.innerHTML = '<span style="color:var(--amber);font-weight:bold;">⚠ STANDBY:</span> Pre-Commit Guard not installed in .git/hooks. Click &quot;INSTALL TO .GIT/HOOKS&quot; to enforce.';
+                }
+
+                logToConsole(`[🔐] Exposure Audit Completed: Grade ${grade} (${score}/100) | Secrets: ${secretsCount} | Tracked Git: ${gitLeaks} | Deps: ${depVulns}`, score >= 80 ? 'PASS' : 'WARN');
+            } catch (err) {
+                logToConsole(`Exposure audit failed: ${err.message}`, 'CRIT');
+            } finally {
+                if (btn) { btn.innerHTML = '<span class="holo-glyph">[🔐]</span> RUN FULL EXPOSURE AUDIT'; btn.disabled = false; }
+            }
+        }
+
+        function renderSecretsTable(findings) {
+            const tbody = document.getElementById('tbodySecrets');
+            if (!findings || findings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--green); padding: 25px;">✔ Verified Clean: No hardcoded secrets or credentials detected in scanned files.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = findings.map(f => {
+                const sevColor = f.severity === 'Critical' ? 'var(--red)' : (f.severity === 'High' ? 'var(--amber)' : 'var(--cyan)');
+                return `<tr>
+                    <td><span style="color:${sevColor};font-weight:700;">${f.severity}</span></td>
+                    <td><strong>${escapeHtml(f.rule_name)}</strong><br><span style="font-size:10px;color:var(--text-muted);">${escapeHtml(f.category)}</span></td>
+                    <td><code>${escapeHtml(f.file_path)}:${f.line_number}</code></td>
+                    <td><code style="color:var(--text-bright);">${escapeHtml(f.evidence_snippet)}</code></td>
+                    <td style="color:var(--cyan);font-size:11px;">${escapeHtml(f.remediation)}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderGitAuditView(gitAudit) {
+            const trackedDiv = document.getElementById('gitTrackedList');
+            const missingDiv = document.getElementById('gitMissingList');
+            const tbody = document.getElementById('tbodyGitTracked');
+
+            const tracked = gitAudit.tracked_sensitive_files || [];
+            if (tracked.length === 0) {
+                trackedDiv.innerHTML = '<span style="color:var(--green);">✔ Zero sensitive files currently tracked in git index.</span>';
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--green); padding: 25px;">✔ Clean: No sensitive or ignored files tracked in Git index.</td></tr>';
+            } else {
+                trackedDiv.innerHTML = tracked.map(t => `<div style="color:var(--red);margin-bottom:3px;">❌ <code>${escapeHtml(t.file)}</code></div>`).join('');
+                tbody.innerHTML = tracked.map(t => `<tr>
+                    <td><code style="color:var(--red);">${escapeHtml(t.file)}</code></td>
+                    <td><span style="color:var(--red);font-weight:700;">TRACKED</span></td>
+                    <td>${escapeHtml(t.risk)}</td>
+                    <td><code style="color:var(--cyan);">${escapeHtml(t.remediation)}</code></td>
+                </tr>`).join('');
+            }
+
+            const missing = gitAudit.missing_recommended_ignores || [];
+            if (missing.length === 0) {
+                missingDiv.innerHTML = '<span style="color:var(--green);">✔ All recommended ignore patterns present in .gitignore.</span>';
+            } else {
+                missingDiv.innerHTML = missing.slice(0, 10).map(m => `<span style="display:inline-block;background:rgba(255,184,0,0.15);color:var(--amber);padding:2px 6px;margin:2px;border-radius:3px;font-family:var(--font-mono);font-size:10px;">${escapeHtml(m)}</span>`).join(' ');
+            }
+        }
+
+        function renderHistoryTable(findings) {
+            const tbody = document.getElementById('tbodyHistory');
+            if (!findings || findings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--green); padding: 25px;">✔ Clean: No credentials found in historical git commit logs or patches.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = findings.map(f => `<tr>
+                <td><code>${escapeHtml(f.commit_hash)}</code></td>
+                <td><strong>${escapeHtml(f.author)}</strong><br><span style="font-size:10px;color:var(--text-muted);">${escapeHtml(f.date)}</span></td>
+                <td>${escapeHtml(f.commit_subject)}</td>
+                <td><span style="color:var(--amber);font-weight:bold;">${escapeHtml(f.rule_name)}</span></td>
+                <td><code style="color:var(--red);">${escapeHtml(f.redacted_evidence)}</code></td>
+            </tr>`).join('');
+        }
+
+        function renderRiskyFilesTable(findings) {
+            const tbody = document.getElementById('tbodyRiskyFiles');
+            if (!findings || findings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--green); padding: 25px;">✔ Clean: No exposed database dumps, private keys, or backup files detected.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = findings.map(f => {
+                const sevColor = f.severity.includes('Critical') ? 'var(--red)' : (f.severity.includes('High') ? 'var(--amber)' : 'var(--green)');
+                return `<tr>
+                    <td><span style="color:${sevColor};font-weight:700;">${escapeHtml(f.severity)}</span></td>
+                    <td>${escapeHtml(f.category)}</td>
+                    <td><code>${escapeHtml(f.relative_path)}</code></td>
+                    <td>${f.size_kb} KB</td>
+                    <td>${escapeHtml(f.reason)}</td>
+                    <td style="color:var(--cyan);font-size:11px;">${escapeHtml(f.remediation)}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderDependenciesTable(advisories) {
+            const tbody = document.getElementById('tbodyDependencies');
+            if (!advisories || advisories.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--green); padding: 25px;">✔ Verified Clean: All audited dependencies match clean OSV.dev vulnerability baseline.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = advisories.map(a => `<tr>
+                <td><span style="color:var(--red);font-weight:700;">${escapeHtml(a.severity || 'High')}</span></td>
+                <td><strong>${escapeHtml(a.package)}</strong> (v${escapeHtml(a.version)})<br><span style="font-size:10px;color:var(--text-muted);">${escapeHtml(a.ecosystem)}</span></td>
+                <td><a href="https://osv.dev/vulnerability/${escapeHtml(a.vuln_id)}" target="_blank" style="color:var(--cyan);font-family:var(--font-mono);">${escapeHtml(a.vuln_id)}</a></td>
+                <td>${escapeHtml(a.summary)}</td>
+                <td style="color:var(--green);font-size:11px;">${escapeHtml(a.remediation)}</td>
+            </tr>`).join('');
+        }
+
+        function renderWebsiteExposureTable(findings, headers) {
+            const tbody = document.getElementById('tbodyWebExposure');
+            let rows = '';
+            (findings || []).forEach(f => {
+                rows += `<tr>
+                    <td><span style="color:var(--red);font-weight:700;">${f.severity}</span></td>
+                    <td><strong>${escapeHtml(f.name)}</strong></td>
+                    <td><code style="color:var(--cyan);">${escapeHtml(f.full_url || f.path)}</code></td>
+                    <td><code>${escapeHtml(f.evidence)}</code></td>
+                    <td style="color:var(--cyan);font-size:11px;">${escapeHtml(f.remediation)}</td>
+                </tr>`;
+            });
+            (headers || []).forEach(h => {
+                rows += `<tr>
+                    <td><span style="color:var(--amber);font-weight:700;">${h.severity}</span></td>
+                    <td><strong>Missing Header</strong></td>
+                    <td><code>${escapeHtml(h.header)}</code></td>
+                    <td><span style="color:var(--amber);">Header not returned in response.</span></td>
+                    <td style="color:var(--cyan);font-size:11px;">${escapeHtml(h.remediation)}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = rows || '<tr><td colspan="5" style="text-align: center; color: var(--green); padding: 25px;">✔ Target web server returned clean response without exposed metadata or sensitive files.</td></tr>';
+        }
+
+        function renderGitHubAuditView(gh) {
+            const container = document.getElementById('githubAuditResult');
+            const riskColor = gh.risk_rating === 'CRITICAL' ? 'var(--red)' : (gh.risk_rating === 'MEDIUM' ? 'var(--amber)' : 'var(--green)');
+            container.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--border-dim);padding-bottom:10px;">
+                    <div>
+                        <span style="font-size:16px;font-weight:bold;color:var(--text-bright);">${escapeHtml(gh.repository)}</span>
+                        <span style="margin-left:10px;font-size:11px;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,0.08);color:${gh.is_public_risk ? 'var(--amber)' : 'var(--green)'};">${escapeHtml(gh.visibility)}</span>
+                    </div>
+                    <div style="text-align:right;">
+                        <span style="font-size:11px;color:var(--text-muted);">EXPOSURE RISK: </span>
+                        <span style="font-size:14px;font-weight:bold;color:${riskColor};">${gh.risk_rating}</span>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">
+                    <div style="background:rgba(0,0,0,0.3);padding:8px;border-radius:4px;"><div>Default Branch</div><div style="font-size:14px;font-weight:bold;color:var(--cyan);">${escapeHtml(gh.default_branch || 'main')}</div></div>
+                    <div style="background:rgba(0,0,0,0.3);padding:8px;border-radius:4px;"><div>Stars</div><div style="font-size:14px;font-weight:bold;color:var(--text-bright);">${gh.stars || 0}</div></div>
+                    <div style="background:rgba(0,0,0,0.3);padding:8px;border-radius:4px;"><div>Forks</div><div style="font-size:14px;font-weight:bold;color:var(--text-bright);">${gh.forks || 0}</div></div>
+                    <div style="background:rgba(0,0,0,0.3);padding:8px;border-radius:4px;"><div>Sensitive Files in Tree</div><div style="font-size:14px;font-weight:bold;color:${(gh.sensitive_files_exposed && gh.sensitive_files_exposed.length > 0) ? 'var(--red)' : 'var(--green)'};">${(gh.sensitive_files_exposed || []).length}</div></div>
+                </div>
+                ${(gh.sensitive_files_exposed && gh.sensitive_files_exposed.length > 0) ? `
+                    <div style="background:rgba(255,51,102,0.1);border:1px solid var(--red);padding:10px;border-radius:4px;">
+                        <div style="color:var(--red);font-weight:bold;margin-bottom:6px;">❌ SENSITIVE FILES DETECTED IN REPOSITORY TREE:</div>
+                        ${gh.sensitive_files_exposed.map(f => `<div>• <code>${escapeHtml(f)}</code></div>`).join('')}
+                    </div>
+                ` : '<div style="color:var(--green);">✔ No sensitive configuration or key files detected in default branch tree.</div>'}
+            `;
+        }
+
+        async function scanLocalSecrets() {
+            const path = document.getElementById('secretAuditPath').value.trim() || '.';
+            logToConsole(`Scanning local secrets in: ${path}...`, 'INFO');
+            try {
+                const res = await fetch('/api/secret-audit/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target_dir: path })
+                });
+                const data = await res.json();
+                renderSecretsTable(data.findings || []);
+                document.getElementById('valSecretsFound').innerText = data.total_findings || 0;
+                document.getElementById('pillCountSecrets').innerText = data.total_findings || 0;
+                logToConsole(`Secret scan finished. Findings: ${data.total_findings || 0}`, 'PASS');
+            } catch(e) { logToConsole(e.message, 'CRIT'); }
+        }
+
+        async function auditGitIgnore() {
+            const path = document.getElementById('secretAuditPath').value.trim() || '.';
+            try {
+                const res = await fetch('/api/secret-audit/git', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target_dir: path })
+                });
+                const data = await res.json();
+                renderGitAuditView(data);
+                logToConsole('Git & .gitignore audit updated.', 'PASS');
+            } catch(e) { logToConsole(e.message, 'CRIT'); }
+        }
+
+        async function scanGitHistory() {
+            const path = document.getElementById('secretAuditPath').value.trim() || '.';
+            try {
+                const res = await fetch('/api/secret-audit/history', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target_dir: path, max_commits: 50 })
+                });
+                const data = await res.json();
+                renderHistoryTable(data.findings || []);
+                document.getElementById('valHistoryLeaks').innerText = data.historical_leaks_found || 0;
+                document.getElementById('pillCountHistory').innerText = data.historical_leaks_found || 0;
+                logToConsole(`Git history scan finished. Historical leaks: ${data.historical_leaks_found || 0}`, 'PASS');
+            } catch(e) { logToConsole(e.message, 'CRIT'); }
+        }
+
+        async function huntSensitiveFiles() {
+            const path = document.getElementById('secretAuditPath').value.trim() || '.';
+            try {
+                const res = await fetch('/api/secret-audit/files', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target_dir: path })
+                });
+                const data = await res.json();
+                renderRiskyFilesTable(data.findings || []);
+                document.getElementById('valRiskyFiles').innerText = data.risky_files_found || 0;
+                document.getElementById('pillCountFiles').innerText = data.risky_files_found || 0;
+                logToConsole(`Sensitive file hunt finished: ${data.risky_files_found || 0} suspicious files`, 'PASS');
+            } catch(e) { logToConsole(e.message, 'CRIT'); }
+        }
+
+        async function auditDependencies() {
+            const path = document.getElementById('secretAuditPath').value.trim() || '.';
+            try {
+                const res = await fetch('/api/secret-audit/dependencies', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target_dir: path })
+                });
+                const data = await res.json();
+                renderDependenciesTable(data.advisories || []);
+                document.getElementById('valDepVulns').innerText = data.vulnerabilities_found || 0;
+                document.getElementById('pillCountDeps').innerText = data.vulnerabilities_found || 0;
+                logToConsole(`OSV.dev dependency audit finished: ${data.vulnerabilities_found || 0} advisories`, 'PASS');
+            } catch(e) { logToConsole(e.message, 'CRIT'); }
+        }
+
+        async function auditWebsiteExposure() {
+            const url = document.getElementById('secretAuditUrl').value.trim();
+            if (!url) return alert('Enter an authorized target website URL.');
+            logToConsole(`Inspecting website public file exposure for: ${url}...`, 'INFO');
+            try {
+                const res = await fetch('/api/secret-audit/website', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target_url: url })
+                });
+                const data = await res.json();
+                renderWebsiteExposureTable(data.findings || [], data.header_issues || []);
+                document.getElementById('pillCountWeb').innerText = ((data.findings || []).length + (data.header_issues || []).length);
+                logToConsole(`Website exposure inspection completed. Findings: ${(data.findings || []).length}`, 'PASS');
+            } catch(e) { logToConsole(e.message, 'CRIT'); }
+        }
+
+        async function inspectGitHubRepo() {
+            const repo = document.getElementById('secretAuditGithubRepo').value.trim();
+            if (!repo) return alert('Enter a GitHub repository in owner/repo format.');
+            logToConsole(`Querying GitHub REST API for: ${repo}...`, 'INFO');
+            try {
+                const res = await fetch('/api/secret-audit/github', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ repo })
+                });
+                const data = await res.json();
+                renderGitHubAuditView(data);
+                logToConsole(`GitHub audit response received for ${repo}`, 'PASS');
+            } catch(e) { logToConsole(e.message, 'CRIT'); }
+        }
+
+        async function installPreCommitGuard() {
+            const path = document.getElementById('secretAuditPath').value.trim() || '.';
+            try {
+                const res = await fetch('/api/secret-audit/install-hook', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target_dir: path })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    const preBanner = document.getElementById('precommitStatusBanner');
+                    preBanner.style.background = 'rgba(0, 255, 136, 0.12)';
+                    preBanner.style.borderColor = 'var(--green)';
+                    preBanner.innerHTML = `<span style="color:var(--green);font-weight:bold;">✔ INSTALLED:</span> ${escapeHtml(data.message)} (Location: <code>${escapeHtml(data.hook_path)}</code>)`;
+                    logToConsole(data.message, 'PASS');
+                } else {
+                    alert(data.error || 'Failed installing pre-commit hook.');
+                }
+            } catch(e) { logToConsole(e.message, 'CRIT'); }
+        }
+
+        function exportExposureReportPrompt() {
+            if (!currentExposureReport) {
+                if (confirm('No exposure audit has been run yet. Would you like to run an audit now and export?')) {
+                    runFullExposureAudit().then(() => exportExposureReport('html'));
+                }
+                return;
+            }
+            const fmt = prompt('Choose export format: html, json, or csv:', 'html');
+            if (fmt) exportExposureReport(fmt.toLowerCase().trim());
+        }
+
+        async function exportExposureReport(fmt) {
+            try {
+                const res = await fetch('/api/secret-audit/export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ format: fmt, audit_data: currentExposureReport })
+                });
+                const blob = await res.blob();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `Aegis_Exposure_Audit_${Date.now()}.${fmt === 'json' ? 'json' : (fmt === 'csv' ? 'csv' : 'html')}`;
+                a.click();
+                logToConsole(`Exported Security Exposure Report (${fmt.toUpperCase()}) with all secrets redacted.`, 'PASS');
+            } catch(e) { logToConsole(e.message, 'CRIT'); }
+        }
+
         // ==========================================
         // TAB 4: CYBER OSINT ENGINE (IP & DOMAIN)
         // ==========================================
@@ -3602,6 +4333,102 @@ def api_kill_process():
 @app.route("/api/playbooks", methods=["GET"])
 def api_playbooks():
     return jsonify(PLAYBOOKS)
+
+
+# ==============================================================================
+# SECURITY EXPOSURE & SECRET-LEAK AUDIT CENTER ENDPOINTS
+# ==============================================================================
+
+@app.route("/api/secret-audit/full", methods=["POST"])
+def api_secret_audit_full():
+    data = request.get_json() or {}
+    target_dir = data.get("target_dir", ".")
+    website_url = data.get("website_url")
+    github_repo = data.get("github_repo")
+    github_token = data.get("github_token")
+    res = SecurityExposureLab.run_full_audit(target_dir, website_url, github_repo, github_token)
+    return jsonify(res)
+
+
+@app.route("/api/secret-audit/scan", methods=["POST"])
+def api_secret_audit_scan():
+    data = request.get_json() or {}
+    target_dir = data.get("target_dir", ".")
+    res = SecretScanner.scan_path(target_dir)
+    return jsonify(res)
+
+
+@app.route("/api/secret-audit/git", methods=["POST"])
+def api_secret_audit_git():
+    data = request.get_json() or {}
+    target_dir = data.get("target_dir", ".")
+    res = GitAuditor.audit_repository(target_dir)
+    return jsonify(res)
+
+
+@app.route("/api/secret-audit/history", methods=["POST"])
+def api_secret_audit_history():
+    data = request.get_json() or {}
+    target_dir = data.get("target_dir", ".")
+    max_commits = int(data.get("max_commits", 50))
+    res = GitHistoryScanner.scan_history(target_dir, max_commits)
+    return jsonify(res)
+
+
+@app.route("/api/secret-audit/files", methods=["POST"])
+def api_secret_audit_files():
+    data = request.get_json() or {}
+    target_dir = data.get("target_dir", ".")
+    res = SensitiveFileHunter.hunt_files(target_dir)
+    return jsonify(res)
+
+
+@app.route("/api/secret-audit/dependencies", methods=["POST"])
+def api_secret_audit_dependencies():
+    data = request.get_json() or {}
+    target_dir = data.get("target_dir", ".")
+    res = DependencyAuditor.audit_dependencies(target_dir)
+    return jsonify(res)
+
+
+@app.route("/api/secret-audit/website", methods=["POST"])
+def api_secret_audit_website():
+    data = request.get_json() or {}
+    target_url = data.get("target_url", "")
+    res = WebsiteExposureScanner.inspect_url(target_url)
+    return jsonify(res)
+
+
+@app.route("/api/secret-audit/github", methods=["POST"])
+def api_secret_audit_github():
+    data = request.get_json() or {}
+    repo = data.get("repo", "")
+    token = data.get("token")
+    res = GitHubExposureInspector.inspect_repo(repo, token)
+    return jsonify(res)
+
+
+@app.route("/api/secret-audit/install-hook", methods=["POST"])
+def api_secret_audit_install_hook():
+    data = request.get_json() or {}
+    target_dir = data.get("target_dir", ".")
+    res = PreCommitGuard.install_hook(target_dir)
+    return jsonify(res)
+
+
+@app.route("/api/secret-audit/export", methods=["POST"])
+def api_secret_audit_export():
+    data = request.get_json() or {}
+    fmt = data.get("format", "html").lower()
+    audit_data = data.get("audit_data")
+    if not audit_data:
+        audit_data = SecurityExposureLab.run_full_audit(".")
+    if fmt == "json":
+        return ExposureReporter.generate_json_report(audit_data), 200, {"Content-Type": "application/json"}
+    elif fmt == "csv":
+        return ExposureReporter.generate_csv_report(audit_data), 200, {"Content-Type": "text/csv"}
+    else:
+        return ExposureReporter.generate_html_report(audit_data), 200, {"Content-Type": "text/html"}
 
 
 def run_web(host: str = "127.0.0.1", port: int = 5000):

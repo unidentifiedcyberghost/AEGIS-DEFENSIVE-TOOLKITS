@@ -4,6 +4,27 @@ All notable changes, architectural implementations, enhancements, security patch
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] - 2026-10-16
+
+### 🔐 Security Exposure & Secret-Leak Audit Center & Client-Side Execution Resilience
+Major release introducing a full-spectrum defensive cybersecurity auditing suite to detect accidentally exposed credentials, misconfigured repositories, historical git leaks, exposed database dumps, and vulnerable dependencies, while resolving client-side script execution.
+
+### 🌟 New Features & Architectural Upgrades
+- **🔐 Security Exposure & Secret-Leak Audit Center (`aegis/secret_auditor.py`, `aegis/web_app.py`):**
+  - **Secret & Credential Scanner:** High-entropy & regex detection for AWS IAM keys/secrets, GitHub PATs, Stripe keys, Slack tokens/webhooks, Private SSH/RSA keys, database URIs, JWTs, and passwords with mandatory `****[REDACTED]` masking.
+  - **Git & .gitignore Security Auditor:** Analyzes `.gitignore` rules, identifies tracked sensitive files via `git ls-files`, flags staged secrets via `git diff --cached`, and provides safe `git rm --cached` remediation without local file deletion.
+  - **Git History Secret Scanner:** Deep inspection of git commit diffs (`git log -p`) across history to uncover leaked credentials removed from HEAD but remaining in repository history.
+  - **Sensitive File & Backup Hunter:** Filesystem scanner identifying raw SQL dumps, SQLite databases, cryptographic keys, logs, archives, and unprotected backup copies (`.bak`, `.old`).
+  - **Dependency Vulnerability Scanner (OSV.dev):** Real-time vulnerability checking for `requirements.txt` (PyPI) and `package.json` (npm) against the official OSV.dev vulnerability database.
+  - **Website Public File Exposure Scanner:** Conservative web assessment checking for publicly accessible `.env`, `.git/HEAD`, database dumps, and missing OWASP headers with custom 404 & SPA fallback detection.
+  - **GitHub Repository Exposure Inspector:** Direct GitHub REST API query for public/private visibility, default branch, stars/forks, and sensitive file paths in repository trees.
+  - **Pre-Commit Security Guard:** Generates and installs `.git/hooks/pre-commit` to prevent accidental credential commits.
+  - **Report & Remediation Center:** Standalone holographic HTML security reports, formatted JSON exports, and CSV summaries with strictly redacted evidence.
+- **⚡ Client-Side Execution Bugfix (`aegis/web_app.py`):**
+  - **Resolved "Buttons Not Functioning":** Fixed an unclosed `if/else` block and unescaped quote in browser JavaScript that caused a client-side `SyntaxError` on page load, ensuring all dashboard buttons execute reactively.
+
+---
+
 ## [2.6.1] - 2026-10-16
 
 ### 🛡️ Vulnerability Auditor Directory Sweeps, Target Connection Resilience & Strict OSINT Verification
