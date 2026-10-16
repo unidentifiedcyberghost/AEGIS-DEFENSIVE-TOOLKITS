@@ -29,7 +29,9 @@ tests = [
     ('GET', '/api/attack-matrix', None, 'ATTACK MATRIX'),
     ('GET', '/api/playbooks', None, 'SERVER PLAYBOOKS'),
     ('POST', '/api/export-dossier', {'report': {'attackers': []}}, 'CARRIER SUBPOENA DOSSIER'),
-    ('POST', '/api/cyber-intel', {'target': '127.0.0.1'}, 'CYBER INTELLIGENCE SUITE')
+    ('POST', '/api/cyber-intel', {'target': '127.0.0.1'}, 'CYBER INTELLIGENCE SUITE'),
+    ('POST', '/api/cybercloud9/audit', {'domain': 'example.com'}, 'CYBERCLOUD9 ORIGIN SHIELD AUDIT'),
+    ('POST', '/api/cybercloud9/firewall-rules', {'platform': 'ufw'}, 'CYBERCLOUD9 FIREWALL GENERATOR')
 ]
 
 print(f"=== TESTING ALL TABS & CAPABILITIES ON {BASE} ===")

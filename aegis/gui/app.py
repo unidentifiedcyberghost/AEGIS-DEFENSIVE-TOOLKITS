@@ -1301,7 +1301,7 @@ read-only non-executable permissions into .aegis_quarantine/.
 
         # Right: Server telemetry & action
         pnl_srv_right = QFrame()
-        pnl_right.setObjectName("hudPanel")
+        pnl_srv_right.setObjectName("hudPanel")
         sr_layout = QVBoxLayout(pnl_srv_right)
         sr_layout.addWidget(QLabel("HOST INTEGRITY TELEMETRY & REMEDIATION:"))
 

@@ -1025,6 +1025,7 @@ HUD_HTML = """<!DOCTYPE html>
             <button class="hud-tab-btn" data-category="osint_user" onclick="switchTab('tab-username-osint', this)">[◈] USERNAME OSINT HUNT</button>
             <button class="hud-tab-btn" data-category="osint_suite" onclick="switchTab('tab-osint-suite', this)">[⌖] 20-IN-1 OSINT SUITE</button>
             <button class="hud-tab-btn" data-category="cyber_intel" onclick="switchTab('tab-cyber-intel', this)">[🌐] CYBER INTELLIGENCE SUITE</button>
+            <button class="hud-tab-btn" data-category="cybercloud9" onclick="switchTab('tab-cybercloud9', this)">[☁️] CYBERCLOUD9</button>
             <button class="hud-tab-btn" data-category="cryptotrace" onclick="switchTab('tab-cryptotrace', this)">[☵] CRYPTOTRACE AML</button>
             <button class="hud-tab-btn" data-category="spiderfoot" onclick="switchTab('tab-spiderfoot', this)">[⌘] SPIDERFOOT RECON</button>
             <button class="hud-tab-btn" data-category="cat2" onclick="switchTab('tab-osint', this)">[⧉] CYBER OSINT &amp; IP TABLES</button>
@@ -1799,6 +1800,68 @@ exit 0</pre>
                         <button class="holo-btn" style="font-size: 10px; padding: 4px 10px;" onclick="document.getElementById('cyberIntelInput').value='example.com'; runCyberIntelligence();">TARGET: example.com</button>
                         <button class="holo-btn" style="font-size: 10px; padding: 4px 10px; border-color: var(--green); color: var(--green);" onclick="document.getElementById('cyberIntelInput').value='1.1.1.1'; runCyberIntelligence();">TARGET: 1.1.1.1</button>
                         <button class="holo-btn" style="font-size: 10px; padding: 4px 10px; border-color: var(--amber); color: var(--amber);" onclick="document.getElementById('cyberIntelInput').value='8.8.8.8'; runCyberIntelligence();">TARGET: 8.8.8.8</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB: CYBERCLOUD9 // ORIGIN SHIELD          -->
+        <!-- ========================================== -->
+        <div id="tab-cybercloud9" class="tab-pane">
+            <div class="category-header-banner">
+                <div>
+                    <h2><span class="holo-glyph">[☁️]</span> CYBERCLOUD9 // CLOUDFLARE ORIGIN SHIELD &amp; DEFENSIVE POSTURE AUDITOR</h2>
+                    <p>Defensive origin verification, DNS proxy mesh audit, mail/SPF leak detector, origin ingress firewall tester, and edge security posture auditor.</p>
+                </div>
+            </div>
+
+            <!-- Search & Controls Bar -->
+            <div style="background: rgba(8, 14, 28, 0.9); border: 1px solid var(--border-dim); border-top: 2px solid #f6821f; border-radius: 6px; padding: 14px; margin-bottom: 16px; box-shadow: 0 0 20px rgba(246, 130, 31, 0.12);">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <input type="text" id="cybercloud9DomainInput" class="hud-input" placeholder="Enter target domain (e.g. example.com, yourdomain.com)" style="flex: 2; min-width: 240px; font-family: 'JetBrains Mono', monospace;" onkeydown="if(event.key==='Enter') runCyberCloud9Audit()">
+                    <input type="text" id="cybercloud9OriginIp" class="hud-input" placeholder="Origin Server IP (Optional, e.g. 203.0.113.195)" style="flex: 1; min-width: 200px; font-family: 'JetBrains Mono', monospace;" onkeydown="if(event.key==='Enter') runCyberCloud9Audit()">
+                    <button class="holo-btn" onclick="runCyberCloud9Audit()" style="padding: 8px 18px; font-weight: bold; background: rgba(246, 130, 31, 0.2); border-color: #f6821f; color: #ff9d42;">
+                        <span class="holo-glyph">[⌖]</span> RUN ORIGIN SHIELD AUDIT
+                    </button>
+                    <button class="holo-btn" onclick="showCyberCloud9FirewallModal('ufw')" style="padding: 8px 14px; border-color: var(--cyan); color: var(--cyan);">
+                        <span class="holo-glyph">[🛡️]</span> FIREWALL RULES
+                    </button>
+                    <button class="holo-btn" onclick="toggleCloudflareApiSection()" style="padding: 8px 14px; border-color: var(--amber); color: var(--amber);">
+                        <span class="holo-glyph">[⚡]</span> CF OFFICIAL API
+                    </button>
+                </div>
+                <div style="margin-top: 10px; font-size: 10px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; display: flex; gap: 16px; flex-wrap: wrap;">
+                    <span><strong style="color: #ff9d42;">DEFENSIVE AUDIT:</strong> Validates DNS proxy status, checks subdomain leaks, tests firewall shield &amp; checks mail SPF hygiene</span>
+                    <span><strong style="color: var(--green);">SAFE VERIFICATION:</strong> 100% Non-invasive administrative review. No bypass exploits or evasion scripts</span>
+                </div>
+            </div>
+
+            <!-- Optional Cloudflare API Inspection Card (Hidden by default) -->
+            <div id="cybercloud9ApiCard" style="display: none; background: rgba(8, 14, 28, 0.95); border: 1px solid var(--border-dim); border-left: 3px solid #f6821f; border-radius: 6px; padding: 14px; margin-bottom: 16px;">
+                <h4 style="color: #ff9d42; margin-bottom: 8px; font-family: 'Space Grotesk', sans-serif;"><span class="holo-glyph">[⚡]</span> CLOUDFLARE OFFICIAL REST API (READ-ONLY DIAGNOSTICS)</h4>
+                <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">Optional: Provide your official Cloudflare Read-Only API Token and Zone ID to inspect active edge WAF rules, SSL modes, and Bot Fight Mode directly from your Cloudflare dashboard.</p>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <input type="password" id="cybercloud9ApiToken" class="hud-input" placeholder="Cloudflare API Token (Read-Only Zone:Read, Firewall:Read)" style="flex: 2; min-width: 240px; font-family: 'JetBrains Mono', monospace;">
+                    <input type="text" id="cybercloud9ZoneId" class="hud-input" placeholder="Zone ID (32 hex characters)" style="flex: 1; min-width: 200px; font-family: 'JetBrains Mono', monospace;">
+                    <button class="holo-btn" onclick="runCloudflareApiCheck()" style="padding: 6px 14px; border-color: var(--green); color: var(--green); font-weight: bold;">
+                        QUERY ZONE API
+                    </button>
+                </div>
+                <div id="cybercloud9ApiResults" style="margin-top: 10px;"></div>
+            </div>
+
+            <!-- Main CyberCloud9 Results Container -->
+            <div id="cybercloud9Results">
+                <div style="background: rgba(8, 14, 28, 0.6); border: 1px dashed var(--border-dim); border-radius: 6px; padding: 36px; text-align: center;">
+                    <span style="font-size: 32px; color: #f6821f; display: inline-block; animation: pulseHaloGlow 2.5s infinite;">☁️</span>
+                    <h3 style="color: var(--text-bright); margin-top: 10px; font-family: 'Space Grotesk', sans-serif;">CYBERCLOUD9 ORIGIN SHIELD AUDITOR READY</h3>
+                    <p style="color: var(--text-muted); font-size: 12px; max-width: 650px; margin: 8px auto 16px auto;">
+                        Enter your domain above and click <strong>'RUN ORIGIN SHIELD AUDIT'</strong> to check if your DNS records, subdomains, mail SPF entries, and server firewall are properly shielding your backend origin server behind Cloudflare's edge proxy.
+                    </p>
+                    <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                        <button class="holo-btn" style="font-size: 10px; padding: 4px 10px;" onclick="document.getElementById('cybercloud9DomainInput').value='example.com'; runCyberCloud9Audit();">TARGET: example.com</button>
+                        <button class="holo-btn" style="font-size: 10px; padding: 4px 10px; border-color: #f6821f; color: #ff9d42;" onclick="document.getElementById('cybercloud9DomainInput').value='cloudflare.com'; runCyberCloud9Audit();">TARGET: cloudflare.com</button>
                     </div>
                 </div>
             </div>
@@ -5571,6 +5634,418 @@ exit 0</pre>
             logToConsole('Exported complete Cyber Intelligence JSON dossier.', 'PASS');
         };
 
+
+        // =====================================================================
+        // CYBERCLOUD9 // ORIGIN SHIELD & CLOUDFLARE DEFENSIVE AUDITOR
+        // =====================================================================
+        window.currentCyberCloud9Data = null;
+
+        window.toggleCloudflareApiSection = function() {
+            const el = document.getElementById('cybercloud9ApiCard');
+            if (el) {
+                el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
+            }
+        };
+
+        window.runCloudflareApiCheck = async function() {
+            const token = (document.getElementById('cybercloud9ApiToken')?.value || '').trim();
+            const zoneId = (document.getElementById('cybercloud9ZoneId')?.value || '').trim();
+            const resEl = document.getElementById('cybercloud9ApiResults');
+            if (!token || !zoneId) {
+                alert('Please enter both your Cloudflare API Token and Zone ID.');
+                return;
+            }
+            if (resEl) resEl.innerHTML = '<div style="color: #ff9d42; font-family: monospace;">[⚡] Connecting to Cloudflare official REST API v4...</div>';
+            try {
+                const resp = await fetch('/api/cybercloud9/cf-api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ api_token: token, zone_id: zoneId })
+                });
+                const d = await resp.json();
+                if (d.error) {
+                    if (resEl) resEl.innerHTML = `<div style="color: var(--red); font-family: monospace;">[ERROR] ${escapeHtml(d.error)}</div>`;
+                    return;
+                }
+                if (resEl) {
+                    resEl.innerHTML = `
+                        <div style="background: rgba(0,0,0,0.5); border: 1px solid var(--border-dim); border-radius: 4px; padding: 10px; margin-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px;">
+                            <div style="color: var(--green); font-weight: bold; margin-bottom: 6px;">[✔] CLOUDFLARE ZONE CONNECTED: ${escapeHtml(d.zone_name || zoneId)}</div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">
+                                <div><strong>Security Level:</strong> <span style="color: var(--cyan);">${escapeHtml(d.security_level || 'N/A')}</span></div>
+                                <div><strong>SSL/TLS Mode:</strong> <span style="color: var(--cyan);">${escapeHtml(d.ssl_mode || 'N/A')}</span></div>
+                                <div><strong>Always HTTPS:</strong> <span style="color: ${d.always_use_https === 'on' ? 'var(--green)' : 'var(--amber)'};">${escapeHtml(d.always_use_https || 'off')}</span></div>
+                                <div><strong>Bot Fight Mode:</strong> <span style="color: ${d.bot_fight_mode === 'on' ? 'var(--green)' : 'var(--text-muted)'};">${escapeHtml(d.bot_fight_mode || 'off')}</span></div>
+                                <div><strong>Active Firewall Rules:</strong> <span style="color: #ff9d42;">${d.firewall_rules_count || 0}</span></div>
+                            </div>
+                        </div>
+                    `;
+                }
+                logToConsole(`Cloudflare Official API query successful for zone: ${d.zone_name || zoneId}`, 'PASS');
+            } catch (err) {
+                if (resEl) resEl.innerHTML = `<div style="color: var(--red); font-family: monospace;">[FAIL] API request failed: ${escapeHtml(err.message)}</div>`;
+                logToConsole(`Cloudflare API error: ${err.message}`, 'FAIL');
+            }
+        };
+
+        window.showCyberCloud9FirewallModal = function(defaultPlatform = 'ufw') {
+            let modal = document.getElementById('cybercloud9FwModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'cybercloud9FwModal';
+                modal.style.cssText = 'position: fixed; inset: 0; background: rgba(3, 7, 18, 0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 99999; padding: 20px;';
+                modal.innerHTML = `
+                    <div style="background: rgba(10, 18, 36, 0.98); border: 1px solid var(--border-bright); border-top: 3px solid #f6821f; border-radius: 8px; width: 100%; max-width: 780px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 0 35px rgba(246, 130, 31, 0.25);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border-dim);">
+                            <h3 style="color: #ff9d42; margin: 0; font-family: 'Space Grotesk', sans-serif;"><span class="holo-glyph">[🛡️]</span> DEFENSIVE ORIGIN FIREWALL GENERATOR</h3>
+                            <button onclick="document.getElementById('cybercloud9FwModal').style.display='none'" style="background: transparent; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer;">&times;</button>
+                        </div>
+                        <div style="padding: 14px 18px; overflow-y: auto; flex: 1;">
+                            <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">Select your server platform below to generate copy-pasteable firewall commands that lock down ports 80/443 strictly to official Cloudflare edge IP ranges.</p>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;">
+                                <button class="holo-btn" onclick="fetchCyberCloud9Firewall('ufw')">UFW (Ubuntu/Debian)</button>
+                                <button class="holo-btn" onclick="fetchCyberCloud9Firewall('iptables')">IPTables (Linux)</button>
+                                <button class="holo-btn" onclick="fetchCyberCloud9Firewall('windows')">Windows Defender Firewall</button>
+                                <button class="holo-btn" onclick="fetchCyberCloud9Firewall('nginx')">NGINX Real-IP &amp; AOP</button>
+                                <button class="holo-btn" style="border-color: var(--green); color: var(--green);" onclick="fetchCyberCloud9Firewall('tunnel')">Cloudflare Tunnel (Zero-Trust)</button>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <span id="cybercloud9FwTitle" style="font-size: 11px; font-weight: bold; color: var(--cyan); font-family: monospace;">UFW CONFIGURATION</span>
+                                <button class="holo-btn" onclick="copyCyberCloud9ToClipboard()" style="padding: 3px 8px; font-size: 10px;">COPY TO CLIPBOARD</button>
+                            </div>
+                            <textarea id="cybercloud9FwContent" readonly style="width: 100%; height: 320px; background: rgba(2, 6, 16, 0.95); border: 1px solid var(--border-dim); border-radius: 4px; color: var(--green); font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 12px; box-sizing: border-box; resize: vertical;"></textarea>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            modal.style.display = 'flex';
+            fetchCyberCloud9Firewall(defaultPlatform);
+        };
+
+        window.fetchCyberCloud9Firewall = async function(platform) {
+            const titleEl = document.getElementById('cybercloud9FwTitle');
+            const contentEl = document.getElementById('cybercloud9FwContent');
+            if (titleEl) titleEl.textContent = `GENERATING RULES FOR: ${platform.toUpperCase()}...`;
+            if (contentEl) contentEl.value = 'Fetching official Cloudflare CIDR blocks and generating rules...';
+            try {
+                const resp = await fetch('/api/cybercloud9/firewall-rules', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ platform: platform })
+                });
+                const d = await resp.json();
+                if (titleEl) titleEl.textContent = `${platform.toUpperCase()} FIREWALL RULES`;
+                if (contentEl) contentEl.value = d.rules || 'No rules returned.';
+            } catch (err) {
+                if (contentEl) contentEl.value = `Error generating firewall rules: ${err.message}`;
+            }
+        };
+
+        window.copyCyberCloud9ToClipboard = function() {
+            const contentEl = document.getElementById('cybercloud9FwContent');
+            if (!contentEl) return;
+            contentEl.select();
+            navigator.clipboard.writeText(contentEl.value).then(() => {
+                logToConsole('Firewall script copied to clipboard.', 'PASS');
+                alert('Firewall commands copied to clipboard!');
+            }).catch(() => {
+                document.execCommand('copy');
+                alert('Firewall commands copied to clipboard!');
+            });
+        };
+
+        window.runCyberCloud9Audit = async function() {
+            const domainInput = document.getElementById('cybercloud9DomainInput');
+            const originIpInput = document.getElementById('cybercloud9OriginIp');
+            const resultsEl = document.getElementById('cybercloud9Results');
+
+            const domain = (domainInput?.value || '').trim();
+            const originIp = (originIpInput?.value || '').trim();
+
+            if (!domain) {
+                alert('Please enter a target domain to audit (e.g. example.com).');
+                return;
+            }
+
+            if (resultsEl) {
+                resultsEl.innerHTML = `
+                    <div style="background: rgba(8, 14, 28, 0.85); border: 1px solid var(--border-dim); border-top: 3px solid #f6821f; border-radius: 6px; padding: 40px; text-align: center;">
+                        <span style="font-size: 32px; color: #f6821f; display: inline-block; animation: pulseHaloGlow 1.5s infinite;">☁️</span>
+                        <h3 style="color: var(--text-bright); margin-top: 12px; font-family: 'Space Grotesk', sans-serif;">RUNNING CYBERCLOUD9 ORIGIN SHIELD AUDIT</h3>
+                        <p style="color: var(--text-muted); font-size: 12px; font-family: 'JetBrains Mono', monospace; margin-top: 6px;">
+                            Inspecting DoH apex records &bull; Auditing subdomain proxy mesh &bull; Validating mail/SPF hygiene &bull; Testing edge security headers...
+                        </p>
+                    </div>
+                `;
+            }
+
+            logToConsole(`Initiating CyberCloud9 Origin Shield Audit on ${domain}...`, 'SCAN');
+
+            try {
+                const resp = await fetch('/api/cybercloud9/audit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ domain: domain, origin_ip: originIp || null })
+                });
+
+                if (!resp.ok) throw new Error(`HTTP error ${resp.status}`);
+                const data = await resp.json();
+                window.currentCyberCloud9Data = data;
+                renderCyberCloud9Results(data);
+                logToConsole(`CyberCloud9 Audit completed for ${domain}. Posture score: ${data.posture_score}/100 [${data.status}]`, 'PASS');
+            } catch (err) {
+                if (resultsEl) {
+                    resultsEl.innerHTML = `
+                        <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--red); border-radius: 6px; padding: 24px; text-align: center;">
+                            <span style="font-size: 28px; color: var(--red);">⚠</span>
+                            <h3 style="color: var(--red); margin-top: 8px;">AUDIT EXECUTION FAILED</h3>
+                            <p style="color: var(--text-muted); font-family: monospace; font-size: 12px;">${escapeHtml(err.message)}</p>
+                            <button class="holo-btn" onclick="runCyberCloud9Audit()" style="margin-top: 14px; border-color: var(--red); color: var(--red);">RETRY AUDIT</button>
+                        </div>
+                    `;
+                }
+                logToConsole(`CyberCloud9 Audit error: ${err.message}`, 'FAIL');
+            }
+        };
+
+        window.renderCyberCloud9Results = function(d) {
+            const resultsEl = document.getElementById('cybercloud9Results');
+            if (!resultsEl) return;
+
+            const score = d.posture_score || 0;
+            const scoreColor = score >= 80 ? 'var(--green)' : (score >= 50 ? 'var(--amber)' : 'var(--red)');
+            const statusBadgeColor = d.status === 'HARDENED' ? 'var(--green)' : (d.status === 'MODERATE_SHIELD' ? 'var(--amber)' : 'var(--red)');
+
+            const dns = d.dns_shield || {};
+            const subs = d.subdomains || [];
+            const mail = d.mail_hygiene || {};
+            const headers = d.edge_headers || {};
+            const eps = d.debug_endpoints || [];
+            const ingress = d.origin_ingress_shield;
+
+            const apexProxied = dns.is_apex_proxied;
+            const exposedSubsCount = subs.filter(s => s.is_origin_exposed).length;
+
+            let html = `
+                <!-- Overall Score & Posture Banner -->
+                <div style="background: rgba(8, 14, 28, 0.95); border: 1px solid var(--border-dim); border-top: 3px solid ${scoreColor}; border-radius: 6px; padding: 18px; margin-bottom: 16px; box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <div style="width: 72px; height: 72px; border-radius: 50%; border: 3px solid ${scoreColor}; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); box-shadow: 0 0 15px ${scoreColor}40;">
+                                <span style="font-size: 24px; font-weight: bold; color: ${scoreColor}; font-family: 'Space Grotesk', sans-serif;">${score}</span>
+                                <span style="font-size: 8px; color: var(--text-muted); font-family: monospace;">POSTURE</span>
+                            </div>
+                            <div>
+                                <h3 style="color: var(--text-bright); margin: 0; font-family: 'Space Grotesk', sans-serif;">
+                                    ${escapeHtml(d.target_domain)}
+                                    <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; border: 1px solid ${statusBadgeColor}; color: ${statusBadgeColor}; background: rgba(0,0,0,0.3); margin-left: 8px;">
+                                        ${escapeHtml(d.status)}
+                                    </span>
+                                </h3>
+                                <div style="font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">
+                                    AUDITED: ${escapeHtml(d.timestamp)} &bull; ${d.deductions?.length || 0} Security Advisory Flag(s)
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="holo-btn" onclick="showCyberCloud9FirewallModal('ufw')" style="border-color: #f6821f; color: #ff9d42; font-weight: bold;">[🛡️] FIREWALL LOCKDOWN SCRIPT</button>
+                        </div>
+                    </div>
+
+                    ${d.deductions && d.deductions.length > 0 ? `
+                        <div style="margin-top: 14px; padding: 10px 14px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 4px; font-size: 11px; font-family: 'JetBrains Mono', monospace;">
+                            <strong style="color: var(--red);">[!] POSTURE DEDUCTIONS IDENTIFIED:</strong>
+                            <ul style="margin: 6px 0 0 16px; padding: 0; color: var(--text-muted);">
+                                ${d.deductions.map(ded => `<li>${escapeHtml(ded)}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : `
+                        <div style="margin-top: 14px; padding: 8px 12px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 4px; font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--green);">
+                            ✔ Perfect defensive posture: Origin server is strictly shielded behind Cloudflare edge proxy network with zero detected leaks.
+                        </div>
+                    `}
+                </div>
+
+                <!-- 2-Column Grid of Technical Findings -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 16px;">
+
+                    <!-- CARD 1: APEX DNS PROXY SHIELD -->
+                    <div style="background: rgba(8, 14, 28, 0.9); border: 1px solid var(--border-dim); border-top: 2px solid var(--cyan); border-radius: 6px; padding: 14px;">
+                        <h4 style="color: var(--cyan); margin: 0 0 10px 0; font-family: 'Space Grotesk', sans-serif;"><span class="holo-glyph">[⌖]</span> APEX DNS &amp; EDGE PROXY STATUS</h4>
+                        <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; margin-bottom: 10px;">
+                            <div><strong>Target FQDN:</strong> <span style="color: var(--text-bright);">${escapeHtml(dns.domain || d.target_domain)}</span></div>
+                            <div style="margin-top: 4px;"><strong>Proxy Status:</strong> 
+                                <span style="color: ${apexProxied ? 'var(--green)' : 'var(--red)'}; font-weight: bold;">
+                                    ${apexProxied ? '✔ ORANGE CLOUD (PROXIED BY CLOUDFLARE)' : '✖ GRAY CLOUD / DIRECT ORIGIN RESOLUTION'}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace;">
+                            <strong>Resolved IPv4 A Records:</strong>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
+                                ${(dns.a_records || []).map(ip => {
+                                    const isCf = dns.proxied_cloudflare_ips?.includes(ip);
+                                    return `<span style="padding: 2px 6px; border-radius: 3px; font-size: 10px; border: 1px solid ${isCf ? 'var(--green)' : 'var(--red)'}; background: rgba(0,0,0,0.4); color: ${isCf ? 'var(--green)' : 'var(--red)'};">${escapeHtml(ip)} (${isCf ? 'Cloudflare Anycast' : 'Direct Origin!'})</span>`;
+                                }).join('') || '<span style="color: var(--text-muted);">None found</span>'}
+                            </div>
+                        </div>
+
+                        ${dns.cname_records && dns.cname_records.length > 0 ? `
+                            <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; margin-top: 8px;">
+                                <strong>CNAME Records:</strong>
+                                <span style="color: var(--text-muted);">${escapeHtml(dns.cname_records.join(', '))}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- CARD 2: ORIGIN DIRECT INGRESS SHIELD TEST -->
+                    <div style="background: rgba(8, 14, 28, 0.9); border: 1px solid var(--border-dim); border-top: 2px solid ${ingress ? (ingress.is_shielded ? 'var(--green)' : 'var(--red)') : 'var(--border-bright)'}; border-radius: 6px; padding: 14px;">
+                        <h4 style="color: var(--text-bright); margin: 0 0 10px 0; font-family: 'Space Grotesk', sans-serif;"><span class="holo-glyph">[⚓]</span> ORIGIN DIRECT INGRESS FIREWALL TEST</h4>
+                        ${ingress ? `
+                            <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace;">
+                                <div><strong>Tested Origin IP:</strong> <span style="color: var(--cyan);">${escapeHtml(ingress.origin_ip)}</span> (Port: ${ingress.port})</div>
+                                <div style="margin-top: 4px;"><strong>Firewall Ingress Status:</strong> 
+                                    <span style="color: ${ingress.is_shielded ? 'var(--green)' : 'var(--red)'}; font-weight: bold;">
+                                        ${ingress.is_shielded ? '✔ SHIELDED (DROP POLICY ACTIVE)' : '✖ EXPOSED TO INTERNET!'}
+                                    </span>
+                                </div>
+                                <div style="margin-top: 4px;"><strong>Handshake Latency:</strong> ${ingress.latency_ms !== null ? `${ingress.latency_ms} ms` : 'N/A (Timeout)'}</div>
+                                <div style="margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.4); border-left: 2px solid ${ingress.is_shielded ? 'var(--green)' : 'var(--red)'}; color: var(--text-muted); font-size: 10px;">
+                                    ${escapeHtml(ingress.message)}
+                                </div>
+                            </div>
+                        ` : `
+                            <div style="font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
+                                <p style="margin: 0 0 8px 0;">No origin server IP was provided for direct handshake testing.</p>
+                                <p style="margin: 0; color: #ff9d42;">Tip: Enter your actual backend server IP in the <strong>'Origin Server IP'</strong> field above and re-audit to verify your host firewall blocks direct non-Cloudflare HTTP probes.</p>
+                            </div>
+                        `}
+                    </div>
+
+                    <!-- CARD 3: SUBDOMAIN PROXY MESH & EXPOSURE -->
+                    <div style="background: rgba(8, 14, 28, 0.9); border: 1px solid var(--border-dim); border-top: 2px solid ${exposedSubsCount > 0 ? 'var(--red)' : 'var(--green)'}; border-radius: 6px; padding: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h4 style="color: var(--text-bright); margin: 0; font-family: 'Space Grotesk', sans-serif;"><span class="holo-glyph">[🕸️]</span> SUBDOMAIN PROXY MESH</h4>
+                            <span style="font-size: 10px; font-family: monospace; color: ${exposedSubsCount > 0 ? 'var(--red)' : 'var(--green)'};">
+                                ${exposedSubsCount > 0 ? `[!] ${exposedSubsCount} UNPROXIED LEAKS` : '✔ ALL DISCOVERED PROXIED'}
+                            </span>
+                        </div>
+                        <div style="max-height: 220px; overflow-y: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 11px; font-family: 'JetBrains Mono', monospace;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--border-dim); color: var(--text-muted); text-align: left;">
+                                        <th style="padding: 4px;">SUBDOMAIN</th>
+                                        <th style="padding: 4px;">RESOLVED IP</th>
+                                        <th style="padding: 4px;">STATUS</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${subs.map(s => {
+                                        const isExp = s.is_origin_exposed;
+                                        return `
+                                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                                                <td style="padding: 4px; color: ${isExp ? 'var(--red)' : 'var(--cyan)'}; font-weight: ${isExp ? 'bold' : 'normal'};">${escapeHtml(s.subdomain)}</td>
+                                                <td style="padding: 4px; color: var(--text-muted);">${escapeHtml((s.ips || []).join(', ') || 'N/A')}</td>
+                                                <td style="padding: 4px;">
+                                                    <span style="padding: 1px 6px; border-radius: 3px; font-size: 9px; border: 1px solid ${isExp ? 'var(--red)' : 'var(--green)'}; color: ${isExp ? 'var(--red)' : 'var(--green)'};">
+                                                        ${isExp ? 'DIRECT EXPOSURE' : 'PROXIED'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('') || '<tr><td colspan="3" style="padding: 10px; text-align: center; color: var(--text-muted);">No active subdomains resolved</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- CARD 4: MAIL & SPF RECORD HYGIENE -->
+                    <div style="background: rgba(8, 14, 28, 0.9); border: 1px solid var(--border-dim); border-top: 2px solid var(--amber); border-radius: 6px; padding: 14px;">
+                        <h4 style="color: var(--amber); margin: 0 0 10px 0; font-family: 'Space Grotesk', sans-serif;"><span class="holo-glyph">[✉]</span> MAIL INFRASTRUCTURE &amp; SPF HYGIENE</h4>
+                        <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; margin-bottom: 8px;">
+                            <strong>SPF Record:</strong>
+                            <div style="padding: 6px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-dim); border-radius: 3px; color: var(--cyan); margin-top: 4px; word-break: break-all;">
+                                ${escapeHtml(mail.spf_record || 'No SPF (v=spf1) TXT record detected')}
+                            </div>
+                        </div>
+
+                        <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; margin-bottom: 8px;">
+                            <strong>SPF Declared IPs:</strong>
+                            <span style="color: var(--text-muted);">${escapeHtml((mail.spf_declared_ips || []).join(', ') || 'None explicitly listed')}</span>
+                        </div>
+
+                        <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace;">
+                            <strong>MX Server Destinations:</strong>
+                            <div style="margin-top: 4px;">
+                                ${(mail.mx_records || []).map(m => `
+                                    <div style="padding: 4px 6px; background: rgba(0,0,0,0.3); border-radius: 3px; margin-bottom: 4px;">
+                                        <span style="color: var(--text-bright);">${escapeHtml(m.host || m.record)}</span>
+                                        <span style="color: var(--text-muted); font-size: 10px;"> &bull; IPs: ${escapeHtml((m.resolved_ips || []).join(', ') || 'None')}</span>
+                                    </div>
+                                `).join('') || '<span style="color: var(--text-muted);">No MX records found</span>'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD 5: EDGE SECURITY & LEAKAGE HEADERS -->
+                    <div style="background: rgba(8, 14, 28, 0.9); border: 1px solid var(--border-dim); border-top: 2px solid var(--purple); border-radius: 6px; padding: 14px;">
+                        <h4 style="color: var(--text-bright); margin: 0 0 10px 0; font-family: 'Space Grotesk', sans-serif;"><span class="holo-glyph">[🔒]</span> EDGE SECURITY &amp; RESPONSE HEADERS</h4>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 11px; font-family: 'JetBrains Mono', monospace; margin-bottom: 10px;">
+                            <div><strong>CF Ray ID:</strong> <span style="color: var(--cyan);">${escapeHtml(headers.cf_ray || 'None (Not through CF)')}</span></div>
+                            <div><strong>CF Cache Status:</strong> <span style="color: var(--cyan);">${escapeHtml(headers.cf_cache_status || 'DYNAMIC')}</span></div>
+                            <div><strong>HSTS Enabled:</strong> <span style="color: ${headers.hsts_active ? 'var(--green)' : 'var(--red)'}; font-weight: bold;">${headers.hsts_active ? '✔ ACTIVE' : '✖ MISSING'}</span></div>
+                            <div><strong>CSP Policy:</strong> <span style="color: ${headers.csp_active ? 'var(--green)' : 'var(--amber)'};">${headers.csp_active ? '✔ DEPLOYED' : 'WARNING (None)'}</span></div>
+                        </div>
+
+                        ${headers.origin_leaks && headers.origin_leaks.length > 0 ? `
+                            <div style="font-size: 10px; font-family: 'JetBrains Mono', monospace; padding: 8px; background: rgba(239, 68, 68, 0.1); border-left: 2px solid var(--red); color: var(--red);">
+                                <strong>BACKEND HEADER LEAKS:</strong>
+                                ${headers.origin_leaks.map(l => `<div>&bull; ${escapeHtml(l.header)}: ${escapeHtml(l.value)}</div>`).join('')}
+                            </div>
+                        ` : `
+                            <div style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--green);">
+                                ✔ Zero backend banner leaks (Server banner is masked).
+                            </div>
+                        `}
+                    </div>
+
+                    <!-- CARD 6: DEBUG & EXPOSURE ENDPOINTS -->
+                    <div style="background: rgba(8, 14, 28, 0.9); border: 1px solid var(--border-dim); border-top: 2px solid var(--red); border-radius: 6px; padding: 14px;">
+                        <h4 style="color: var(--text-bright); margin: 0 0 10px 0; font-family: 'Space Grotesk', sans-serif;"><span class="holo-glyph">[📂]</span> SENSITIVE DEBUG &amp; BACKUP PATH AUDIT</h4>
+                        <div style="max-height: 180px; overflow-y: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 11px; font-family: 'JetBrains Mono', monospace;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--border-dim); color: var(--text-muted); text-align: left;">
+                                        <th style="padding: 4px;">PATH</th>
+                                        <th style="padding: 4px;">STATUS</th>
+                                        <th style="padding: 4px;">RESULT</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${eps.map(e => `
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                                            <td style="padding: 4px; color: ${e.is_exposed ? 'var(--red)' : 'var(--text-bright)'}; font-weight: ${e.is_exposed ? 'bold' : 'normal'};">${escapeHtml(e.path)}</td>
+                                            <td style="padding: 4px; color: var(--text-muted);">${e.status_code !== null ? e.status_code : 'Err'}</td>
+                                            <td style="padding: 4px;">
+                                                <span style="padding: 1px 6px; border-radius: 3px; font-size: 9px; border: 1px solid ${e.is_exposed ? 'var(--red)' : 'var(--green)'}; color: ${e.is_exposed ? 'var(--red)' : 'var(--green)'};">
+                                                    ${e.is_exposed ? 'EXPOSED (ALERT!)' : 'SAFE'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            `;
+
+            resultsEl.innerHTML = html;
+        };
+
         window.addEventListener('DOMContentLoaded', () => {
             loadMyIps();
             scanPorts();
@@ -5743,6 +6218,35 @@ def api_cyber_intel():
     from aegis.cyber_intel import CyberIntelligenceSuite
     engine = CyberIntelligenceSuite()
     return jsonify(engine.run_full_intelligence(target, client_info))
+
+
+@app.route("/api/cybercloud9/audit", methods=["POST"])
+def api_cybercloud9_audit():
+    data = request.get_json(silent=True) or {}
+    raw_domain = data.get("domain") or data.get("target") or "example.com"
+    target_domain = str(raw_domain).strip() if raw_domain is not None else "example.com"
+    raw_origin = data.get("origin_ip")
+    known_origin_ip = str(raw_origin).strip() if raw_origin is not None and str(raw_origin).strip() else None
+    from aegis.cyber_cloud9 import run_full_cybercloud9_audit
+    return jsonify(run_full_cybercloud9_audit(target_domain, known_origin_ip))
+
+
+@app.route("/api/cybercloud9/firewall-rules", methods=["POST"])
+def api_cybercloud9_firewall_rules():
+    data = request.get_json(silent=True) or {}
+    raw_plat = data.get("platform") or "ufw"
+    platform = str(raw_plat).strip()
+    from aegis.cyber_cloud9 import generate_origin_firewall_rules
+    return jsonify({"platform": platform, "rules": generate_origin_firewall_rules(platform)})
+
+
+@app.route("/api/cybercloud9/cf-api", methods=["POST"])
+def api_cybercloud9_cf_api():
+    data = request.get_json(silent=True) or {}
+    api_token = str(data.get("api_token") or "").strip()
+    zone_id = str(data.get("zone_id") or "").strip()
+    from aegis.cyber_cloud9 import query_cloudflare_official_api
+    return jsonify(query_cloudflare_official_api(api_token, zone_id))
 
 
 @app.route("/api/cryptotrace/trace", methods=["POST"])
