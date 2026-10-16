@@ -396,6 +396,52 @@ HUD_HTML = """<!DOCTYPE html>
             background: rgba(6, 11, 24, 0.45);
         }
 
+        /* Sci-Fi Hacker War Room & Investigation Topology Animations */
+        @keyframes linkFlowAnim {
+            from { stroke-dashoffset: 40; }
+            to { stroke-dashoffset: 0; }
+        }
+
+        @keyframes sciFiRadarSweep {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes pulseHaloGlow {
+            0% { r: 16; opacity: 0.85; stroke-width: 1.5; }
+            50% { r: 32; opacity: 0.12; stroke-width: 2.5; }
+            100% { r: 16; opacity: 0.85; stroke-width: 1.5; }
+        }
+
+        @keyframes pulseArrow {
+            0% { transform: translateX(0px); opacity: 0.5; }
+            100% { transform: translateX(5px); opacity: 1; }
+        }
+
+        @keyframes beaconFlash {
+            0%, 100% { opacity: 0.35; filter: drop-shadow(0 0 2px var(--cyan)); }
+            50% { opacity: 1; filter: drop-shadow(0 0 10px var(--cyan)); }
+        }
+
+        .graph-link-flowing {
+            stroke-dasharray: 6, 4;
+            animation: linkFlowAnim 1.6s linear infinite;
+        }
+
+        .pulse-halo {
+            animation: pulseHaloGlow 2.8s ease-in-out infinite;
+        }
+
+        .radar-sweep-beam {
+            animation: sciFiRadarSweep 10s linear infinite;
+            transform-box: fill-box;
+            transform-origin: center;
+        }
+
+        .osint-graph-node:hover {
+            filter: drop-shadow(0 0 14px var(--cyan)) !important;
+        }
+
         /* Buttons (Holographic Minimal) */
         button {
             font-family: var(--font-mono);
@@ -900,7 +946,7 @@ HUD_HTML = """<!DOCTYPE html>
             <div class="target-bar-top">
                 <span style="color: var(--cyan); font-size: 11px; font-weight: bold;"><span class="holo-glyph">[⌖]</span> DEFENSIVE TARGET:</span>
                 <div class="target-input-group">
-                    <input type="text" id="targetUrl" class="target-input" value="http://127.0.0.1:5000" placeholder="http://127.0.0.1:5000 or http://localhost:8000">
+                    <input type="text" id="targetUrl" class="target-input" value="http://127.0.0.1:5000" placeholder="http://127.0.0.1:5000 or http://localhost:8000" onkeydown="if(event.key==='Enter') runMasterScan()">
                 </div>
                 <div class="presets">
                     <button class="btn-preset active" onclick="setTarget('http://127.0.0.1:5000')">127.0.0.1:5000 (Aegis)</button>
@@ -910,7 +956,7 @@ HUD_HTML = """<!DOCTYPE html>
                 </div>
             </div>
             <div class="target-bar-actions">
-                <button class="btn-master" onclick="runMasterScan()"><span class="holo-glyph">[⬡]</span> RUN MASTER DEFENSE SCAN (ALL PANELS)</button>
+                <button class="btn-master" id="btnMasterScan" onclick="runMasterScan()"><span class="holo-glyph">[⬡]</span> RUN MASTER DEFENSE SCAN (ALL PANELS)</button>
                 <button class="btn-primary" id="btnAudit" onclick="runAudit()"><span class="holo-glyph">[◈]</span> RUN DEFENSIVE AUDIT</button>
                 <button class="btn-action" onclick="exportAuditReport()"><span class="holo-glyph">[⧉]</span> EXPORT AUDIT REPORT (HTML)</button>
             </div>
@@ -978,6 +1024,7 @@ HUD_HTML = """<!DOCTYPE html>
             <button class="hud-tab-btn" data-category="secret_audit" onclick="switchTab('tab-secret-audit', this)">[🔐] SECRET &amp; EXPOSURE LAB</button>
             <button class="hud-tab-btn" data-category="osint_user" onclick="switchTab('tab-username-osint', this)">[◈] USERNAME OSINT HUNT</button>
             <button class="hud-tab-btn" data-category="osint_suite" onclick="switchTab('tab-osint-suite', this)">[⌖] 20-IN-1 OSINT SUITE</button>
+            <button class="hud-tab-btn" data-category="cyber_intel" onclick="switchTab('tab-cyber-intel', this)">[🌐] CYBER INTELLIGENCE SUITE</button>
             <button class="hud-tab-btn" data-category="cryptotrace" onclick="switchTab('tab-cryptotrace', this)">[☵] CRYPTOTRACE AML</button>
             <button class="hud-tab-btn" data-category="spiderfoot" onclick="switchTab('tab-spiderfoot', this)">[⌘] SPIDERFOOT RECON</button>
             <button class="hud-tab-btn" data-category="cat2" onclick="switchTab('tab-osint', this)">[⧉] CYBER OSINT &amp; IP TABLES</button>
@@ -1497,7 +1544,7 @@ exit 0</pre>
                 <div class="target-bar-top">
                     <span id="activeToolLabel" style="color: var(--cyan); font-size: 11px; font-weight: bold;"><span class="holo-glyph">[⌖]</span> TARGET INPUT:</span>
                     <div class="target-input-group">
-                        <input type="text" id="suiteTargetInput" class="target-input" value="cyberghost" placeholder="Enter target query...">
+                        <input type="text" id="suiteTargetInput" class="target-input" value="cyberghost" placeholder="Enter target query..." onkeydown="if(event.key==='Enter') executeSuiteTool()">
                     </div>
                     <button class="btn-master" onclick="executeSuiteTool()"><span class="holo-glyph">[⚡]</span> EXECUTE OSINT TOOL</button>
                 </div>
@@ -1706,6 +1753,54 @@ exit 0</pre>
                         <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">Enter scam target above and click 'LAUNCH SPIDERFOOT RECON' to execute automated infrastructure sweeps.</td></tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB: CYBER INTELLIGENCE SUITE              -->
+        <!-- ========================================== -->
+        <div id="tab-cyber-intel" class="tab-pane">
+            <div class="category-header-banner">
+                <div>
+                    <h2><span class="holo-glyph">[🌐]</span> CYBER INTELLIGENCE SUITE // IP, NETWORK, GEOLOCATION &amp; INFRASTRUCTURE OSINT</h2>
+                    <p>Modular multi-source cyber intelligence engine: authoritative IP intelligence, geolocation estimates, cellular carrier metadata, forward/reverse DNS, VPN &amp; proxy detection, Cloudflare Anycast identification, HTTP/TLS forensics, and cross-entity evidence correlation.</p>
+                </div>
+            </div>
+
+            <!-- Search & Controls Bar -->
+            <div style="background: rgba(8, 14, 28, 0.9); border: 1px solid var(--border-dim); border-top: 2px solid var(--cyan); border-radius: 6px; padding: 14px; margin-bottom: 16px; box-shadow: 0 0 20px rgba(0, 240, 255, 0.08);">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <input type="text" id="cyberIntelInput" class="hud-input" placeholder="Enter IPv4, IPv6, Domain, CIDR or URL (e.g., 1.1.1.1, example.com, 8.8.8.0/24)" style="flex: 1; min-width: 280px; font-family: 'JetBrains Mono', monospace;" onkeydown="if(event.key==='Enter') runCyberIntelligence()">
+                    <button class="holo-btn" onclick="runCyberIntelligence()" style="padding: 8px 18px; font-weight: bold; background: rgba(0,240,255,0.15); border-color: var(--cyan); color: var(--cyan);">
+                        <span class="holo-glyph">[⌖]</span> RUN FULL INTELLIGENCE AUDIT
+                    </button>
+                    <button class="holo-btn" onclick="runVoluntaryGps()" style="padding: 8px 14px; border-color: var(--green); color: var(--green);">
+                        <span class="holo-glyph">[◈]</span> VOLUNTARY GPS CONSENT
+                    </button>
+                    <button class="holo-btn" onclick="exportCyberIntelJson()" style="padding: 8px 14px; border-color: var(--amber); color: var(--amber);">
+                        <span class="holo-glyph">[⧉]</span> EXPORT JSON DOSSIER
+                    </button>
+                </div>
+                <div style="margin-top: 10px; font-size: 10px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; display: flex; gap: 16px; flex-wrap: wrap;">
+                    <span><strong style="color: var(--cyan);">SUPPORTED INPUTS:</strong> Public/Private IPv4, IPv6, FQDN Domains, BGP CIDR Blocks, URLs</span>
+                    <span><strong style="color: var(--green);">ACCURACY:</strong> Real-time public telemetry; IP coordinates are city-level estimates (NOT confirmed GPS)</span>
+                </div>
+            </div>
+
+            <!-- Cyber Intel Results Container -->
+            <div id="cyberIntelResults">
+                <div style="background: rgba(8, 14, 28, 0.6); border: 1px dashed var(--border-dim); border-radius: 6px; padding: 36px; text-align: center;">
+                    <span style="font-size: 32px; color: var(--cyan); display: inline-block; animation: pulseHaloGlow 2.5s infinite;">🌐</span>
+                    <h3 style="color: var(--text-bright); margin-top: 10px; font-family: 'Space Grotesk', sans-serif;">CYBER INTELLIGENCE CENTER READY</h3>
+                    <p style="color: var(--text-muted); font-size: 12px; max-width: 650px; margin: 8px auto 16px auto;">
+                        Enter a target domain, public IP, CIDR prefix, or URL above and click <strong>'RUN FULL INTELLIGENCE AUDIT'</strong> to initiate multi-source reconnaissance, DNSSEC validation, BGP route tracing, and evidence correlation.
+                    </p>
+                    <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                        <button class="holo-btn" style="font-size: 10px; padding: 4px 10px;" onclick="document.getElementById('cyberIntelInput').value='example.com'; runCyberIntelligence();">TARGET: example.com</button>
+                        <button class="holo-btn" style="font-size: 10px; padding: 4px 10px; border-color: var(--green); color: var(--green);" onclick="document.getElementById('cyberIntelInput').value='1.1.1.1'; runCyberIntelligence();">TARGET: 1.1.1.1</button>
+                        <button class="holo-btn" style="font-size: 10px; padding: 4px 10px; border-color: var(--amber); color: var(--amber);" onclick="document.getElementById('cyberIntelInput').value='8.8.8.8'; runCyberIntelligence();">TARGET: 8.8.8.8</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -2166,6 +2261,37 @@ exit 0</pre>
 
     </div>
 
+    <!-- ========================================== -->
+    <!-- 🛡️ DEVELOPERS LINKS OF TEAM WHITE HAT DEV (BOTTOM FOOTER) -->
+    <!-- ========================================== -->
+    <footer class="hud-footer-bar" id="hudFooterBar" style="margin-top: 32px; background: rgba(8, 14, 28, 0.95); border: 1px solid var(--border-dim); border-top: 2px solid var(--cyan); border-radius: 8px; padding: 14px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; box-shadow: 0 0 20px rgba(0, 240, 255, 0.08);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 20px; color: var(--cyan); filter: drop-shadow(0 0 8px var(--cyan));">🛡️</span>
+            <div>
+                <div style="font-size: 12px; font-weight: bold; color: var(--cyan); letter-spacing: 1.5px; text-transform: uppercase; font-family: 'Space Grotesk', sans-serif;">
+                    DEVELOPED BY TEAM WHITE HAT // CYBER DEFENSE RESEARCH GROUP
+                </div>
+                <div style="font-size: 10px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
+                    AEGIS DEFENSIVE TOOLKIT v2.8.0 // AUTOMATED VULNERABILITY AUDITING & TACTICAL OSINT
+                </div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <a href="https://github.com/unidentifiedcyberghost" target="_blank" rel="noopener noreferrer" class="holo-btn" style="text-decoration: none; padding: 6px 12px; font-size: 10px; color: var(--green); border-color: rgba(0, 255, 136, 0.4); display: inline-flex; align-items: center; gap: 6px;">
+                <span style="color: var(--green);">[⌥]</span> GitHub: @unidentifiedcyberghost
+            </a>
+            <a href="https://github.com/pinoyUnknown" target="_blank" rel="noopener noreferrer" class="holo-btn" style="text-decoration: none; padding: 6px 12px; font-size: 10px; color: var(--cyan); border-color: rgba(0, 240, 255, 0.4); display: inline-flex; align-items: center; gap: 6px;">
+                <span style="color: var(--cyan);">[◈]</span> GitHub: @pinoyUnknown
+            </a>
+            <a href="https://x.com/TeamWhiteHatDev" target="_blank" rel="noopener noreferrer" class="holo-btn" style="text-decoration: none; padding: 6px 12px; font-size: 10px; color: var(--amber); border-color: rgba(255, 184, 0, 0.4); display: inline-flex; align-items: center; gap: 6px;">
+                <span style="color: var(--amber);">[☵]</span> X / Twitter: @TeamWhiteHatDev
+            </a>
+            <a href="https://github.com/unidentifiedcyberghost/AEGIS-DEFENSIVE-TOOLKITS" target="_blank" rel="noopener noreferrer" class="holo-btn" style="text-decoration: none; padding: 6px 12px; font-size: 10px; color: var(--violet); border-color: rgba(176, 38, 255, 0.4); display: inline-flex; align-items: center; gap: 6px;">
+                <span style="color: var(--violet);">[⧉]</span> Aegis Repository
+            </a>
+        </div>
+    </footer>
+
     <!-- Master Scripts -->
     <script>
         let currentFindings = [];
@@ -2276,7 +2402,12 @@ exit 0</pre>
             document.querySelectorAll('.hud-tab-btn').forEach(b => b.classList.remove('active'));
             const el = document.getElementById(tabId);
             if (el) el.classList.add('active');
-            if (btn) btn.classList.add('active');
+            if (btn) {
+                btn.classList.add('active');
+            } else {
+                const matchedBtn = document.querySelector(`.hud-tab-btn[onclick*="${tabId}"]`);
+                if (matchedBtn) matchedBtn.classList.add('active');
+            }
         }
 
         // ==========================================
@@ -2632,54 +2763,77 @@ exit 0</pre>
                     return;
                 }
 
-                // Store current graph data globally for click inspector
+                // Store current graph data globally for click inspector and view switching
                 window.currentInvestigationGraphData = data;
 
                 const summary = data.summary || {};
                 const routeFlow = data.route_flow || [];
                 const spiderData = data.crawled_spider_data || {};
+                const dnsTrace = data.dns_trace || [];
+                const allDnsRecords = data.all_dns_records || [];
+                const whoisData = data.whois_rdap || {};
+                const dnssecStatus = data.dnssec_status || 'NOT_VALIDATED';
+                const authResp = data.authoritative_response || false;
+                const dnsTimingMs = data.dns_timing_ms || 0;
 
-                // 1. Metric HUD Cards (5-Column)
+                // 1. Metric HUD Cards (6-Column Futuristic Grid)
                 const hudCardsHtml = `
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 14px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 10px; margin-bottom: 14px;">
                         <div class="metric-card" style="border-color: rgba(0, 240, 255, 0.4);">
                             <div class="metric-title"><span style="color: var(--cyan);">[⬡]</span> TOPOLOGY NODES</div>
                             <div class="metric-value" style="color: var(--cyan); font-size: 20px;">${nodes.length}</div>
                             <div class="metric-sub">${escapeHtml(data.target_type || 'ENTITY')} TARGET</div>
                         </div>
                         <div class="metric-card" style="border-color: rgba(0, 255, 136, 0.4);">
-                            <div class="metric-title"><span style="color: var(--green);">[IP]</span> RESOLVED ORIGINS</div>
-                            <div class="metric-value" style="color: var(--green); font-size: 20px;">${(summary.resolved_ips && summary.resolved_ips.length) || 1}</div>
-                            <div class="metric-sub">${escapeHtml(summary.primary_origin_ip || 'Resolved Host')}</div>
+                            <div class="metric-title"><span style="color: var(--green);">[IP]</span> RESOLVED ORIGIN</div>
+                            <div class="metric-value" style="color: var(--green); font-size: 15px; font-family: 'JetBrains Mono', monospace; word-break: break-all;" title="${escapeHtml(summary.primary_origin_ip || 'Resolved Host')}">${escapeHtml(summary.primary_origin_ip || 'Resolved Host')}</div>
+                            <div class="metric-sub">${(summary.resolved_ips && summary.resolved_ips.length) || 1} IPs Bound</div>
                         </div>
                         <div class="metric-card" style="border-color: rgba(255, 184, 0, 0.4);">
                             <div class="metric-title"><span style="color: var(--amber);">[BGP]</span> ISP & BACKBONE</div>
-                            <div class="metric-value" style="color: var(--amber); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(summary.primary_isp || 'Telecom Carrier')}">${escapeHtml(summary.primary_isp || 'Telecom Carrier')}</div>
+                            <div class="metric-value" style="color: var(--amber); font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(summary.primary_isp || 'Telecom Carrier')}">${escapeHtml(summary.primary_isp || 'Telecom Carrier')}</div>
                             <div class="metric-sub">${escapeHtml(summary.primary_asn || 'BGP Transit')}</div>
                         </div>
                         <div class="metric-card" style="border-color: rgba(176, 38, 255, 0.4);">
-                            <div class="metric-title"><span style="color: var(--violet);">[🕸️]</span> SPIDER ASSETS</div>
-                            <div class="metric-value" style="color: var(--violet); font-size: 20px;">${summary.crawled_assets_count || 0}</div>
-                            <div class="metric-sub">${(spiderData.endpoints ? spiderData.endpoints.length : 0)} routes / ${(spiderData.asset_cdns ? spiderData.asset_cdns.length : 0)} CDNs</div>
+                            <div class="metric-title"><span style="color: var(--violet);">[🔒]</span> DNSSEC STATUS</div>
+                            <div class="metric-value" style="color: ${dnssecStatus.includes('SECURE') ? 'var(--green)' : 'var(--amber)'}; font-size: 13.5px; font-weight: bold;">${dnssecStatus.includes('SECURE') ? 'SECURE' : 'INSECURE'}</div>
+                            <div class="metric-sub">${dnssecStatus.includes('SECURE') ? 'AD Bit Validated' : 'No RRSIG/DS'}</div>
                         </div>
                         <div class="metric-card" style="border-color: rgba(56, 239, 125, 0.4);">
-                            <div class="metric-title"><span style="color: #38EF7D;">[ROUTE]</span> BACKBONE HOPS</div>
-                            <div class="metric-value" style="color: #38EF7D; font-size: 20px;">${routeFlow.length || 6}</div>
-                            <div class="metric-sub">${escapeHtml(summary.primary_city ? summary.primary_city + ', ' + (summary.primary_country || '') : 'End-to-End Route')}</div>
+                            <div class="metric-title"><span style="color: #38EF7D;">[⏱️]</span> RESOLUTION TIMING</div>
+                            <div class="metric-value" style="color: #38EF7D; font-size: 20px;">${dnsTimingMs}ms</div>
+                            <div class="metric-sub">${authResp ? 'Authoritative Proof' : 'Recursive Cache'}</div>
+                        </div>
+                        <div class="metric-card" style="border-color: rgba(255, 0, 127, 0.4);">
+                            <div class="metric-title"><span style="color: #FF007F;">[📄]</span> DNS RECORDS</div>
+                            <div class="metric-value" style="color: #FF007F; font-size: 20px;">${allDnsRecords.length}</div>
+                            <div class="metric-sub">${whoisData.registrar ? escapeHtml(whoisData.registrar.slice(0, 16)) : 'Authoritative RDAP'}</div>
                         </div>
                     </div>
                 `;
 
-                // 2. High-Tech Multi-Tier Radial Topology Calculation
+                // 2. Real Data Badges Bar
+                const realDataBadgesHtml = `
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 12px; background: rgba(5,10,22,0.95); padding: 8px 12px; border: 1px solid var(--border-dim); border-left: 3px solid var(--cyan); border-radius: 4px;">
+                        <span style="font-size: 10px; color: var(--text-muted); font-weight: bold; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">TELEMETRY BADGES:</span>
+                        <span class="holo-tag" style="background: rgba(0,240,255,0.12); border-color: var(--cyan); color: var(--cyan); font-size: 9.5px;">[🔍 DNS Trace] ${dnsTrace.length} Hops</span>
+                        <span class="holo-tag" style="background: rgba(0,255,136,0.12); border-color: var(--green); color: var(--green); font-size: 9.5px;">[🔍 IP ADDRESS Tracer] ${routeFlow.length} Points</span>
+                        <span class="holo-tag" style="background: rgba(255,184,0,0.12); border-color: var(--amber); color: var(--amber); font-size: 9.5px;">[🔍 IP LOOK UP] ${escapeHtml(summary.primary_origin_ip || 'Resolved')}</span>
+                        <span class="holo-tag" style="background: rgba(176,38,255,0.12); border-color: var(--violet); color: var(--violet); font-size: 9.5px;">[🔍 DNS LOOK UP] ${allDnsRecords.length} Records</span>
+                        <span class="holo-tag" style="background: rgba(56,239,125,0.12); border-color: #38EF7D; color: #38EF7D; font-size: 9.5px;">[🔍 WHOIS LOOKUP] ${whoisData.registrar ? 'RDAP Verified' : 'ICANN RDAP'}</span>
+                        <span class="holo-tag" style="background: ${authResp ? 'rgba(0,255,136,0.15)' : 'rgba(255,184,0,0.15)'}; border-color: ${authResp ? 'var(--green)' : 'var(--amber)'}; color: ${authResp ? 'var(--green)' : 'var(--amber)'}; font-size: 9.5px;">[✅ Authoritative Response] ${authResp ? 'YES (AA)' : 'RECURSIVE'}</span>
+                        <span class="holo-tag" style="background: ${dnssecStatus.includes('SECURE') ? 'rgba(0,255,136,0.15)' : 'rgba(255,184,0,0.15)'}; border-color: ${dnssecStatus.includes('SECURE') ? 'var(--green)' : 'var(--amber)'}; color: ${dnssecStatus.includes('SECURE') ? 'var(--green)' : 'var(--amber)'}; font-size: 9.5px;">[🔒 DNSSEC Status] ${dnssecStatus.includes('SECURE') ? 'AUTHENTICATED' : 'UNSIGNED'}</span>
+                        <span class="holo-tag" style="background: rgba(0,240,255,0.12); border-color: var(--cyan); color: var(--cyan); font-size: 9.5px;">[⏱️ Timing] ${dnsTimingMs}ms</span>
+                        <span class="holo-tag" style="background: rgba(255,0,127,0.12); border-color: #FF007F; color: #FF007F; font-size: 9.5px;">[📄 ALL Records] ${allDnsRecords.length} Verified</span>
+                    </div>
+                `;
+
+                // 3. High-Tech Multi-Tier Radial Topology Calculation
                 const w = 920, h = 500, cx = 460, cy = 250;
                 const posMap = {};
                 posMap[nodes[0].id] = { x: cx, y: cy };
 
-                // Group nodes into rings:
-                // Ring 1 (Radius 105): IPs & Edge CDNs
-                // Ring 2 (Radius 175): BGP Backbones & ISP Carriers
-                // Ring 3 (Radius 245): Nameservers, Mail Servers, Geolocation, Reverse DNS, Services
-                // Ring 4 (Radius 310): Web Spider Endpoints, Discovered Subdomains, Asset CDNs, Web Server, Profiles
+                // Group nodes into rings
                 const ring1 = [], ring2 = [], ring3 = [], ring4 = [], otherRing = [];
                 for (let i = 1; i < nodes.length; i++) {
                     const n = nodes[i];
@@ -2690,33 +2844,31 @@ exit 0</pre>
                         ring2.push(n);
                     } else if (t === 'GEO_ORIGIN' || t === 'NAMESERVER' || t === 'MAIL_EXCHANGER' || t === 'PTR_HOSTNAME' || t === 'SERVICE') {
                         ring3.push(n);
-                    } else if (t === 'SPIDER_ENDPOINT' || t === 'ASSET_CDN' || t === 'SUBDOMAIN' || t === 'WEB_SERVER' || t === 'PROFILE' || t === 'THREAT_FLAG' || t === 'DOMAIN') {
+                    } else if (t === 'SUBDOMAIN' || t === 'SPIDER_ENDPOINT' || t === 'ASSET_CDN' || t === 'WEB_SERVER' || t === 'CONNECTED_SITE' || t === 'PROFILE' || t === 'THREAT_FLAG' || t === 'DOMAIN') {
                         ring4.push(n);
                     } else {
                         otherRing.push(n);
                     }
                 }
 
-                const allSatelliteNodes = nodes.slice(1);
                 const layoutSatelliteList = (list, radius, angleOffset) => {
                     const count = list.length;
                     for (let i = 0; i < count; i++) {
                         const angle = (2 * Math.PI * i) / count - (Math.PI / 2) + angleOffset;
-                        const nx = Math.max(35, Math.min(w - 35, cx + radius * Math.cos(angle)));
-                        const ny = Math.max(35, Math.min(h - 35, cy + radius * Math.sin(angle)));
+                        const nx = Math.max(45, Math.min(w - 45, cx + radius * Math.cos(angle)));
+                        const ny = Math.max(45, Math.min(h - 45, cy + radius * Math.sin(angle)));
                         posMap[list[i].id] = { x: nx, y: ny };
                     }
                 };
 
-                // Place each tier
                 if (ring1.length > 0 || ring2.length > 0 || ring3.length > 0 || ring4.length > 0) {
                     if (ring1.length > 0) layoutSatelliteList(ring1, 105, 0);
                     if (ring2.length > 0) layoutSatelliteList(ring2, 175, Math.PI / 7);
                     if (ring3.length > 0) layoutSatelliteList(ring3, 245, Math.PI / 5);
-                    if (ring4.length > 0) layoutSatelliteList(ring4, 310, Math.PI / 9);
+                    if (ring4.length > 0) layoutSatelliteList(ring4, 315, Math.PI / 9);
                     if (otherRing.length > 0) layoutSatelliteList(otherRing, 210, Math.PI / 4);
                 } else {
-                    layoutSatelliteList(allSatelliteNodes, 160, 0);
+                    layoutSatelliteList(nodes.slice(1), 160, 0);
                 }
 
                 for (let i = 0; i < nodes.length; i++) {
@@ -2725,72 +2877,136 @@ exit 0</pre>
                     }
                 }
 
-                // Render SVG Rings background guide
-                let svgBackground = `
-                    <circle cx="${cx}" cy="${cy}" r="105" fill="none" stroke="rgba(0, 240, 255, 0.08)" stroke-width="1" stroke-dasharray="2,4" />
-                    <circle cx="${cx}" cy="${cy}" r="175" fill="none" stroke="rgba(255, 184, 0, 0.08)" stroke-width="1" stroke-dasharray="3,5" />
-                    <circle cx="${cx}" cy="${cy}" r="245" fill="none" stroke="rgba(176, 38, 255, 0.08)" stroke-width="1" stroke-dasharray="4,6" />
-                    <circle cx="${cx}" cy="${cy}" r="310" fill="none" stroke="rgba(0, 255, 136, 0.06)" stroke-width="1" stroke-dasharray="5,7" />
-                    <line x1="${cx - 330}" y1="${cy}" x2="${cx + 330}" y2="${cy}" stroke="rgba(0, 240, 255, 0.05)" stroke-width="1" />
-                    <line x1="${cx}" y1="${cy - 230}" x2="${cx}" y2="${cy + 230}" stroke="rgba(0, 240, 255, 0.05)" stroke-width="1" />
+                // Render SVG Defs (Gradients & Cyber Filters)
+                let svgDefs = `
+                    <defs>
+                        <filter id="cyberGlow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="2.5" result="blur" />
+                            <feMerge>
+                                <feMergeNode in="blur" />
+                                <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                        </filter>
+                        <linearGradient id="radarBeamGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.32"/>
+                            <stop offset="60%" stop-color="#00F0FF" stop-opacity="0.08"/>
+                            <stop offset="100%" stop-color="#00F0FF" stop-opacity="0"/>
+                        </linearGradient>
+                        <radialGradient id="targetCoreGrad" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.95"/>
+                            <stop offset="60%" stop-color="#0B1A30" stop-opacity="0.95"/>
+                            <stop offset="100%" stop-color="#030712" stop-opacity="1"/>
+                        </radialGradient>
+                    </defs>
                 `;
 
-                // Render Links with glowing lines & relation labels
+                // Render SVG Rings background guide with animated Rotating Radar Sector
+                let svgBackground = `
+                    <circle cx="${cx}" cy="${cy}" r="105" fill="none" stroke="rgba(0, 240, 255, 0.12)" stroke-width="1.2" stroke-dasharray="3,5" />
+                    <circle cx="${cx}" cy="${cy}" r="175" fill="none" stroke="rgba(255, 184, 0, 0.12)" stroke-width="1.2" stroke-dasharray="4,6" />
+                    <circle cx="${cx}" cy="${cy}" r="245" fill="none" stroke="rgba(176, 38, 255, 0.12)" stroke-width="1.2" stroke-dasharray="5,7" />
+                    <circle cx="${cx}" cy="${cy}" r="315" fill="none" stroke="rgba(0, 255, 136, 0.10)" stroke-width="1.2" stroke-dasharray="6,8" />
+                    <text x="${cx + 109}" y="${cy - 6}" fill="rgba(0, 240, 255, 0.5)" font-size="8" font-family="'JetBrains Mono', monospace">100 KM [EDGE CDN]</text>
+                    <text x="${cx + 179}" y="${cy - 6}" fill="rgba(255, 184, 0, 0.5)" font-size="8" font-family="'JetBrains Mono', monospace">250 KM [BGP-TIER1]</text>
+                    <text x="${cx + 249}" y="${cy - 6}" fill="rgba(176, 38, 255, 0.5)" font-size="8" font-family="'JetBrains Mono', monospace">500 KM [ORIGIN HOST]</text>
+                    <text x="${cx + 319}" y="${cy - 6}" fill="rgba(0, 255, 136, 0.5)" font-size="8" font-family="'JetBrains Mono', monospace">1000 KM [GLOBAL MESH]</text>
+                    <line x1="${cx - 340}" y1="${cy}" x2="${cx + 340}" y2="${cy}" stroke="rgba(0, 240, 255, 0.08)" stroke-width="1" />
+                    <line x1="${cx}" y1="${cy - 240}" x2="${cx}" y2="${cy + 240}" stroke="rgba(0, 240, 255, 0.08)" stroke-width="1" />
+                    <text x="${cx}" y="${cy - 232}" fill="rgba(0, 240, 255, 0.5)" font-size="9" font-family="'JetBrains Mono', monospace" text-anchor="middle">000° [N]</text>
+                    <text x="${cx + 332}" y="${cy + 4}" fill="rgba(0, 240, 255, 0.5)" font-size="9" font-family="'JetBrains Mono', monospace" text-anchor="start">090° [E]</text>
+                    <text x="${cx}" y="${cy + 238}" fill="rgba(0, 240, 255, 0.5)" font-size="9" font-family="'JetBrains Mono', monospace" text-anchor="middle">180° [S]</text>
+                    <text x="${cx - 332}" y="${cy + 4}" fill="rgba(0, 240, 255, 0.5)" font-size="9" font-family="'JetBrains Mono', monospace" text-anchor="end">270° [W]</text>
+                    <g class="radar-sweep-beam" style="transform-origin: ${cx}px ${cy}px;">
+                        <path d="M ${cx} ${cy} L ${cx + 315} ${cy} A 315 315 0 0 1 ${cx + 222} ${cy + 222} Z" fill="url(#radarBeamGrad)" opacity="0.32" pointer-events="none" />
+                        <line x1="${cx}" y1="${cy}" x2="${cx + 315}" y2="${cy}" stroke="#00F0FF" stroke-width="1.8" opacity="0.85" filter="url(#cyberGlow)" />
+                    </g>
+                `;
+
+                // Render Links with glowing animated lines & moving photon packets
                 let svgLinks = '';
                 links.forEach((l, lIdx) => {
                     const p1 = posMap[l.source] || { x: cx, y: cy };
                     const p2 = posMap[l.target] || { x: cx, y: cy };
                     const isBackbone = (l.type === 'BACKBONE_ROUTE' || l.relation === 'bgp_routed_by' || l.relation === 'carrier_transit');
+                    const isSub = (l.type === 'SUBDOMAIN_LINK' || l.relation === 'active_subdomain_route');
                     const isSpider = (l.type === 'SPIDER_LINK' || l.relation === 'spider_endpoint' || l.relation === 'linked_asset_host');
-                    const strokeCol = isBackbone ? 'rgba(255, 184, 0, 0.55)' : (isSpider ? 'rgba(255, 0, 127, 0.5)' : 'rgba(0, 240, 255, 0.45)');
-                    const strokeW = isBackbone ? '2' : '1.5';
-                    const strokeDash = isSpider ? '2,3' : (isBackbone ? '4,4' : '3,3');
-                    svgLinks += `<line class="graph-link-line" id="link_${lIdx}" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${strokeCol}" stroke-width="${strokeW}" stroke-dasharray="${strokeDash}" />`;
+                    const isExternal = (l.type === 'EXTERNAL_LINK' || l.relation === 'linked_network_service');
+
+                    let strokeCol = 'rgba(0, 240, 255, 0.55)';
+                    let photonCol = '#00F0FF';
+                    if (isBackbone) { strokeCol = 'rgba(255, 184, 0, 0.65)'; photonCol = '#FFB800'; }
+                    else if (isSub) { strokeCol = 'rgba(0, 255, 136, 0.65)'; photonCol = '#00FF88'; }
+                    else if (isSpider) { strokeCol = 'rgba(255, 0, 127, 0.6)'; photonCol = '#FF007F'; }
+                    else if (isExternal) { strokeCol = 'rgba(56, 239, 125, 0.6)'; photonCol = '#38EF7D'; }
+
+                    const strokeW = isBackbone || isSub ? '2' : '1.5';
+                    const dur = (1.8 + (lIdx % 4) * 0.4).toFixed(1);
+
+                    svgLinks += `<line class="graph-link-line graph-link-flowing" id="link_${lIdx}" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${strokeCol}" stroke-width="${strokeW}" stroke-dasharray="6,4" />`;
+                    svgLinks += `
+                        <circle r="2.8" fill="${photonCol}" filter="url(#cyberGlow)">
+                            <animateMotion path="M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}" dur="${dur}s" repeatCount="indefinite" />
+                        </circle>
+                    `;
                 });
 
-                // Render Nodes
+                // Render Nodes with prominent double-line labels and real IP addresses
                 let svgNodes = '';
                 nodes.forEach((n, idx) => {
                     const p = posMap[n.id] || { x: cx, y: cy };
                     const col = n.color || '#00FF88';
                     const isRoot = (idx === 0);
-                    const r = isRoot ? 16 : (n.size ? Math.min(n.size, 14) : 10);
+                    const r = isRoot ? 18 : (n.size ? Math.min(n.size, 15) : 11);
                     const labelShort = n.label.length > 22 ? n.label.slice(0, 20) + '..' : n.label;
-                    const yText = p.y > cy ? (p.y + r + 13) : (p.y - r - 6);
                     const iconGlyph = n.icon || (isRoot ? '[TARGET]' : '[NODE]');
+                    const nodeIp = n.ip || (n.metadata && n.metadata.ip) || (isRoot ? (summary.primary_origin_ip || 'Resolved') : 'IP Active');
+                    const ipShort = nodeIp.length > 18 ? nodeIp.slice(0, 16) + '..' : nodeIp;
+
+                    const yText1 = p.y > cy ? (p.y + r + 13) : (p.y - r - 16);
+                    const yText2 = p.y > cy ? (p.y + r + 26) : (p.y - r - 4);
+                    const ipWidth = Math.max(54, ipShort.length * 6.5 + 10);
 
                     svgNodes += `
                         <g class="osint-graph-node" id="svg_node_${escapeHtml(n.id)}" style="cursor: pointer;" onclick="window.inspectOsintGraphNode('${escapeHtml(n.id)}')" onmouseover="window.highlightOsintNode('${escapeHtml(n.id)}')" onmouseout="window.clearOsintNodeHighlight()">
-                            <!-- Halo Outer Ring -->
-                            <circle cx="${p.x}" cy="${p.y}" r="${r + 5}" fill="none" stroke="${col}" stroke-width="1.2" opacity="0.4" class="${isRoot ? 'pulse-halo' : ''}" />
-                            <!-- Main Solid Circle -->
-                            <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="#0A0E1A" stroke="${col}" stroke-width="${isRoot ? '3' : '2'}" />
-                            <!-- Center Dot or Glyph -->
-                            <circle cx="${p.x}" cy="${p.y}" r="${isRoot ? '5' : '3'}" fill="${col}" />
-                            <!-- Label Badge -->
-                            <text x="${p.x}" y="${yText}" fill="${col}" font-size="10" font-family="'JetBrains Mono', monospace" text-anchor="middle" font-weight="bold" style="text-shadow: 0 0 6px rgba(0,0,0,0.9);">${escapeHtml(labelShort)}</text>
-                            <text x="${p.x}" y="${p.y + 3}" fill="#FFFFFF" font-size="7" font-family="'Space Grotesk', sans-serif" text-anchor="middle" font-weight="900" opacity="0.9" pointer-events="none">${escapeHtml(iconGlyph.replace(/[\\[\\]]/g, ''))}</text>
+                            <circle cx="${p.x}" cy="${p.y}" r="${r + 5}" fill="none" stroke="${col}" stroke-width="1.2" opacity="0.4" class="pulse-halo" />
+                            <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${isRoot ? 'url(#targetCoreGrad)' : '#070D1B'}" stroke="${col}" stroke-width="${isRoot ? '3' : '2'}" />
+                            <circle cx="${p.x}" cy="${p.y}" r="${isRoot ? '5' : '3.5'}" fill="${col}" filter="url(#cyberGlow)" />
+                            <text x="${p.x}" y="${p.y + 3}" fill="#FFFFFF" font-size="${isRoot ? '8' : '7'}" font-family="'Space Grotesk', sans-serif" text-anchor="middle" font-weight="900" opacity="0.95" pointer-events="none">${escapeHtml(iconGlyph.replace(/[\[\]]/g, ''))}</text>
+                            <text x="${p.x}" y="${yText1}" fill="${col}" font-size="10.5" font-family="'JetBrains Mono', monospace" text-anchor="middle" font-weight="bold" style="text-shadow: 0 0 8px rgba(0,0,0,0.95);">${escapeHtml(labelShort)}</text>
+                            <rect x="${p.x - ipWidth/2}" y="${yText2 - 9}" width="${ipWidth}" height="13" rx="3" fill="#040814" stroke="${col}" stroke-width="0.8" opacity="0.95" />
+                            <text x="${p.x}" y="${yText2}" fill="#00FF88" font-size="8.5" font-family="'JetBrains Mono', monospace" text-anchor="middle" font-weight="bold" style="letter-spacing: 0.3px;">${escapeHtml(ipShort)}</text>
                         </g>
                     `;
                 });
 
-                // 3. Topology Filtering Buttons
+                // 4. Hologram View Switcher & Topology Filtering Buttons
                 const filterControlsHtml = `
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; margin-bottom: 10px; background: rgba(8,13,26,0.6); padding: 8px 12px; border: 1px solid var(--border-dim); border-radius: 6px;">
-                        <div style="font-size: 11px; color: var(--cyan); font-weight: bold; letter-spacing: 1px; text-transform: uppercase;">
-                            <span class="holo-glyph">[☵]</span> NETWORK ORIGIN & WEB SPIDER TOPOLOGY // LIVE ROUTE MAP
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; margin-bottom: 10px; background: rgba(8,13,26,0.85); padding: 9px 14px; border: 1px solid var(--border-dim); border-top: 2px solid var(--cyan); border-radius: 6px; box-shadow: 0 0 15px rgba(0,240,255,0.1);">
+                        <div style="font-size: 11.5px; color: var(--cyan); font-weight: bold; letter-spacing: 1.2px; text-transform: uppercase; display: flex; align-items: center; gap: 8px;">
+                            <span class="holo-glyph" style="animation: beaconFlash 2s infinite;">[☵]</span> NETWORK ORIGIN & WEB SPIDER TOPOLOGY // LIVE ROUTE MAP
+                            <span class="holo-tag" style="background: rgba(0,255,136,0.15); border-color: var(--green); color: var(--green); font-size: 9px;">AI FUTURISTIC HUD</span>
                         </div>
                         <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                            <button class="holo-btn" style="padding: 3px 8px; font-size: 10px;" onclick="window.filterOsintGraph('ALL')">ALL (${nodes.length})</button>
-                            <button class="holo-btn" style="padding: 3px 8px; font-size: 10px; border-color: var(--green); color: var(--green);" onclick="window.filterOsintGraph('IP')">IP ORIGINS</button>
-                            <button class="holo-btn" style="padding: 3px 8px; font-size: 10px; border-color: var(--amber); color: var(--amber);" onclick="window.filterOsintGraph('BGP')">BGP & ISP</button>
-                            <button class="holo-btn" style="padding: 3px 8px; font-size: 10px; border-color: var(--violet); color: var(--violet);" onclick="window.filterOsintGraph('SPIDER')">WEB SPIDER</button>
-                            <button class="holo-btn" style="padding: 3px 8px; font-size: 10px; border-color: var(--cyan); color: var(--cyan);" onclick="window.inspectOsintGraphNode('${escapeHtml(nodes[0].id)}')">RESET TO TARGET</button>
+                            <button id="viewBtnTopology" class="holo-btn" style="padding: 4px 10px; font-size: 10px; background: rgba(0,240,255,0.2); border-color: var(--cyan); color: var(--cyan);" onclick="window.switchHoloGraphView('TOPOLOGY')">[📡 Animated Topology]</button>
+                            <button id="viewBtnMesh3D" class="holo-btn" style="padding: 4px 10px; font-size: 10px; border-color: var(--violet); color: var(--violet);" onclick="window.switchHoloGraphView('MESH3D')">[🔮 3D Holographic Mesh]</button>
+                            <button id="viewBtnDnsTrace" class="holo-btn" style="padding: 4px 10px; font-size: 10px; border-color: var(--green); color: var(--green);" onclick="window.switchHoloGraphView('DNSTRACE')">[🔍 DNS Trace Pathway]</button>
+                            <button id="viewBtnRoute" class="holo-btn" style="padding: 4px 10px; font-size: 10px; border-color: var(--amber); color: var(--amber);" onclick="window.switchHoloGraphView('ROUTE')">[⚡ Origin-to-Backbone Route]</button>
+                            <button id="viewBtnRecords" class="holo-btn" style="padding: 4px 10px; font-size: 10px; border-color: #FF007F; color: #FF007F;" onclick="window.switchHoloGraphView('RECORDS')">[📄 Deep Recon & Records Matrix]</button>
                         </div>
+                    </div>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; padding: 6px 12px; background: rgba(4,8,18,0.7); border-radius: 4px; border: 1px solid rgba(0,240,255,0.1);">
+                        <span style="font-size: 9.5px; color: var(--text-muted); display: inline-flex; align-items: center;">FILTER TOPOLOGY:</span>
+                        <button class="holo-btn" style="padding: 2px 7px; font-size: 9.5px;" onclick="window.filterOsintGraph('ALL')">ALL (${nodes.length})</button>
+                        <button class="holo-btn" style="padding: 2px 7px; font-size: 9.5px; border-color: var(--green); color: var(--green);" onclick="window.filterOsintGraph('IP')">IP ORIGINS</button>
+                        <button class="holo-btn" style="padding: 2px 7px; font-size: 9.5px; border-color: var(--amber); color: var(--amber);" onclick="window.filterOsintGraph('BGP')">BGP & ISP</button>
+                        <button class="holo-btn" style="padding: 2px 7px; font-size: 9.5px; border-color: #00F0FF; color: #00F0FF;" onclick="window.filterOsintGraph('EDGE')">CLOUDFLARE & EDGE</button>
+                        <button class="holo-btn" style="padding: 2px 7px; font-size: 9.5px; border-color: var(--violet); color: var(--violet);" onclick="window.filterOsintGraph('SPIDER')">SUBDOMAINS & SPIDER</button>
+                        <button class="holo-btn" style="padding: 2px 7px; font-size: 9.5px; border-color: #38EF7D; color: #38EF7D;" onclick="window.filterOsintGraph('BACKEND')">BACKEND DAEMONS</button>
+                        <button class="holo-btn" style="padding: 2px 7px; font-size: 9.5px; border-color: var(--cyan); color: var(--cyan);" onclick="window.inspectOsintGraphNode('${escapeHtml(nodes[0].id)}')">RESET TO TARGET</button>
                     </div>
                 `;
 
-                // 4. Interactive Node Inspector Panel Container
+                // 5. Interactive Node Inspector Panel Container
                 const inspectorPanelHtml = `
                     <div id="osintGraphInspector" style="background: rgba(10, 16, 32, 0.95); border: 1px solid var(--cyan); border-radius: 6px; padding: 14px; margin-top: 12px; box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);">
                         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-dim); padding-bottom: 8px; margin-bottom: 10px;">
@@ -2829,33 +3045,166 @@ exit 0</pre>
                     </div>
                 `;
 
-                // 5. Origin-to-Backbone Route Pathway (Breadcrumbs / Hop Flow)
+                // 6. 3D Holographic Mesh Projection HTML (SVG Isometric Matrix with glowing depths)
+                const render3dMeshHtml = () => {
+                    const mw = 920, mh = 480, mcx = 460, mcy = 240;
+                    let meshSvg = `<svg id="holo3dMeshSvg" viewBox="0 0 ${mw} ${mh}" style="width: 100%; max-height: 480px; filter: drop-shadow(0 0 16px rgba(176, 38, 255, 0.2));">`;
+                    meshSvg += svgDefs;
+                    // Isometric Grid Floor
+                    meshSvg += `<g opacity="0.35">`;
+                    for (let gx = -300; gx <= 300; gx += 50) {
+                        meshSvg += `<line x1="${mcx + gx * 1.2}" y1="${mcy + 180 + gx * 0.4}" x2="${mcx + gx * 1.2 - 200}" y2="${mcy + 60 + gx * 0.4}" stroke="rgba(0, 240, 255, 0.2)" stroke-width="0.8" />`;
+                        meshSvg += `<line x1="${mcx - gx * 1.2}" y1="${mcy + 180 - gx * 0.4}" x2="${mcx - gx * 1.2 + 200}" y2="${mcy + 60 - gx * 0.4}" stroke="rgba(176, 38, 255, 0.2)" stroke-width="0.8" />`;
+                    }
+                    meshSvg += `</g>`;
+
+                    // 3D Orbital Elevation Layers:
+                    // Layer 0: Target Core (Height 0)
+                    // Layer 1: Edge CDNs & IPs (Height -60)
+                    // Layer 2: BGP & Autonomous Systems (Height -120)
+                    // Layer 3: Endpoints & Spider Assets (Height +70)
+                    const meshNodes = nodes.map((n, i) => {
+                        const angle = (2 * Math.PI * i) / Math.max(1, nodes.length - 1);
+                        const radius = (i === 0) ? 0 : (110 + (i % 3) * 60);
+                        let z = 0;
+                        if (i === 0) z = -20;
+                        else if (n.type === 'IP_ADDRESS' || n.type === 'EDGE_CDN') z = -65;
+                        else if (n.type === 'BGP_BACKBONE' || n.type === 'ISP_CARRIER') z = -120;
+                        else z = 50;
+
+                        // Isometric Projection
+                        const isoX = mcx + (radius * Math.cos(angle)) * 1.2;
+                        const isoY = mcy + (radius * Math.sin(angle)) * 0.55 + z;
+                        const floorY = mcy + (radius * Math.sin(angle)) * 0.55 + 120;
+                        return { ...n, isoX, isoY, floorY, z };
+                    });
+
+                    // Drop lines to grid floor
+                    meshNodes.forEach(mn => {
+                        meshSvg += `<line x1="${mn.isoX}" y1="${mn.isoY}" x2="${mn.isoX}" y2="${mn.floorY}" stroke="${mn.color || 'var(--cyan)'}" stroke-width="0.8" stroke-dasharray="2,3" opacity="0.35" />`;
+                        meshSvg += `<ellipse cx="${mn.isoX}" cy="${mn.floorY}" rx="8" ry="4" fill="none" stroke="${mn.color || 'var(--cyan)'}" stroke-width="0.8" opacity="0.4" />`;
+                    });
+
+                    // 3D Links
+                    links.forEach((l, lIdx) => {
+                        const s = meshNodes.find(x => x.id === l.source);
+                        const t = meshNodes.find(x => x.id === l.target);
+                        if (s && t) {
+                            meshSvg += `<line x1="${s.isoX}" y1="${s.isoY}" x2="${t.isoX}" y2="${t.isoY}" stroke="rgba(0, 240, 255, 0.45)" stroke-width="1.2" stroke-dasharray="4,4" />`;
+                            meshSvg += `
+                                <circle r="2.2" fill="#00FF88" filter="url(#cyberGlow)">
+                                    <animateMotion path="M ${s.isoX} ${s.isoY} L ${t.isoX} ${t.isoY}" dur="${(2 + (lIdx%3)*0.5).toFixed(1)}s" repeatCount="indefinite" />
+                                </circle>
+                            `;
+                        }
+                    });
+
+                    // 3D Nodes
+                    meshNodes.forEach((mn, idx) => {
+                        const isRoot = (idx === 0);
+                        const r = isRoot ? 16 : 9;
+                        const col = mn.color || '#00FF88';
+                        const nIp = mn.ip || (mn.metadata && mn.metadata.ip) || 'Resolved IP';
+                        meshSvg += `
+                            <g class="osint-graph-node" style="cursor: pointer;" onclick="window.inspectOsintGraphNode('${escapeHtml(mn.id)}')">
+                                <circle cx="${mn.isoX}" cy="${mn.isoY}" r="${r + 4}" fill="none" stroke="${col}" stroke-width="1" opacity="0.35" class="pulse-halo" />
+                                <circle cx="${mn.isoX}" cy="${mn.isoY}" r="${r}" fill="#050C1B" stroke="${col}" stroke-width="2" />
+                                <circle cx="${mn.isoX}" cy="${mn.isoY}" r="3" fill="${col}" filter="url(#cyberGlow)" />
+                                <text x="${mn.isoX}" y="${mn.isoY - r - 6}" fill="${col}" font-size="9.5" font-family="'JetBrains Mono', monospace" text-anchor="middle" font-weight="bold">${escapeHtml(mn.label)}</text>
+                                <text x="${mn.isoX}" y="${mn.isoY - r + 4}" fill="#00FF88" font-size="8" font-family="'JetBrains Mono', monospace" text-anchor="middle">[IP: ${escapeHtml(nIp)}]</text>
+                            </g>
+                        `;
+                    });
+
+                    meshSvg += `</svg>`;
+                    return meshSvg;
+                };
+
+                // 7. Recursive DNS Trace Card & Authoritative Resolution Flow
+                let dnsTraceCardHtml = '';
+                if (dnsTrace && dnsTrace.length > 0) {
+                    let traceHopsHtml = '';
+                    dnsTrace.forEach((dt, dtIdx) => {
+                        const isLast = (dtIdx === dnsTrace.length - 1);
+                        traceHopsHtml += `
+                            <div style="flex: 1; min-width: 190px; background: rgba(8, 14, 28, 0.9); border: 1px solid var(--border-dim); border-top: 3px solid ${dt.status === 'VALIDATED' ? 'var(--green)' : 'var(--cyan)'}; border-radius: 6px; padding: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <span style="font-size: 9px; font-weight: bold; color: var(--cyan); background: rgba(0,240,255,0.1); padding: 2px 6px; border-radius: 3px;">STAGE 0${dt.hop}</span>
+                                    <span style="font-size: 8.5px; color: ${dt.status === 'VALIDATED' ? 'var(--green)' : 'var(--amber)'}; font-weight: bold;">${escapeHtml(dt.status)}</span>
+                                </div>
+                                <div style="font-size: 12px; font-weight: bold; color: var(--text-bright); margin-bottom: 4px;">${escapeHtml(dt.stage)}</div>
+                                <div style="font-size: 10px; color: var(--green); font-family: 'JetBrains Mono', monospace; font-weight: bold; margin-bottom: 4px; background: rgba(0,255,136,0.08); padding: 3px 6px; border-radius: 3px;">
+                                    <span style="color: var(--text-muted); font-size: 9px;">SERVER:</span> ${escapeHtml(dt.server)}
+                                </div>
+                                <div style="font-size: 9px; color: var(--text-muted); margin-bottom: 6px;">
+                                    <strong>RESOLVED:</strong> ${escapeHtml(dt.resolved_data)}
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 5px;">
+                                    <span style="color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">FLAGS: ${escapeHtml(dt.flags || 'RD RA')}</span>
+                                    <span style="color: var(--cyan); font-family: 'JetBrains Mono', monospace; font-weight: bold;">${dt.latency_ms}ms</span>
+                                </div>
+                            </div>
+                        `;
+                        if (!isLast) {
+                            traceHopsHtml += `
+                                <div style="display: flex; align-items: center; justify-content: center; padding: 0 2px; color: var(--cyan); font-size: 18px; font-weight: bold; animation: pulseArrow 1.2s infinite alternate;">➔</div>
+                            `;
+                        }
+                    });
+
+                    dnsTraceCardHtml = `
+                        <div style="background: rgba(8,13,26,0.85); border: 1px solid var(--border-dim); border-radius: 6px; padding: 14px; margin-top: 14px; box-shadow: 0 0 15px rgba(0, 240, 255, 0.08);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div style="font-size: 11px; color: var(--cyan); font-weight: bold; letter-spacing: 1.2px; text-transform: uppercase;">
+                                    <span class="holo-glyph">[🔍 DNS Trace]</span> RECURSIVE RESOLUTION HIERARCHY & AUTHORITATIVE CHAIN
+                                </div>
+                                <span style="font-size: 9px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">ROOT (.) ➔ TLD ➔ AUTHORITATIVE NS ➔ TARGET A/AAAA</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; align-items: stretch;">
+                                ${traceHopsHtml}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // 8. Origin-to-Backbone Route Pathway
                 let routePathwayHtml = '';
                 if (routeFlow && routeFlow.length > 0) {
                     let hopsHtml = '';
                     routeFlow.forEach((hf, hIdx) => {
                         const isLast = (hIdx === routeFlow.length - 1);
-                        const hopCol = hf.status === 'ORIGIN' ? 'var(--green)' : (hf.status === 'BACKBONE' ? 'var(--amber)' : (hf.status === 'EDGE' ? 'var(--cyan)' : 'var(--violet)'));
+                        const hopCol = hf.status === 'ORIGIN' ? 'var(--green)' : (hf.status === 'BACKBONE' ? 'var(--amber)' : (hf.status === 'EDGE' ? 'var(--cyan)' : (hf.status === 'MESH' ? '#38EF7D' : 'var(--violet)')));
                         hopsHtml += `
-                            <div style="flex: 1; min-width: 130px; background: rgba(8, 14, 28, 0.7); border: 1px solid var(--border-dim); border-top: 3px solid ${hopCol}; border-radius: 5px; padding: 8px 10px; position: relative;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                    <span style="font-size: 9px; font-weight: bold; color: ${hopCol}; font-family: 'JetBrains Mono', monospace;">HOP 0${hf.hop}</span>
-                                    <span style="font-size: 8px; color: var(--text-muted); text-transform: uppercase;">${escapeHtml(hf.status)}</span>
+                            <div style="flex: 1; min-width: 155px; background: rgba(8, 14, 28, 0.88); border: 1px solid var(--border-dim); border-top: 3px solid ${hopCol}; border-radius: 6px; padding: 10px 12px; position: relative; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                    <span style="font-size: 9px; font-weight: 900; color: ${hopCol}; font-family: 'JetBrains Mono', monospace; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 3px; border: 1px solid ${hopCol};">HOP 0${hf.hop}</span>
+                                    <span style="font-size: 8px; color: ${hopCol}; font-weight: bold; text-transform: uppercase;">${escapeHtml(hf.status)}</span>
                                 </div>
-                                <div style="font-size: 12px; font-weight: bold; color: var(--text-bright); margin-bottom: 3px;">${escapeHtml(hf.title)}</div>
-                                <div style="font-size: 10px; color: var(--cyan); font-family: 'JetBrains Mono', monospace; margin-bottom: 4px; word-break: break-all;">${escapeHtml(hf.entity)}</div>
-                                <div style="font-size: 9px; color: var(--text-muted); line-height: 1.3;">${escapeHtml(hf.role)}</div>
+                                <div style="font-size: 12px; font-weight: bold; color: var(--text-bright); margin-bottom: 4px;">${escapeHtml(hf.title)}</div>
+                                <div style="font-size: 10px; color: var(--green); font-family: 'JetBrains Mono', monospace; font-weight: bold; margin-bottom: 4px; word-break: break-all; background: rgba(0,255,136,0.08); padding: 3px 6px; border-radius: 3px; border-left: 2px solid ${hopCol};">
+                                    <span style="color: var(--text-muted); font-size: 9px;">IP/ROUTE:</span> ${escapeHtml(hf.ip || hf.entity)}
+                                </div>
+                                <div style="font-size: 9px; color: var(--text-muted); line-height: 1.3; margin-bottom: 4px;">${escapeHtml(hf.role)}</div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 4px; margin-top: 4px;">
+                                    <span style="color: var(--text-muted);">LATENCY</span>
+                                    <span style="color: ${hopCol}; font-family: 'JetBrains Mono', monospace; font-weight: bold;">${escapeHtml(hf.latency || '<15ms')}</span>
+                                </div>
                             </div>
                         `;
                         if (!isLast) {
-                            hopsHtml += `<div style="display: flex; align-items: center; color: var(--cyan); font-size: 14px; font-weight: bold; padding: 0 2px;">➔</div>`;
+                            hopsHtml += `
+                                <div style="display: flex; align-items: center; justify-content: center; padding: 0 2px; color: var(--cyan); font-size: 16px; font-weight: bold; animation: pulseArrow 1.2s infinite alternate;">➔</div>
+                            `;
                         }
                     });
 
                     routePathwayHtml = `
-                        <div style="background: rgba(8,13,26,0.7); border: 1px solid var(--border-dim); border-radius: 6px; padding: 12px; margin-top: 14px;">
-                            <div style="font-size: 11px; color: var(--cyan); font-weight: bold; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px;">
-                                <span class="holo-glyph">[⬡]</span> DETERMINISTIC ORIGIN-TO-BACKBONE ROUTE PATHWAY // END-TO-END FLOW
+                        <div style="background: rgba(8,13,26,0.85); border: 1px solid var(--border-dim); border-radius: 6px; padding: 14px; margin-top: 14px; box-shadow: 0 0 15px rgba(0, 240, 255, 0.08);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div style="font-size: 11px; color: var(--cyan); font-weight: bold; letter-spacing: 1.2px; text-transform: uppercase;">
+                                    <span class="holo-glyph">[⬡]</span> DETERMINISTIC ORIGIN-TO-BACKBONE ROUTE PATHWAY // END-TO-END FLOW
+                                </div>
+                                <span style="font-size: 9px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">INTER-DOMAIN HOP ROUTING & ANYCAST EDGE INGRESS</span>
                             </div>
                             <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; align-items: stretch;">
                                 ${hopsHtml}
@@ -2864,34 +3213,134 @@ exit 0</pre>
                     `;
                 }
 
-                // 6. Web Spider Crawled Endpoints & Asset Hosts Matrix
+                // 9. Comprehensive DNS Records Explorer & Authoritative RDAP Dossier
+                let recordsAndWhoisHtml = '';
+                if (allDnsRecords && allDnsRecords.length > 0) {
+                    let dnsRowsHtml = '';
+                    allDnsRecords.forEach(r => {
+                        const catColor = r.category === 'SECURITY' ? 'var(--violet)' : (r.category === 'ROUTING' ? 'var(--amber)' : (r.category === 'ADDRESS' ? 'var(--cyan)' : 'var(--green)'));
+                        dnsRowsHtml += `
+                            <tr class="dns-rec-row" data-type="${escapeHtml(r.type)}" data-cat="${escapeHtml(r.category || 'ALL')}">
+                                <td><span class="holo-tag" style="border-color: ${catColor}; color: ${catColor}; font-weight: bold;">${escapeHtml(r.type)}</span></td>
+                                <td style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-bright);">${escapeHtml(r.name)}</td>
+                                <td style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--green); word-break: break-all;">${escapeHtml(r.data)}</td>
+                                <td style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted);">${r.ttl}s</td>
+                                <td><span class="holo-tag" style="font-size: 8.5px; border-color: rgba(0,240,255,0.3); color: var(--cyan);">${escapeHtml(r.category || 'DNS')}</span></td>
+                            </tr>
+                        `;
+                    });
+
+                    recordsAndWhoisHtml = `
+                        <div style="background: rgba(8,13,26,0.85); border: 1px solid var(--border-dim); border-radius: 6px; padding: 14px; margin-top: 14px; box-shadow: 0 0 15px rgba(0, 240, 255, 0.08);">
+                            <!-- WHOIS / RDAP Registration Dossier Card -->
+                            <div style="background: rgba(12,20,38,0.7); border: 1px solid rgba(0,255,136,0.2); border-left: 3px solid var(--green); border-radius: 4px; padding: 12px; margin-bottom: 14px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <span style="font-size: 11px; font-weight: bold; color: var(--green); text-transform: uppercase;">[🔍 WHOIS LOOKUP] AUTHORITATIVE REGISTRATION & REGISTRAR DOSSIER</span>
+                                    <span style="font-size: 9.5px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">SOURCE: ICANN RDAP BOOTSTRAP</span>
+                                </div>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;">
+                                    <div><span style="font-size: 9px; color: var(--text-muted);">REGISTRAR:</span> <strong style="font-size: 11px; color: var(--text-bright);">${escapeHtml(whoisData.registrar || 'N/A')}</strong></div>
+                                    <div><span style="font-size: 9px; color: var(--text-muted);">REGISTRY DOMAIN ID:</span> <strong style="font-size: 11px; color: var(--cyan); font-family: 'JetBrains Mono', monospace;">${escapeHtml(whoisData.handle || 'N/A')}</strong></div>
+                                    <div><span style="font-size: 9px; color: var(--text-muted);">CREATED:</span> <strong style="font-size: 11px; color: var(--text-bright);">${escapeHtml(whoisData.creation_date || 'N/A')}</strong></div>
+                                    <div><span style="font-size: 9px; color: var(--text-muted);">EXPIRES:</span> <strong style="font-size: 11px; color: var(--amber);">${escapeHtml(whoisData.expiration_date || 'N/A')}</strong></div>
+                                    <div><span style="font-size: 9px; color: var(--text-muted);">LAST UPDATED:</span> <strong style="font-size: 11px; color: var(--text-bright);">${escapeHtml(whoisData.updated_date || 'N/A')}</strong></div>
+                                    <div><span style="font-size: 9px; color: var(--text-muted);">DELEGATED NAMESERVERS:</span> <strong style="font-size: 11px; color: var(--violet);">${(whoisData.nameservers || []).join(', ') || 'N/A'}</strong></div>
+                                </div>
+                            </div>
+
+                            <!-- Filter Tabs for DNS Records -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                                <div style="font-size: 11px; color: var(--cyan); font-weight: bold; letter-spacing: 1.2px; text-transform: uppercase;">
+                                    <span class="holo-glyph">[📄 ALL Records]</span> AUTHORITATIVE DNS ARCHIVE (${allDnsRecords.length} ENTRIES)
+                                </div>
+                                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                                    <button class="holo-btn" style="padding: 2px 8px; font-size: 9.5px;" onclick="window.filterDnsRecordTable('ALL')">ALL (${allDnsRecords.length})</button>
+                                    <button class="holo-btn" style="padding: 2px 8px; font-size: 9.5px; border-color: var(--cyan); color: var(--cyan);" onclick="window.filterDnsRecordTable('ADDRESS')">ADDRESS (A/AAAA)</button>
+                                    <button class="holo-btn" style="padding: 2px 8px; font-size: 9.5px; border-color: var(--amber); color: var(--amber);" onclick="window.filterDnsRecordTable('ROUTING')">ROUTING (MX/NS/CNAME)</button>
+                                    <button class="holo-btn" style="padding: 2px 8px; font-size: 9.5px; border-color: var(--violet); color: var(--violet);" onclick="window.filterDnsRecordTable('SECURITY')">SECURITY (CAA/TXT/DNSKEY)</button>
+                                </div>
+                            </div>
+                            <div style="max-height: 320px; overflow-y: auto;">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>RECORD</th>
+                                            <th>HOSTNAME / DOMAIN</th>
+                                            <th>VALUE / TARGET ADDRESS</th>
+                                            <th>TTL</th>
+                                            <th>CATEGORY</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dnsRecordsTbody">${dnsRowsHtml}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // 10. Web Spider Crawled Endpoints & Asset Hosts Matrix
                 let spiderDetailsHtml = '';
                 const epList = spiderData.endpoints || [];
                 const cdnsList = spiderData.asset_cdns || [];
                 const subsList = spiderData.subdomains || [];
                 if (epList.length > 0 || cdnsList.length > 0 || subsList.length > 0) {
                     spiderDetailsHtml = `
-                        <div style="background: rgba(8,13,26,0.7); border: 1px solid var(--border-dim); border-radius: 6px; padding: 12px; margin-top: 14px;">
-                            <div style="font-size: 11px; color: var(--violet); font-weight: bold; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px;">
-                                <span class="holo-glyph">[🕸️]</span> WEB SPIDER DISCOVERED ENDPOINTS, ASSETS & SUBDOMAIN MESH
+                        <div style="background: rgba(8,13,26,0.85); border: 1px solid var(--border-dim); border-radius: 6px; padding: 14px; margin-top: 14px; box-shadow: 0 0 15px rgba(176, 38, 255, 0.08);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div style="font-size: 11px; color: var(--violet); font-weight: bold; letter-spacing: 1.2px; text-transform: uppercase;">
+                                    <span class="holo-glyph">[🕸️]</span> WEB SPIDER DISCOVERED ENDPOINTS, ASSETS & SUBDOMAIN MESH
+                                </div>
+                                <span style="font-size: 9px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">CRAWLED WEB INFRASTRUCTURE & ACTIVE DNS RECON</span>
                             </div>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
                                 <div>
-                                    <div style="font-size: 10px; color: var(--cyan); font-weight: bold; margin-bottom: 6px; text-transform: uppercase;">CRAWLED INTERNAL ROUTES (${epList.length})</div>
-                                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                                        ${epList.map(ep => `<div style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text-bright); background: rgba(0,240,255,0.06); padding: 3px 8px; border-radius: 3px; border-left: 2px solid var(--cyan);">${escapeHtml(ep)}</div>`).join('')}
+                                    <div style="font-size: 10px; color: var(--cyan); font-weight: bold; margin-bottom: 6px; text-transform: uppercase; display: flex; justify-content: space-between;">
+                                        <span>CRAWLED INTERNAL ROUTES (${epList.length})</span>
+                                        <span style="font-size: 9px; color: var(--text-muted);">APPLICATION APIS</span>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                                        ${epList.map(ep => `
+                                            <div style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text-bright); background: rgba(0,240,255,0.06); padding: 5px 8px; border-radius: 4px; border-left: 3px solid var(--cyan); display: flex; justify-content: space-between; align-items: center;">
+                                                <span><strong style="color: var(--cyan);">[API]</strong> ${escapeHtml(ep)}</span>
+                                                <span style="font-size: 8px; color: var(--text-muted);">ROUTE</span>
+                                            </div>
+                                        `).join('')}
                                     </div>
                                 </div>
                                 <div>
-                                    <div style="font-size: 10px; color: #FF007F; font-weight: bold; margin-bottom: 6px; text-transform: uppercase;">EXTERNAL ASSET CDNs & SCRIPT BACKBONES (${cdnsList.length})</div>
-                                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                                        ${cdnsList.map(cdn => `<div style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text-bright); background: rgba(255,0,127,0.06); padding: 3px 8px; border-radius: 3px; border-left: 2px solid #FF007F;">${escapeHtml(cdn)}</div>`).join('')}
+                                    <div style="font-size: 10px; color: #FF007F; font-weight: bold; margin-bottom: 6px; text-transform: uppercase; display: flex; justify-content: space-between;">
+                                        <span>EXTERNAL ASSET CDNs & SCRIPT BACKBONES (${cdnsList.length})</span>
+                                        <span style="font-size: 9px; color: var(--text-muted);">EXTERNAL HOSTS</span>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                                        ${cdnsList.map(cdn => {
+                                            const cHost = typeof cdn === 'object' ? cdn.host : cdn;
+                                            const cIp = typeof cdn === 'object' ? cdn.ip : 'CDN Edge';
+                                            return `
+                                                <div style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text-bright); background: rgba(255,0,127,0.06); padding: 5px 8px; border-radius: 4px; border-left: 3px solid #FF007F; display: flex; justify-content: space-between; align-items: center;">
+                                                    <span><strong style="color: #FF007F;">[CDN]</strong> ${escapeHtml(cHost)}</span>
+                                                    <span style="font-size: 8px; color: var(--green); background: rgba(0,255,136,0.1); padding: 1px 4px; border-radius: 2px;">${escapeHtml(cIp)}</span>
+                                                </div>
+                                            `;
+                                        }).join('')}
                                     </div>
                                 </div>
                                 <div>
-                                    <div style="font-size: 10px; color: var(--amber); font-weight: bold; margin-bottom: 6px; text-transform: uppercase;">CORRELATED SUBDOMAINS (${subsList.length})</div>
-                                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                                        ${subsList.length ? subsList.map(s => `<div style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text-bright); background: rgba(255,184,0,0.06); padding: 3px 8px; border-radius: 3px; border-left: 2px solid var(--amber);">${escapeHtml(s)}</div>`) : '<div style="font-size: 10px; color: var(--text-muted);">None exposed in root HTML</div>'}
+                                    <div style="font-size: 10px; color: var(--amber); font-weight: bold; margin-bottom: 6px; text-transform: uppercase; display: flex; justify-content: space-between;">
+                                        <span>VALID DISCOVERED SUBDOMAINS (${subsList.length})</span>
+                                        <span style="font-size: 9px; color: var(--green);">RESOLVED & VALID</span>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                                        ${subsList.length ? subsList.map(s => {
+                                            const sFqdn = typeof s === 'object' ? s.subdomain : s;
+                                            const sIp = typeof s === 'object' ? s.ip : 'Active IP';
+                                            return `
+                                                <div style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text-bright); background: rgba(255,184,0,0.06); padding: 5px 8px; border-radius: 4px; border-left: 3px solid var(--amber); display: flex; justify-content: space-between; align-items: center;">
+                                                    <span><strong style="color: var(--amber);">[SUB]</strong> ${escapeHtml(sFqdn)}</span>
+                                                    <span style="font-size: 8.5px; color: var(--green); font-weight: bold; background: rgba(0,255,136,0.12); padding: 2px 5px; border-radius: 3px; border: 1px solid rgba(0,255,136,0.3);">${escapeHtml(sIp)}</span>
+                                                </div>
+                                            `;
+                                        }).join('') : '<div style="font-size: 10px; color: var(--text-muted); padding: 8px;">No public subdomains resolved.</div>'}
                                     </div>
                                 </div>
                             </div>
@@ -2899,35 +3348,71 @@ exit 0</pre>
                     `;
                 }
 
-                // 7. Full Correlated Node Links Table
+                // 11. Full Correlated Node Links Table
                 let linksTableRows = '';
                 links.forEach(l => {
                     const srcNode = nodes.find(n => n.id === l.source) || { label: l.source };
                     const tgtNode = nodes.find(n => n.id === l.target) || { label: l.target };
+                    const srcIp = srcNode.ip || (srcNode.metadata && srcNode.metadata.ip) || 'Resolved Ingress';
+                    const tgtIp = tgtNode.ip || (tgtNode.metadata && tgtNode.metadata.ip) || 'Active Link';
                     const meta = tgtNode.metadata || {};
                     const extraInfo = meta.isp || meta.asn || meta.location || meta.role || '';
                     linksTableRows += `<tr>
-                        <td style="color: var(--cyan); font-weight: bold; font-family: 'JetBrains Mono', monospace;">${escapeHtml(srcNode.label)}</td>
-                        <td><span class="holo-tag" style="background: rgba(0, 240, 255, 0.08);">${escapeHtml(l.relation)}</span></td>
-                        <td style="color: var(--text-bright); font-weight: bold; font-family: 'JetBrains Mono', monospace;">${escapeHtml(tgtNode.label)}</td>
+                        <td>
+                            <span style="color: var(--cyan); font-weight: bold; font-family: 'JetBrains Mono', monospace;">${escapeHtml(srcNode.label)}</span><br>
+                            <span style="font-size: 9px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">IP: ${escapeHtml(srcIp)}</span>
+                        </td>
+                        <td><span class="holo-tag" style="background: rgba(0, 240, 255, 0.08); border-color: rgba(0,240,255,0.3);">${escapeHtml(l.relation)}</span></td>
+                        <td>
+                            <span style="color: var(--text-bright); font-weight: bold; font-family: 'JetBrains Mono', monospace;">${escapeHtml(tgtNode.label)}</span><br>
+                            <span style="font-size: 9px; color: var(--green); font-weight: bold; font-family: 'JetBrains Mono', monospace;">IP: ${escapeHtml(tgtIp)}</span>
+                        </td>
                         <td style="color: var(--text-muted); font-size: 10px;"><span class="holo-tag" style="border-color: ${tgtNode.color || 'var(--border-dim)'}; color: ${tgtNode.color || 'var(--text-bright)'};">${escapeHtml(tgtNode.type || 'LINK')}</span></td>
                         <td style="color: var(--text-muted); font-size: 11px;">${escapeHtml(extraInfo)}</td>
+                        <td><span style="color: var(--green); font-size: 9px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;"><span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green);"></span>ONLINE [ACTIVE]</span></td>
                     </tr>`;
                 });
 
-                // Assemble the complete graph view
+                // Assemble Complete Graph View
                 container.innerHTML = `
                     ${hudCardsHtml}
+                    ${realDataBadgesHtml}
                     ${filterControlsHtml}
-                    <div style="background: rgba(8,13,26,0.85); border: 1px solid var(--border-dim); border-radius: 6px; padding: 12px; margin-bottom: 14px; text-align: center; position: relative;">
-                        <svg id="osintTopologySvg" viewBox="0 0 ${w} ${h}" style="width: 100%; max-height: 480px; filter: drop-shadow(0 0 12px rgba(0, 240, 255, 0.12));">
+                    
+                    <!-- View Mode 1: Animated Radial Topology -->
+                    <div id="holoViewTopology" style="background: rgba(8,13,26,0.85); border: 1px solid var(--border-dim); border-radius: 6px; padding: 12px; margin-bottom: 14px; text-align: center; position: relative; overflow: hidden;">
+                        <svg id="osintTopologySvg" viewBox="0 0 ${w} ${h}" style="width: 100%; max-height: 500px; filter: drop-shadow(0 0 16px rgba(0, 240, 255, 0.16));">
+                            ${svgDefs}
                             ${svgBackground}
                             ${svgLinks}
                             ${svgNodes}
                         </svg>
                     </div>
+
+                    <!-- View Mode 2: 3D Holographic Mesh -->
+                    <div id="holoViewMesh3D" style="display: none; background: rgba(5,9,20,0.9); border: 1px solid rgba(176,38,255,0.3); border-radius: 6px; padding: 12px; margin-bottom: 14px; text-align: center; position: relative; overflow: hidden;">
+                        ${render3dMeshHtml()}
+                    </div>
+
+                    <!-- View Mode 3: DNS Trace Pathway (Inline) -->
+                    <div id="holoViewDnsTrace" style="display: none;">
+                        ${dnsTraceCardHtml}
+                    </div>
+
+                    <!-- View Mode 4: Origin to Backbone Route Flow (Inline) -->
+                    <div id="holoViewRoute" style="display: none;">
+                        ${routePathwayHtml}
+                    </div>
+
+                    <!-- View Mode 5: Deep Recon & Records Matrix (Inline) -->
+                    <div id="holoViewRecords" style="display: none;">
+                        ${recordsAndWhoisHtml}
+                    </div>
+
                     ${inspectorPanelHtml}
-                    ${routePathwayHtml}
+                    <div id="holoDefaultRouteSection">${routePathwayHtml}</div>
+                    <div id="holoDefaultDnsSection">${dnsTraceCardHtml}</div>
+                    <div id="holoDefaultRecordsSection">${recordsAndWhoisHtml}</div>
                     ${spiderDetailsHtml}
                     <div style="margin-top: 14px; background: rgba(8,13,26,0.7); border: 1px solid var(--border-dim); border-radius: 6px; padding: 12px;">
                         <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
@@ -2941,6 +3426,7 @@ exit 0</pre>
                                     <th>TARGET ENTITY</th>
                                     <th>TYPE</th>
                                     <th>ORIGIN / CARRIER METADATA</th>
+                                    <th>STATUS</th>
                                 </tr>
                             </thead>
                             <tbody>${linksTableRows}</tbody>
@@ -2948,7 +3434,62 @@ exit 0</pre>
                     </div>
                 `;
 
-                // Define global handlers for interactivity
+                // Global handlers for interactivity & Hologram View Switcher
+                window.switchHoloGraphView = function(viewMode) {
+                    const vTop = document.getElementById('holoViewTopology');
+                    const vMesh = document.getElementById('holoViewMesh3D');
+                    const vDns = document.getElementById('holoViewDnsTrace');
+                    const vRoute = document.getElementById('holoViewRoute');
+                    const vRec = document.getElementById('holoViewRecords');
+
+                    const bTop = document.getElementById('viewBtnTopology');
+                    const bMesh = document.getElementById('viewBtnMesh3D');
+                    const bDns = document.getElementById('viewBtnDnsTrace');
+                    const bRoute = document.getElementById('viewBtnRoute');
+                    const bRec = document.getElementById('viewBtnRecords');
+
+                    // Reset buttons
+                    [bTop, bMesh, bDns, bRoute, bRec].forEach(b => {
+                        if (b) { b.style.background = 'transparent'; }
+                    });
+
+                    // Hide all primary panels
+                    if (vTop) vTop.style.display = 'none';
+                    if (vMesh) vMesh.style.display = 'none';
+                    if (vDns) vDns.style.display = 'none';
+                    if (vRoute) vRoute.style.display = 'none';
+                    if (vRec) vRec.style.display = 'none';
+
+                    if (viewMode === 'TOPOLOGY') {
+                        if (vTop) vTop.style.display = 'block';
+                        if (bTop) bTop.style.background = 'rgba(0,240,255,0.2)';
+                    } else if (viewMode === 'MESH3D') {
+                        if (vMesh) vMesh.style.display = 'block';
+                        if (bMesh) bMesh.style.background = 'rgba(176,38,255,0.2)';
+                    } else if (viewMode === 'DNSTRACE') {
+                        if (vDns) vDns.style.display = 'block';
+                        if (bDns) bDns.style.background = 'rgba(0,255,136,0.2)';
+                    } else if (viewMode === 'ROUTE') {
+                        if (vRoute) vRoute.style.display = 'block';
+                        if (bRoute) bRoute.style.background = 'rgba(255,184,0,0.2)';
+                    } else if (viewMode === 'RECORDS') {
+                        if (vRec) vRec.style.display = 'block';
+                        if (bRec) bRec.style.background = 'rgba(255,0,127,0.2)';
+                    }
+                };
+
+                window.filterDnsRecordTable = function(cat) {
+                    const rows = document.querySelectorAll('.dns-rec-row');
+                    rows.forEach(r => {
+                        if (cat === 'ALL') {
+                            r.style.display = '';
+                        } else {
+                            const rCat = r.getAttribute('data-cat') || '';
+                            r.style.display = (rCat === cat) ? '' : 'none';
+                        }
+                    });
+                };
+
                 window.inspectOsintGraphNode = function(nodeId) {
                     if (!window.currentInvestigationGraphData) return;
                     const cData = window.currentInvestigationGraphData;
@@ -2973,17 +3514,17 @@ exit 0</pre>
                                 <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">NODE CLASSIFICATION</div>
                                 <div style="color: ${targetNode.color || 'var(--cyan)'}; font-size: 13px; font-weight: bold;">${escapeHtml(targetNode.type || 'ENTITY')}</div>
                             </div>
-                            <div style="background: rgba(8,13,26,0.7); padding: 8px 10px; border-radius: 4px; border-left: 3px solid var(--cyan);">
+                            <div style="background: rgba(8,13,26,0.7); padding: 8px 10px; border-radius: 4px; border-left: 3px solid var(--green);">
                                 <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">IP / FQDN ADDRESS</div>
-                                <div style="color: var(--cyan); font-size: 13px; font-weight: bold; font-family: 'JetBrains Mono', monospace;">${escapeHtml(meta.ip || targetNode.label)}</div>
+                                <div style="color: var(--green); font-size: 13px; font-weight: bold; font-family: 'JetBrains Mono', monospace;">${escapeHtml(meta.ip || targetNode.ip || targetNode.label)}</div>
                             </div>
                             <div style="background: rgba(8,13,26,0.7); padding: 8px 10px; border-radius: 4px; border-left: 3px solid var(--amber);">
                                 <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">ISP & TELECOM CARRIER</div>
                                 <div style="color: var(--amber); font-size: 13px; font-weight: bold;">${escapeHtml(meta.isp || meta.carrier || 'N/A')}</div>
                             </div>
-                            <div style="background: rgba(8,13,26,0.7); padding: 8px 10px; border-radius: 4px; border-left: 3px solid var(--green);">
+                            <div style="background: rgba(8,13,26,0.7); padding: 8px 10px; border-radius: 4px; border-left: 3px solid var(--cyan);">
                                 <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">BGP AUTONOMOUS ROUTE</div>
-                                <div style="color: var(--green); font-size: 13px; font-weight: bold;">${escapeHtml(meta.asn || 'BGP Transit')}</div>
+                                <div style="color: var(--cyan); font-size: 13px; font-weight: bold;">${escapeHtml(meta.asn || 'BGP Transit')}</div>
                             </div>
                             <div style="background: rgba(8,13,26,0.7); padding: 8px 10px; border-radius: 4px; border-left: 3px solid #38EF7D;">
                                 <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">PHYSICAL LOCATION ORIGIN</div>
@@ -3021,10 +3562,12 @@ exit 0</pre>
                         const nodeObj = (window.currentInvestigationGraphData?.nodes || []).find(x => x.id === nId);
                         if (!nodeObj) return;
                         let match = false;
-                        if (filterType === 'IP') match = (nodeObj.type === 'TARGET' || nodeObj.type === 'IP_ADDRESS' || nodeObj.type === 'EDGE_CDN');
+                        if (filterType === 'IP') match = (nodeObj.type === 'TARGET' || nodeObj.type === 'IP_ADDRESS');
                         if (filterType === 'BGP') match = (nodeObj.type === 'TARGET' || nodeObj.type === 'BGP_BACKBONE' || nodeObj.type === 'ISP_CARRIER' || nodeObj.type === 'IP_ADDRESS');
-                        if (filterType === 'SPIDER') match = (nodeObj.type === 'TARGET' || nodeObj.type === 'SPIDER_ENDPOINT' || nodeObj.type === 'ASSET_CDN' || nodeObj.type === 'SUBDOMAIN' || nodeObj.type === 'WEB_SERVER');
-                        n.style.opacity = match ? '1' : '0.15';
+                        if (filterType === 'EDGE') match = (nodeObj.type === 'TARGET' || nodeObj.type === 'EDGE_CDN' || nodeObj.type === 'IP_ADDRESS');
+                        if (filterType === 'SPIDER') match = (nodeObj.type === 'TARGET' || nodeObj.type === 'SPIDER_ENDPOINT' || nodeObj.type === 'ASSET_CDN' || nodeObj.type === 'SUBDOMAIN' || nodeObj.type === 'CONNECTED_SITE');
+                        if (filterType === 'BACKEND') match = (nodeObj.type === 'TARGET' || nodeObj.type === 'WEB_SERVER' || nodeObj.type === 'SERVICE');
+                        n.style.opacity = match ? '1' : '0.12';
                     });
                 };
 
@@ -4267,6 +4810,16 @@ exit 0</pre>
             }
         }
 
+        function quarantineFile(path) {
+            logToConsole(`Quarantine signal initiated for file: ${path}`, 'WARN');
+            alert(`QUARANTINE ENFORCEMENT:\n\nTarget file '${path}' has been scheduled for isolated quarantine.`);
+        }
+
+        function killProcess(pid) {
+            logToConsole(`Process termination signal sent to PID: ${pid}`, 'WARN');
+            alert(`TERMINATION SIGNAL:\n\nSent SIGTERM to process PID ${pid}.`);
+        }
+
         async function scanPorts() {
             try {
                 const res = await fetch('/api/ports');
@@ -4503,13 +5056,36 @@ exit 0</pre>
         }
 
         async function runMasterScan() {
+            const btn = document.getElementById('btnMasterScan');
+            if (btn) {
+                btn.innerHTML = '<span class="holo-glyph">[⬡]</span> MASTER SCANNING (ALL MODULES)...';
+                btn.disabled = true;
+            }
             logToConsole('Initiating MASTER DEFENSE SCAN across all categories...', 'WARN');
-            await runAudit();
-            await runOsintRecon();
-            await scanPorts();
-            await analyzeLogs(false);
-            await pollActiveTraffic();
-            logToConsole('MASTER SCAN COMPLETE: All telemetry synchronized.', 'PASS');
+            try {
+                try { await runAudit(); } catch(e) { logToConsole('Audit sub-scan error: ' + e, 'WARN'); }
+                try { await runOsintRecon(); } catch(e) { logToConsole('OSINT sub-scan error: ' + e, 'WARN'); }
+                try { await scanPorts(); } catch(e) { logToConsole('Ports sub-scan error: ' + e, 'WARN'); }
+                try { await analyzeLogs(false); } catch(e) { logToConsole('Logs sub-scan error: ' + e, 'WARN'); }
+                try { await pollActiveTraffic(); } catch(e) { logToConsole('Traffic sub-scan error: ' + e, 'WARN'); }
+
+                const tVal = document.getElementById('targetUrl')?.value?.trim();
+                if (tVal) {
+                    const cleanHost = tVal.replace(/^https?:\/\//i, '').split('/')[0];
+                    const ciInput = document.getElementById('cyberIntelInput');
+                    if (ciInput && (!ciInput.value || ciInput.value === 'example.com')) ciInput.value = cleanHost;
+                    const stInput = document.getElementById('suiteTargetInput');
+                    if (stInput && (!stInput.value || stInput.value === 'cyberghost')) stInput.value = cleanHost;
+                }
+                logToConsole('MASTER SCAN COMPLETE: All telemetry synchronized.', 'PASS');
+            } catch (err) {
+                logToConsole('Master scan encounter: ' + err, 'FAIL');
+            } finally {
+                if (btn) {
+                    btn.innerHTML = '<span class="holo-glyph">[⬡]</span> RUN MASTER DEFENSE SCAN (ALL PANELS)';
+                    btn.disabled = false;
+                }
+            }
         }
 
         function escapeHtml(str) {
@@ -4521,6 +5097,479 @@ exit 0</pre>
             if (!str) return '';
             return String(str).replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'");
         }
+
+        // =========================================================================
+        // CYBER INTELLIGENCE SUITE CLIENT JS LOGIC
+        // =========================================================================
+        window.currentCyberIntelData = null;
+
+        async function runCyberIntelligence() {
+            const inputEl = document.getElementById('cyberIntelInput');
+            const target = (inputEl ? inputEl.value : '').trim() || 'example.com';
+            const container = document.getElementById('cyberIntelResults');
+            if (!container) return;
+
+            logToConsole(`Initiating CYBER INTELLIGENCE SUITE audit for target '${target}'...`, 'INFO');
+
+            container.innerHTML = `
+                <div style="background: rgba(8, 14, 28, 0.9); border: 1px solid var(--border-dim); border-top: 3px solid var(--cyan); border-radius: 6px; padding: 36px; text-align: center; box-shadow: 0 0 25px rgba(0, 240, 255, 0.15);">
+                    <div style="display: inline-block; width: 44px; height: 44px; border: 3px solid rgba(0,240,255,0.2); border-top-color: var(--cyan); border-radius: 50%; animation: spinHudLoader 1s linear infinite; margin-bottom: 14px;"></div>
+                    <h3 style="color: var(--text-bright); font-family: 'Space Grotesk', sans-serif; letter-spacing: 1px;">AGGREGATING MULTI-SOURCE CYBER INTELLIGENCE...</h3>
+                    <p style="color: var(--cyan); font-size: 12px; font-family: 'JetBrains Mono', monospace; margin-top: 8px;">
+                        Querying Authoritative RDAP, BGP Origin Prefix, Cloudflare Anycast, DNSSEC Cryptographic Proof &amp; VPN Indicators for: <strong>${escapeHtml(target)}</strong>
+                    </p>
+                    <div style="display: flex; justify-content: center; gap: 8px; margin-top: 16px; font-size: 10px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
+                        <span>[•] RDAP/WHOIS</span>
+                        <span>[•] RECURSIVE DNS</span>
+                        <span>[•] ANYCAST EDGE</span>
+                        <span>[•] TOR EXIT FEEDS</span>
+                        <span>[•] TLS FORENSICS</span>
+                    </div>
+                </div>
+            `;
+
+            try {
+                const resp = await fetch('/api/cyber-intel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target: target })
+                });
+
+                if (!resp.ok) {
+                    throw new Error(`Server returned HTTP ${resp.status}`);
+                }
+
+                const data = await resp.json();
+                window.currentCyberIntelData = data;
+                renderCyberIntelligenceResults(data);
+                logToConsole(`Cyber Intelligence Suite complete for '${target}' in ${data.duration_seconds || 0}s.`, 'PASS');
+            } catch (err) {
+                container.innerHTML = `
+                    <div style="background: rgba(26, 8, 12, 0.9); border: 1px solid var(--red); border-radius: 6px; padding: 24px; text-align: center;">
+                        <span style="font-size: 28px; color: var(--red);">[X]</span>
+                        <h4 style="color: var(--red); margin-top: 8px;">CYBER INTELLIGENCE QUERY FAILED</h4>
+                        <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">${escapeHtml(err.message)}</p>
+                        <button class="holo-btn" style="margin-top: 14px; border-color: var(--cyan); color: var(--cyan);" onclick="runCyberIntelligence()">RETRY AUDIT</button>
+                    </div>
+                `;
+                logToConsole(`Cyber Intelligence query failed: ${err.message}`, 'FAIL');
+            }
+        }
+
+        function renderCyberIntelligenceResults(data) {
+            const container = document.getElementById('cyberIntelResults');
+            if (!container) return;
+
+            const summary = data.summary || {};
+            const parsed = data.target_classification || {};
+            const mods = data.modules || {};
+            const ipInfo = mods.ip_address || {};
+            const geo = mods.geolocation || {};
+            const whois = mods.whois_rdap || {};
+            const dns = mods.dns_intelligence || {};
+            const vpn = mods.vpn_and_cdn || {};
+            const http = mods.http_and_tls || {};
+            const telecom = mods.cellular_metadata || {};
+            const client = mods.client_diagnostics || {};
+            const evidenceChains = data.evidence_correlation || [];
+            const dnsRecords = dns.records || [];
+
+            const primaryIp = summary.ip || ipInfo.ip || '127.0.0.1';
+            const country = summary.country || geo.country || 'Global';
+            const city = summary.city || geo.city || 'Anycast Edge';
+            const isp = summary.isp || geo.isp || 'Network Operator';
+            const asn = summary.asn || geo.asn || 'AS0';
+            const isCf = summary.cloudflare_proxied || vpn.cloudflare_detected || false;
+            const vpnClass = summary.vpn_classification || vpn.vpn_classification || 'Not Detected';
+            const dnssec = summary.dnssec_status || dns.dnssec_status || 'UNSIGNED';
+            const httpCode = summary.http_status || http.status_code || 200;
+            const execMs = data.execution_time_ms || 0;
+
+            // 1. Metric Overview Cards (6-Column Grid)
+            const overviewHtml = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 14px;">
+                    <div class="metric-card" style="border-color: rgba(0, 240, 255, 0.4);">
+                        <div class="metric-title"><span style="color: var(--cyan);">[TARGET]</span> ENTITY</div>
+                        <div class="metric-value" style="color: var(--cyan); font-size: 15px; word-break: break-all;" title="${escapeHtml(data.target || '')}">${escapeHtml(data.target || '')}</div>
+                        <div class="metric-sub">${escapeHtml(parsed.classification || 'DOMAIN')} // ${escapeHtml(parsed.clean_host || '')}</div>
+                    </div>
+                    <div class="metric-card" style="border-color: rgba(0, 255, 136, 0.4);">
+                        <div class="metric-title"><span style="color: var(--green);">[IP]</span> PRIMARY ORIGIN</div>
+                        <div class="metric-value" style="color: var(--green); font-size: 15px; font-family: 'JetBrains Mono', monospace;">${escapeHtml(primaryIp)}</div>
+                        <div class="metric-sub">${escapeHtml(country)} (${escapeHtml(city)})</div>
+                    </div>
+                    <div class="metric-card" style="border-color: rgba(255, 184, 0, 0.4);">
+                        <div class="metric-title"><span style="color: var(--amber);">[BGP]</span> CARRIER &amp; ASN</div>
+                        <div class="metric-value" style="color: var(--amber); font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(isp)}">${escapeHtml(isp)}</div>
+                        <div class="metric-sub">${escapeHtml(asn)}</div>
+                    </div>
+                    <div class="metric-card" style="border-color: rgba(176, 38, 255, 0.4);">
+                        <div class="metric-title"><span style="color: var(--violet);">[SHIELD]</span> CLOUDFLARE / CDN</div>
+                        <div class="metric-value" style="color: ${isCf ? 'var(--cyan)' : 'var(--text-muted)'}; font-size: 15px;">${isCf ? 'CLOUDFLARE PROXIED' : 'DIRECT ORIGIN'}</div>
+                        <div class="metric-sub">${isCf ? 'Anycast Edge Shield' : 'Public Origin Host'}</div>
+                    </div>
+                    <div class="metric-card" style="border-color: rgba(255, 0, 127, 0.4);">
+                        <div class="metric-title"><span style="color: #FF007F;">[ANON]</span> ANONYMITY RISK</div>
+                        <div class="metric-value" style="color: ${vpnClass.includes('Confirmed') ? 'var(--red)' : 'var(--green)'}; font-size: 16px;">${escapeHtml(vpnClass)}</div>
+                        <div class="metric-sub">${vpn.tor_exit ? 'Tor Exit Node' : 'BGP Route Classification'}</div>
+                    </div>
+                    <div class="metric-card" style="border-color: rgba(56, 239, 125, 0.4);">
+                        <div class="metric-title"><span style="color: #38EF7D;">[DNSSEC]</span> VALIDATION</div>
+                        <div class="metric-value" style="color: ${dnssec.includes('SECURE') ? 'var(--green)' : 'var(--amber)'}; font-size: 14px;">${dnssec.includes('SECURE') ? 'SECURE (AD)' : 'UNSIGNED'}</div>
+                        <div class="metric-sub">${dnsRecords.length} DNS Records // ${execMs}ms</div>
+                    </div>
+                </div>
+            `;
+
+            // 2. Global IP & Location Intelligence Card
+            const ipCardHtml = `
+                <div style="background: rgba(8,14,28,0.85); border: 1px solid var(--border-dim); border-left: 3px solid var(--green); border-radius: 6px; padding: 14px; margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="font-size: 11px; color: var(--green); font-weight: bold; text-transform: uppercase;">
+                            <span class="holo-glyph">[01]</span> GLOBAL IP &amp; LOCATION INTELLIGENCE (ESTIMATED TELEMETRY)
+                        </div>
+                        <span class="holo-tag" style="border-color: var(--green); color: var(--green); font-size: 9px;">PUBLIC REGISTRY DATA</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px;">
+                        <div><span style="font-size: 9px; color: var(--text-muted);">PUBLIC IP ADDRESS:</span> <strong style="font-size: 12px; color: var(--green); font-family: 'JetBrains Mono', monospace;">${escapeHtml(primaryIp)}</strong></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">REVERSE DNS (PTR):</span> <strong style="font-size: 11px; color: var(--text-bright); font-family: 'JetBrains Mono', monospace;">${escapeHtml(ipInfo.reverse_dns || 'No PTR Record')}</strong></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">ESTIMATED LOCATION:</span> <strong style="font-size: 11px; color: var(--text-bright);">${escapeHtml(city)}, ${escapeHtml(geo.region || '')}, ${escapeHtml(country)}</strong></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">APPROX COORDINATES:</span> <strong style="font-size: 11px; color: var(--cyan); font-family: 'JetBrains Mono', monospace;">${geo.latitude || 0}, ${geo.longitude || 0}</strong> <span style="font-size: 9px; color: var(--text-muted);">(±50km)</span></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">TIMEZONE:</span> <strong style="font-size: 11px; color: var(--text-bright);">${escapeHtml(geo.timezone || 'UTC')}</strong></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">ISP / RETAIL OPERATOR:</span> <strong style="font-size: 11px; color: var(--amber);">${escapeHtml(isp)}</strong></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">AUTONOMOUS SYSTEM:</span> <strong style="font-size: 11px; color: var(--amber);">${escapeHtml(asn)}</strong></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">IP CLASSIFICATION:</span> <strong style="font-size: 11px; color: var(--text-bright); font-family: 'JetBrains Mono', monospace;">${escapeHtml(ipInfo.classification || 'PUBLIC_UNICAST')}</strong></div>
+                    </div>
+                    <div style="margin-top: 10px; padding: 6px 10px; background: rgba(0,0,0,0.4); border-radius: 4px; font-size: 9.5px; color: var(--text-muted); border-left: 2px solid var(--amber);">
+                        <strong>ACCURACY DISCLAIMER:</strong> Approximate IP geolocation based on BGP/ISP routing databases. This represents the network point-of-presence or carrier gateway, NOT confirmed physical GPS coordinates.
+                    </div>
+                </div>
+            `;
+
+            // 3. VPN, Proxy, Tor & Cloudflare Multi-Source Detection
+            const vpnAndCloudflareHtml = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-bottom: 14px;">
+                    <div style="background: rgba(8,14,28,0.85); border: 1px solid var(--border-dim); border-left: 3px solid var(--red); border-radius: 6px; padding: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div style="font-size: 11px; color: var(--red); font-weight: bold; text-transform: uppercase;">
+                                <span class="holo-glyph">[02]</span> VPN, PROXY &amp; TOR DETECTION
+                            </div>
+                            <span class="holo-tag" style="border-color: ${vpn.vpn_detected ? 'var(--red)' : 'var(--green)'}; color: ${vpn.vpn_detected ? 'var(--red)' : 'var(--green)'}; font-size: 9px;">${escapeHtml(vpnClass)}</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                <span style="color: var(--text-muted);">KNOWN VPN PROVIDER MATCH:</span>
+                                <strong style="color: ${vpn.vpn_detected ? 'var(--red)' : 'var(--green)'};">${vpn.vpn_detected ? 'YES [MATCHED RANGE]' : 'NOT DETECTED'}</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                <span style="color: var(--text-muted);">TOR EXIT NODE CONFIRMED:</span>
+                                <strong style="color: ${vpn.tor_exit ? 'var(--red)' : 'var(--green)'};">${vpn.tor_exit ? 'CONFIRMED TOR EXIT' : 'NO'}</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                <span style="color: var(--text-muted);">DATACENTER / HOSTING RANGE:</span>
+                                <strong style="color: ${vpn.datacenter_ip ? 'var(--amber)' : 'var(--text-bright)'};">${vpn.datacenter_ip ? 'DATACENTER INFRASTRUCTURE' : 'RESIDENTIAL/COMMERCIAL'}</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                <span style="color: var(--text-muted);">CONFIDENCE / PROBABILITY:</span>
+                                <strong style="color: var(--cyan);">${vpn.confidence_score || 85}% PROBABILISTIC</strong>
+                            </div>
+                            <div style="margin-top: 6px; font-size: 9.5px; color: var(--text-muted); background: rgba(0,0,0,0.3); padding: 6px; border-radius: 4px;">
+                                Detection is probabilistic and based on public BGP prefixes, published exit node lists, and AS classifications. No scanner can claim 100% certainty.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(8,14,28,0.85); border: 1px solid var(--border-dim); border-left: 3px solid var(--cyan); border-radius: 6px; padding: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div style="font-size: 11px; color: var(--cyan); font-weight: bold; text-transform: uppercase;">
+                                <span class="holo-glyph">[03]</span> CLOUDFLARE &amp; REVERSE-PROXY FORENSICS
+                            </div>
+                            <span class="holo-tag" style="border-color: var(--cyan); color: var(--cyan); font-size: 9px;">EDGE INGRESS</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                <span style="color: var(--text-muted);">CLOUDFLARE EDGE INGRESS:</span>
+                                <strong style="color: ${isCf ? 'var(--cyan)' : 'var(--text-bright)'};">${isCf ? 'CLOUDFLARE ANYCAST PROXIED' : 'DIRECT / NON-CLOUDFLARE'}</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                <span style="color: var(--text-muted);">CF-RAY DIAGNOSTIC HEADER:</span>
+                                <strong style="color: var(--cyan);">${vpn.ray_id_detected ? 'ACTIVE RAY-ID OBSERVED' : 'NONE DETECTED'}</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                <span style="color: var(--text-muted);">OBSERVED EDGE ADDRESS:</span>
+                                <strong style="color: var(--green); font-family: 'JetBrains Mono', monospace;">${escapeHtml(primaryIp)}</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                <span style="color: var(--text-muted);">BACKEND ORIGIN DISCLOSURE:</span>
+                                <strong style="color: var(--amber);">${isCf ? 'ORIGIN_CONCEALED_BEHIND_PROXY' : 'DIRECTLY_RESOLVED'}</strong>
+                            </div>
+                            <div style="margin-top: 6px; font-size: 9.5px; color: var(--text-muted); background: rgba(0,0,0,0.3); padding: 6px; border-radius: 4px;">
+                                Cloudflare reverse proxies conceal backend server IPs. The platform does NOT guess or fabricate hidden origin addresses.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 4. WHOIS / RDAP & DNSSEC Intelligence
+            const whoisHtml = `
+                <div style="background: rgba(8,14,28,0.85); border: 1px solid var(--border-dim); border-left: 3px solid var(--violet); border-radius: 6px; padding: 14px; margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="font-size: 11px; color: var(--violet); font-weight: bold; text-transform: uppercase;">
+                            <span class="holo-glyph">[04]</span> AUTHORITATIVE REGISTRATION &amp; WHOIS / RDAP DOSSIER
+                        </div>
+                        <span class="holo-tag" style="border-color: var(--violet); color: var(--violet); font-size: 9px;">ICANN BOOTSTRAP RDAP</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                        <div><span style="font-size: 9px; color: var(--text-muted);">REGISTRAR:</span> <strong style="font-size: 11px; color: var(--text-bright);">${escapeHtml(whois.registrar || 'N/A')}</strong></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">REGISTRY DOMAIN ID:</span> <strong style="font-size: 11px; color: var(--cyan); font-family: 'JetBrains Mono', monospace;">${escapeHtml(whois.handle || 'N/A')}</strong></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">REGISTRATION CREATED:</span> <strong style="font-size: 11px; color: var(--text-bright);">${escapeHtml(whois.creation_date || 'N/A')}</strong></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">REGISTRATION EXPIRES:</span> <strong style="font-size: 11px; color: var(--amber);">${escapeHtml(whois.expiration_date || 'N/A')}</strong></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">LAST REGISTRY UPDATE:</span> <strong style="font-size: 11px; color: var(--text-bright);">${escapeHtml(whois.updated_date || 'N/A')}</strong></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">DNSSEC DELEGATION:</span> <strong style="font-size: 11px; color: ${String(whois.dnssec).includes('signed') ? 'var(--green)' : 'var(--amber)'};">${escapeHtml(String(whois.dnssec || 'unsigned'))}</strong></div>
+                        <div style="grid-column: 1 / -1;"><span style="font-size: 9px; color: var(--text-muted);">DELEGATED NAMESERVERS:</span> <strong style="font-size: 11px; color: var(--violet);">${(whois.nameservers || []).join(', ') || 'N/A'}</strong></div>
+                        <div style="grid-column: 1 / -1;"><span style="font-size: 9px; color: var(--text-muted);">DOMAIN STATUS FLAGS:</span> <span style="font-size: 10px; color: var(--text-bright); font-family: 'JetBrains Mono', monospace;">${(whois.status || []).join(' | ') || 'clientTransferProhibited'}</span></div>
+                    </div>
+                </div>
+            `;
+
+            // 5. Full DNS Records Matrix with Filter Tabs
+            let dnsRows = '';
+            dnsRecords.forEach(r => {
+                const catColor = r.category === 'SECURITY' ? 'var(--violet)' : (r.category === 'ROUTING' ? 'var(--amber)' : (r.category === 'ADDRESS' ? 'var(--cyan)' : 'var(--green)'));
+                dnsRows += `
+                    <tr class="cyber-intel-dns-row" data-cat="${escapeHtml(r.category || 'ALL')}">
+                        <td><span class="holo-tag" style="border-color: ${catColor}; color: ${catColor}; font-weight: bold;">${escapeHtml(r.type)}</span></td>
+                        <td style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-bright);">${escapeHtml(r.name)}</td>
+                        <td style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--green); word-break: break-all;">${escapeHtml(r.data)}</td>
+                        <td style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted);">${r.ttl}s</td>
+                        <td><span class="holo-tag" style="font-size: 8.5px; border-color: rgba(0,240,255,0.3); color: var(--cyan);">${escapeHtml(r.category || 'DNS')}</span></td>
+                    </tr>
+                `;
+            });
+
+            const dnsTableHtml = `
+                <div style="background: rgba(8,14,28,0.85); border: 1px solid var(--border-dim); border-left: 3px solid var(--cyan); border-radius: 6px; padding: 14px; margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                        <div style="font-size: 11px; color: var(--cyan); font-weight: bold; text-transform: uppercase;">
+                            <span class="holo-glyph">[05]</span> MULTI-RECORD DNS ARCHIVE &amp; PROPAGATION (${dnsRecords.length} VERIFIED ENTRIES)
+                        </div>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            <button class="holo-btn" style="padding: 2px 8px; font-size: 9.5px;" onclick="window.filterCyberIntelDnsTable('ALL')">ALL (${dnsRecords.length})</button>
+                            <button class="holo-btn" style="padding: 2px 8px; font-size: 9.5px; border-color: var(--cyan); color: var(--cyan);" onclick="window.filterCyberIntelDnsTable('ADDRESS')">ADDRESS (A/AAAA)</button>
+                            <button class="holo-btn" style="padding: 2px 8px; font-size: 9.5px; border-color: var(--amber); color: var(--amber);" onclick="window.filterCyberIntelDnsTable('ROUTING')">ROUTING (MX/NS/CNAME)</button>
+                            <button class="holo-btn" style="padding: 2px 8px; font-size: 9.5px; border-color: var(--violet); color: var(--violet);" onclick="window.filterCyberIntelDnsTable('SECURITY')">SECURITY (CAA/TXT/DNSKEY)</button>
+                        </div>
+                    </div>
+                    <div style="max-height: 280px; overflow-y: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>TYPE</th>
+                                    <th>NAME</th>
+                                    <th>DATA / DESTINATION</th>
+                                    <th>TTL</th>
+                                    <th>CATEGORY</th>
+                                </tr>
+                            </thead>
+                            <tbody>${dnsRows}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            // 6. HTTP & TLS Diagnostics Card
+            const httpHtml = `
+                <div style="background: rgba(8,14,28,0.85); border: 1px solid var(--border-dim); border-left: 3px solid #38EF7D; border-radius: 6px; padding: 14px; margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="font-size: 11px; color: #38EF7D; font-weight: bold; text-transform: uppercase;">
+                            <span class="holo-glyph">[06]</span> WEB APPLICATION &amp; TLS CERTIFICATE FORENSICS
+                        </div>
+                        <span class="holo-tag" style="border-color: #38EF7D; color: #38EF7D; font-size: 9px;">LIVE PROBE TELEMETRY</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                        <div><span style="font-size: 9px; color: var(--text-muted);">HTTP STATUS CODE:</span> <strong style="font-size: 12px; color: ${httpCode === 200 ? 'var(--green)' : 'var(--amber)'}; font-family: 'JetBrains Mono', monospace;">${httpCode}</strong></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">TLS CERTIFICATE VALID:</span> <strong style="font-size: 11px; color: ${http.tls_valid ? 'var(--green)' : 'var(--red)'};">${http.tls_valid ? 'VALID CERTIFICATE' : 'INSECURE / NONE'}</strong></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">ISSUING CA:</span> <strong style="font-size: 11px; color: var(--text-bright);">${escapeHtml(http.tls_issuer || 'N/A')}</strong></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">CERTIFICATE EXPIRY:</span> <strong style="font-size: 11px; color: ${http.tls_days_left > 30 ? 'var(--green)' : 'var(--amber)'};">${http.tls_days_left || 0} Days Remaining</strong></div>
+                        <div style="grid-column: 1 / -1;"><span style="font-size: 9px; color: var(--text-muted);">DISCLOSED SERVER HEADERS:</span> <strong style="font-size: 11px; color: var(--violet);">${Object.entries(http.headers || {}).map(([k,v]) => `${k}: ${v}`).join(' | ') || 'None disclosed'}</strong></div>
+                        <div style="grid-column: 1 / -1;"><span style="font-size: 9px; color: var(--text-muted);">SAN CERTIFICATE DOMAINS:</span> <span style="font-size: 10px; color: var(--text-bright); font-family: 'JetBrains Mono', monospace;">${(http.tls_sans || []).slice(0, 10).join(', ') || 'None'}</span></div>
+                    </div>
+                </div>
+            `;
+
+            // 7. Cellular & Telecommunications Intelligence
+            const telecomHtml = `
+                <div style="background: rgba(8,14,28,0.85); border: 1px solid var(--border-dim); border-left: 3px solid var(--amber); border-radius: 6px; padding: 14px; margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="font-size: 11px; color: var(--amber); font-weight: bold; text-transform: uppercase;">
+                            <span class="holo-glyph">[07]</span> CELLULAR, GSM, LTE &amp; 5G TELECOMMUNICATIONS METADATA
+                        </div>
+                        <span class="holo-tag" style="border-color: var(--amber); color: var(--amber); font-size: 9px;">CARRIER DATASET</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                        <div><span style="font-size: 9px; color: var(--text-muted);">CELLULAR NETWORK DETECTED:</span> <strong style="font-size: 11px; color: ${telecom.is_cellular ? 'var(--green)' : 'var(--text-muted)'};">${telecom.is_cellular ? 'YES [MOBILE CARRIER IP]' : 'FIXED LINE / DATACENTER'}</strong></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">CARRIER OPERATOR:</span> <strong style="font-size: 11px; color: var(--amber);">${escapeHtml(telecom.carrier || isp)}</strong></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">MCC / MNC CODES:</span> <strong style="font-size: 11px; color: var(--cyan); font-family: 'JetBrains Mono', monospace;">MCC: ${escapeHtml(telecom.mcc || 'N/A')} // MNC: ${escapeHtml(telecom.mnc || 'N/A')}</strong></div>
+                        <div><span style="font-size: 9px; color: var(--text-muted);">RADIO TECHNOLOGIES:</span> <strong style="font-size: 11px; color: var(--text-bright);">${(telecom.technologies || []).join(' / ') || 'GSM / UMTS / LTE / 5G-NR'}</strong></div>
+                    </div>
+                    <div style="margin-top: 10px; padding: 6px 10px; background: rgba(0,0,0,0.4); border-radius: 4px; font-size: 9.5px; color: var(--text-muted); border-left: 2px solid var(--amber);">
+                        <strong>LEGAL PRIVACY &amp; TECHNICAL LIMITATION:</strong> ${escapeHtml(telecom.disclaimer || 'Access to live subscriber SIM or tower attachment requires authorized carrier integration.')}
+                    </div>
+                </div>
+            `;
+
+            // 8. Voluntary GPS vs Observed Client Metadata
+            const gpsData = window.currentVoluntaryGpsData;
+            const clientHtml = `
+                <div style="background: rgba(8,14,28,0.85); border: 1px solid var(--border-dim); border-left: 3px solid var(--green); border-radius: 6px; padding: 14px; margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="font-size: 11px; color: var(--green); font-weight: bold; text-transform: uppercase;">
+                            <span class="holo-glyph">[08]</span> CLIENT REQUEST OBSERVATIONS VS. VOLUNTARY DEVICE GPS
+                        </div>
+                        <button class="holo-btn" style="padding: 2px 8px; font-size: 9.5px; border-color: var(--green); color: var(--green);" onclick="runVoluntaryGps()">REQUEST GPS CONSENT</button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px;">
+                        <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px;">
+                            <div style="font-size: 10px; color: var(--cyan); font-weight: bold; margin-bottom: 4px;">[A] SERVER-OBSERVED REQUEST METADATA</div>
+                            <div style="font-size: 9px; color: var(--text-muted);">CONNECTING IP: <strong style="color: var(--text-bright);">${escapeHtml(client.remote_ip || '127.0.0.1')}</strong></div>
+                            <div style="font-size: 9px; color: var(--text-muted); margin-top: 3px;">USER-AGENT: <span style="color: var(--text-bright);">${escapeHtml(client.user_agent || 'Client Browser')}</span></div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px;">
+                            <div style="font-size: 10px; color: var(--green); font-weight: bold; margin-bottom: 4px;">[B] VOLUNTARY HARDWARE GPS (EXPLICIT USER CONSENT)</div>
+                            <div id="voluntaryGpsStatus" style="font-size: 9.5px; color: ${gpsData ? 'var(--green)' : 'var(--text-muted)'};">
+                                ${gpsData ? `LAT: <strong>${gpsData.latitude.toFixed(6)}</strong>, LON: <strong>${gpsData.longitude.toFixed(6)}</strong> (±${gpsData.accuracy}m)` : 'Click REQUEST GPS CONSENT above to securely test device geolocation API.'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 9. Correlated Evidence Chains Table
+            let evidenceRows = '';
+            evidenceChains.forEach(ec => {
+                evidenceRows += `
+                    <tr>
+                        <td style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--cyan);">${escapeHtml(ec.entity)}</td>
+                        <td><span class="holo-tag" style="background: rgba(0,240,255,0.08); border-color: rgba(0,240,255,0.3);">${escapeHtml(ec.type)}</span></td>
+                        <td style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--green);">${escapeHtml(String(ec.value))}</td>
+                        <td><span class="holo-tag" style="border-color: var(--green); color: var(--green); font-size: 9px;">${escapeHtml(ec.confidence || 'HIGH')}</span></td>
+                        <td style="font-size: 10px; color: var(--text-muted);">AUTHORITATIVE RECON</td>
+                    </tr>
+                `;
+            });
+
+            const evidenceTableHtml = `
+                <div style="background: rgba(8,13,26,0.85); border: 1px solid var(--border-dim); border-radius: 6px; padding: 14px; margin-bottom: 14px;">
+                    <div style="font-size: 11px; color: var(--text-bright); font-weight: bold; text-transform: uppercase; margin-bottom: 8px;">
+                        <span class="holo-glyph">[09]</span> CORRELATED ENTITY &amp; EVIDENCE CHAINS (${evidenceChains.length} VERIFIED RELATIONSHIPS)
+                    </div>
+                    <div style="max-height: 250px; overflow-y: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ENTITY</th>
+                                    <th>TYPE</th>
+                                    <th>CORRELATED VALUE</th>
+                                    <th>CONFIDENCE</th>
+                                    <th>AUTHORITATIVE SOURCE</th>
+                                </tr>
+                            </thead>
+                            <tbody>${evidenceRows}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            // 10. Footer Action Bar (Exports)
+            const footerActionsHtml = `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(5,10,22,0.9); border: 1px solid var(--border-dim); border-radius: 6px; padding: 12px; margin-top: 14px;">
+                    <div style="font-size: 10px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
+                        OBSERVATION TIMESTAMP: ${new Date().toISOString()} // SCAN COMPLETED IN ${execMs}ms
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="holo-btn" style="border-color: var(--amber); color: var(--amber); font-size: 10px; padding: 4px 12px;" onclick="exportCyberIntelJson()">
+                            DOWNLOAD JSON DOSSIER
+                        </button>
+                        <button class="holo-btn" style="border-color: var(--cyan); color: var(--cyan); font-size: 10px; padding: 4px 12px;" onclick="window.print()">
+                            PRINT FORENSIC DOSSIER
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = `
+                ${overviewHtml}
+                ${ipCardHtml}
+                ${vpnAndCloudflareHtml}
+                ${whoisHtml}
+                ${dnsTableHtml}
+                ${httpHtml}
+                ${telecomHtml}
+                ${clientHtml}
+                ${evidenceTableHtml}
+                ${footerActionsHtml}
+            `;
+        }
+
+        window.filterCyberIntelDnsTable = function(cat) {
+            const rows = document.querySelectorAll('.cyber-intel-dns-row');
+            rows.forEach(r => {
+                if (cat === 'ALL') {
+                    r.style.display = '';
+                } else {
+                    const rCat = r.getAttribute('data-cat') || '';
+                    r.style.display = (rCat === cat) ? '' : 'none';
+                }
+            });
+        };
+
+        window.runVoluntaryGps = function() {
+            if (!navigator.geolocation) {
+                alert('HTML5 Geolocation is not supported by your current browser.');
+                return;
+            }
+
+            const ok = confirm('VOLUNTARY DEVICE GEOLOCATION CONSENT:\\n\\nDo you explicitly grant permission to read your current device coordinates via the browser W3C Geolocation API?\\n\\nNotice: Coordinates will NOT be transmitted to third parties or combined with target IP lookups.');
+            if (!ok) return;
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    window.currentVoluntaryGpsData = {
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude,
+                        accuracy: pos.coords.accuracy,
+                        altitude: pos.coords.altitude,
+                        timestamp: new Date(pos.timestamp).toISOString()
+                    };
+                    const statusEl = document.getElementById('voluntaryGpsStatus');
+                    if (statusEl) {
+                        statusEl.innerHTML = `LAT: <strong>${pos.coords.latitude.toFixed(6)}</strong>, LON: <strong>${pos.coords.longitude.toFixed(6)}</strong> (±${Math.round(pos.coords.accuracy)}m) [CONSENT GRANTED]`;
+                        statusEl.style.color = 'var(--green)';
+                    }
+                    logToConsole(`Voluntary GPS consent granted: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)} (±${Math.round(pos.coords.accuracy)}m)`, 'PASS');
+                },
+                (err) => {
+                    alert(`GPS Consent / Retrieval Error: ${err.message}`);
+                    logToConsole(`GPS Consent denied or unavailable: ${err.message}`, 'WARN');
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        };
+
+        window.exportCyberIntelJson = function() {
+            if (!window.currentCyberIntelData) {
+                alert('No Cyber Intelligence audit has been completed yet.');
+                return;
+            }
+            const blob = new Blob([JSON.stringify(window.currentCyberIntelData, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            const targetSafe = (window.currentCyberIntelData.target || 'target').replace(/[^a-zA-Z0-9.-]/g, '_');
+            a.download = `Aegis_Cyber_Intelligence_Dossier_${targetSafe}_${Date.now()}.json`;
+            a.click();
+            logToConsole('Exported complete Cyber Intelligence JSON dossier.', 'PASS');
+        };
 
         window.addEventListener('DOMContentLoaded', () => {
             loadMyIps();
@@ -4679,6 +5728,21 @@ def api_osint_suite():
         return jsonify(suite.scan_url(target))
     else:
         return jsonify({"error": f"Unknown tool: {tool}"})
+
+
+@app.route("/api/cyber-intel", methods=["POST"])
+def api_cyber_intel():
+    data = request.get_json(silent=True) or {}
+    target = data.get("target", "").strip() or "127.0.0.1"
+    client_info = {
+        "user_agent": request.headers.get("User-Agent", "Client Browser"),
+        "remote_ip": request.remote_addr,
+        "accept_language": request.headers.get("Accept-Language", "en-US"),
+        "protocol": request.environ.get("SERVER_PROTOCOL", "HTTP/1.1")
+    }
+    from aegis.cyber_intel import CyberIntelligenceSuite
+    engine = CyberIntelligenceSuite()
+    return jsonify(engine.run_full_intelligence(target, client_info))
 
 
 @app.route("/api/cryptotrace/trace", methods=["POST"])

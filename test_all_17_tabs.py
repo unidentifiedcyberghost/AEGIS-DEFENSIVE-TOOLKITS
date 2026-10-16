@@ -28,10 +28,11 @@ tests = [
     ('GET', '/api/active-traffic', None, 'LIVE TRAFFIC SNIFFER'),
     ('GET', '/api/attack-matrix', None, 'ATTACK MATRIX'),
     ('GET', '/api/playbooks', None, 'SERVER PLAYBOOKS'),
-    ('POST', '/api/export-dossier', {'report': {'attackers': []}}, 'CARRIER SUBPOENA DOSSIER')
+    ('POST', '/api/export-dossier', {'report': {'attackers': []}}, 'CARRIER SUBPOENA DOSSIER'),
+    ('POST', '/api/cyber-intel', {'target': '127.0.0.1'}, 'CYBER INTELLIGENCE SUITE')
 ]
 
-print(f"=== TESTING ALL 17 TABS & CAPABILITIES ON {BASE} ===")
+print(f"=== TESTING ALL TABS & CAPABILITIES ON {BASE} ===")
 failed = 0
 for method, path, body, name in tests:
     url = BASE + path
