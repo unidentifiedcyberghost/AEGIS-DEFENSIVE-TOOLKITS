@@ -50,9 +50,17 @@ Major intelligence release introducing institutional-grade cryptocurrency AML tr
     - If 0 profiles are found, renders a clean, focused amber notification banner stating zero confirmed footprints rather than 35+ red "NOT FOUND" rows.
 
 - **⌖ 20-in-1 Cyber OSINT Suite Real-Time Data Overhaul:**
-  - Integrated `CryptoTraceEngine` into Tool 6 (Crypto Tracer) for live on-chain AML verification and mixer checks.
-  - Enhanced Tool 5 (GitHub OSINT) to extract bio, company, avatar, public repos, and commit author email leaks.
-  - Added dedicated holographic renderer `renderSuiteToolOutput()` in Web HUD generating structured, real-time cards and tables for all 10 primary tools (Investigation Graph, Phone Analyzer, Email Analyzer, Dorks Generator, GitHub OSINT, Crypto Tracer, Hash Analyzer, Web Crawler, Reputation Checker, URL Scanner), eliminating unconfirmed / speculative fields and displaying real-time actionable intelligence only.
+  - **Tool 1: Investigation Graph:** Live Cloudflare DoH DNS (A, MX, NS) resolution, active socket service probing (ports 80, 443, 22, 53, 8080), live IP geolocation/ASN, and verified-only entity correlation rendered in a dynamic visual SVG node-link topology.
+  - **Tool 2: Phone Analyzer:** 70+ international country prefix database, exact carrier parsing (Philippines Globe/Smart/TNT/DITO, North American NPA-NXX area codes, UK 07 mobile, India TRAI, Australia mobile), VoIP scam risk scoring, and one-click WhatsApp, Telegram, and Truecaller links.
+  - **Tool 3: Email Analyzer:** Live Cloudflare DoH MX record validation, active SPF (`v=spf1`) and DMARC (`v=DMARC1`) anti-spoofing policy checks, 120+ disposable burner database checks, and HaveIBeenPwned/IntelX breach lookups.
+  - **Tool 4: Dorks Generator:** Precision tactical search dorks synthesized for Google, Bing, and DuckDuckGo targeting credentials, `.env` configs, database dumps, and Telegram channels.
+  - **Tool 5: GitHub OSINT:** Dual-tier architecture using GitHub API with automatic web-scraping fallback (immune to HTTP 403 rate limits), extracting public repositories, follower counts, and author email leaks from public commit patches.
+  - **Tool 6: Crypto Tracer:** Powered by `CryptoTraceEngine` for live on-chain Bitcoin balance/tx queries (`blockchain.info`), Ethereum JSON-RPC balance queries, and mixer/sanction attribution (Tornado Cash, Lazarus, WannaCry, Pig-Butchering syndicates).
+  - **Tool 7: Hash Analyzer:** Cryptographic bit-length algorithm detection (MD5, SHA-1/224/256/384/512, bcrypt, Argon2, Linux shadow hashes) with one-click crack lookups on CrackStation, HashToolkit, and CyberChef.
+  - **Tool 8: Web Crawler:** Live HTTP crawl with intelligent false-positive filtering for verified emails (omitting `.png`, `.jpg`, schema.org), phone numbers, social media links, and server response headers.
+  - **Tool 9: Reputation Checker:** Real-time DNSBL lookups on Spamhaus ZEN and SpamCop via socket DNS queries, live threat check against URLhaus API (`urlhaus-api.abuse.ch`), and AbuseIPDB/VirusTotal/AlienVault pivots.
+  - **Tool 10: URL Scanner:** Live HTTP request probe testing online/offline status, full redirect chain inspection (identifying deceptive redirects), and heuristic phishing indicators (raw IP hosts, discount TLDs, brand spoofing keywords, Punycode IDN).
+  - **Dedicated Holographic Renderers:** Upgraded `renderSuiteToolOutput()` in Web HUD generating dedicated metric cards and tables for all 10 tools, suppressing empty or speculative fields and displaying confirmed real data only.
 
 ---
 

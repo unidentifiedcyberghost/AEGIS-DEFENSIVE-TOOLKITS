@@ -2181,22 +2181,51 @@ HUD_HTML = """<!DOCTYPE html>
                 const nodes = data.nodes || [];
                 const links = data.links || [];
                 if (nodes.length <= 1) {
-                    container.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--amber);"><span class="holo-glyph">[⬡]</span> Zero correlated external entities confirmed for target '${escapeHtml(data.target || '')}'. Digital footprint minimal.</div>`;
+                    container.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--amber);"><span class="holo-glyph">[⬡]</span> Zero correlated external entities confirmed for target '${escapeHtml(data.target || '')}'. Digital footprint minimal or private.</div>`;
                     return;
                 }
-                let html = `<div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">`;
-                nodes.forEach(n => {
-                    html += `<div style="padding: 6px 12px; background: rgba(15,23,42,0.9); border: 1px solid ${n.color || 'var(--border-dim)'}; border-radius: 4px; font-size: 11px;">
-                        <span style="color: ${n.color || 'var(--cyan)'}; font-weight: bold;">[${escapeHtml(n.type || 'NODE')}]</span> ${escapeHtml(n.label)}
-                    </div>`;
+                const w = 680, h = 260, cx = 340, cy = 130;
+                const satelliteCount = nodes.length - 1;
+                const radius = 105;
+                let svgElements = '';
+                const posMap = { [nodes[0].id]: { x: cx, y: cy } };
+                for (let i = 1; i < nodes.length; i++) {
+                    const angle = (2 * Math.PI * (i - 1)) / satelliteCount - (Math.PI / 2);
+                    const nx = cx + radius * Math.cos(angle);
+                    const ny = cy + radius * Math.sin(angle);
+                    posMap[nodes[i].id] = { x: nx, y: ny };
+                }
+                links.forEach(l => {
+                    const p1 = posMap[l.source] || { x: cx, y: cy };
+                    const p2 = posMap[l.target] || { x: cx, y: cy };
+                    svgElements += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="rgba(0, 240, 255, 0.4)" stroke-width="1.5" stroke-dasharray="3,3" />`;
                 });
-                html += `</div>`;
-                html += `<table><thead><tr><th>SOURCE ENTITY</th><th>RELATIONSHIP</th><th>CORRELATED TARGET ENTITY</th></tr></thead><tbody>`;
+                for (let i = 1; i < nodes.length; i++) {
+                    const n = nodes[i];
+                    const p = posMap[n.id];
+                    const col = n.color || '#00FF88';
+                    svgElements += `
+                        <circle cx="${p.x}" cy="${p.y}" r="8" fill="rgba(8,13,26,0.95)" stroke="${col}" stroke-width="2" />
+                        <text x="${p.x}" y="${p.y + (p.y > cy ? 16 : -12)}" fill="${col}" font-size="10" font-family="'JetBrains Mono', monospace" text-anchor="middle" font-weight="bold">${escapeHtml(n.label.length > 25 ? n.label.slice(0, 23) + '..' : n.label)}</text>
+                    `;
+                }
+                svgElements += `
+                    <circle cx="${cx}" cy="${cy}" r="14" fill="rgba(0, 240, 255, 0.25)" stroke="var(--cyan)" stroke-width="2.5" />
+                    <circle cx="${cx}" cy="${cy}" r="5" fill="var(--cyan)" />
+                    <text x="${cx}" y="${cy - 20}" fill="var(--cyan)" font-size="12" font-family="'Space Grotesk', sans-serif" text-anchor="middle" font-weight="bold">[TARGET] ${escapeHtml(nodes[0].label)}</text>
+                `;
+                let html = `
+                    <div style="background: rgba(8,13,26,0.7); border: 1px solid var(--border-dim); border-radius: 6px; padding: 12px; margin-bottom: 14px; text-align: center;">
+                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px;">VISUAL NODE-LINK CORRELATION TOPOLOGY</div>
+                        <svg viewBox="0 0 ${w} ${h}" style="width: 100%; max-height: 260px; filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.15));">${svgElements}</svg>
+                    </div>
+                    <table><thead><tr><th>SOURCE ENTITY</th><th>RELATIONSHIP</th><th>CORRELATED TARGET ENTITY</th></tr></thead><tbody>
+                `;
                 links.forEach(l => {
                     html += `<tr>
                         <td style="color: var(--cyan); font-weight: bold;">${escapeHtml(l.source)}</td>
                         <td><span class="holo-tag">${escapeHtml(l.relation)}</span></td>
-                        <td style="color: var(--text-bright);">${escapeHtml(l.target)}</td>
+                        <td style="color: var(--text-bright); font-weight: bold;">${escapeHtml(l.target)}</td>
                     </tr>`;
                 });
                 html += `</tbody></table>`;
@@ -2207,27 +2236,40 @@ HUD_HTML = """<!DOCTYPE html>
                     return;
                 }
                 const isVoip = data.is_voip_risk;
+                const rev = data.reverse_lookup_links || {};
                 container.innerHTML = `
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px;">
-                        <div class="metric-card"><div class="metric-title">E.164 NUMBER</div><div class="metric-value" style="color: var(--cyan); font-size: 16px;">${escapeHtml(data.formatted_e164)}</div><div class="metric-sub">${escapeHtml(data.country || '')}</div></div>
-                        <div class="metric-card"><div class="metric-title">CARRIER / LINE</div><div class="metric-value" style="color: ${isVoip ? 'var(--red)' : 'var(--green)'}; font-size: 15px;">${isVoip ? 'VOIP / VIRTUAL' : 'CELLULAR / FIXED'}</div><div class="metric-sub">${escapeHtml(data.regulator || 'Standard')}</div></div>
-                        <div class="metric-card"><div class="metric-title">FRAUD RISK</div><div class="metric-value" style="color: ${isVoip ? 'var(--red)' : 'var(--green)'}; font-size: 18px;">${data.fraud_risk_score || 0}/100</div><div class="metric-sub">${isVoip ? 'HIGH SUSPICION' : 'NORMAL'}</div></div>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px;">
+                        <div class="metric-card"><div class="metric-title">E.164 NUMBER</div><div class="metric-value" style="color: var(--cyan); font-size: 15px;">${escapeHtml(data.formatted_e164)}</div><div class="metric-sub">${escapeHtml(data.country || '')} (${escapeHtml(data.iso_code || 'INTL')})</div></div>
+                        <div class="metric-card"><div class="metric-title">CARRIER HEURISTIC</div><div class="metric-value" style="color: var(--green); font-size: 13px;">${escapeHtml(data.carrier_hint || 'Standard')}</div><div class="metric-sub">${escapeHtml(data.area_info || data.region || 'National')}</div></div>
+                        <div class="metric-card"><div class="metric-title">LINE CATEGORY</div><div class="metric-value" style="color: ${isVoip ? 'var(--red)' : 'var(--text-bright)'}; font-size: 14px;">${escapeHtml(data.line_type || 'Cellular/Fixed')}</div><div class="metric-sub">${escapeHtml(data.regulator || 'Standard')}</div></div>
+                        <div class="metric-card"><div class="metric-title">VOIP SCAM RISK</div><div class="metric-value" style="color: ${isVoip ? 'var(--red)' : 'var(--green)'}; font-size: 18px;">${data.fraud_risk_score || 0}/100</div><div class="metric-sub">${isVoip ? 'HIGH SUSPICION' : 'NORMAL RANGE'}</div></div>
                     </div>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                         <a href="${data.whatsapp_link}" target="_blank" class="btn-preset" style="color: var(--green); text-decoration: none;"><span class="holo-glyph">[⧉]</span> OPEN IN WHATSAPP</a>
                         <a href="${data.telegram_link}" target="_blank" class="btn-preset" style="color: var(--neon-blue); text-decoration: none;"><span class="holo-glyph">[⧉]</span> OPEN IN TELEGRAM</a>
+                        ${rev.Truecaller ? `<a href="${rev.Truecaller}" target="_blank" class="btn-preset" style="color: var(--cyan); text-decoration: none;"><span class="holo-glyph">[⌖]</span> TRUECALLER LOOKUP</a>` : ''}
+                        ${rev.SyncMe ? `<a href="${rev.SyncMe}" target="_blank" class="btn-preset" style="color: var(--amber); text-decoration: none;"><span class="holo-glyph">[⌖]</span> SYNC.ME PROFILE</a>` : ''}
                     </div>
                 `;
             } else if (tool === 'email') {
                 const mx = data.mx_records || [];
                 const isBurner = data.is_disposable;
+                const spf = data.spf_record || 'Not Configured';
+                const dmarc = data.dmarc_record || 'Not Configured';
+                const hasSpf = data.has_spf;
+                const hasDmarc = data.has_dmarc;
+                const breach = data.breach_lookup_links || {};
                 container.innerHTML = `
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px;">
-                        <div class="metric-card"><div class="metric-title">TARGET EMAIL</div><div class="metric-value" style="color: var(--cyan); font-size: 15px;">${escapeHtml(data.email)}</div><div class="metric-sub">${escapeHtml(data.domain)}</div></div>
-                        <div class="metric-card"><div class="metric-title">PROVIDER INFRASTRUCTURE</div><div class="metric-value" style="color: var(--text-bright); font-size: 14px;">${escapeHtml(data.provider || 'Custom MX')}</div><div class="metric-sub">${mx.length} MX Records Found</div></div>
-                        <div class="metric-card"><div class="metric-title">DISPOSABLE BURNER</div><div class="metric-value" style="color: ${isBurner ? 'var(--red)' : 'var(--green)'}; font-size: 16px;">${isBurner ? '⚠️ DISPOSABLE' : 'VERIFIED PERMANENT'}</div><div class="metric-sub">Fraud Risk: ${data.fraud_risk_score || 5}/100</div></div>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px;">
+                        <div class="metric-card"><div class="metric-title">TARGET EMAIL</div><div class="metric-value" style="color: var(--cyan); font-size: 14px; word-break: break-all;">${escapeHtml(data.email)}</div><div class="metric-sub">${escapeHtml(data.domain)}</div></div>
+                        <div class="metric-card"><div class="metric-title">MAIL INFRASTRUCTURE</div><div class="metric-value" style="color: var(--text-bright); font-size: 13px;">${escapeHtml(data.provider || 'Custom MX')}</div><div class="metric-sub">${mx.length} MX Records Confirmed</div></div>
+                        <div class="metric-card"><div class="metric-title">DISPOSABLE BURNER</div><div class="metric-value" style="color: ${isBurner ? 'var(--red)' : 'var(--green)'}; font-size: 14px;">${isBurner ? '⚠️ BURNER INBOX' : 'PERMANENT DOMAIN'}</div><div class="metric-sub">Risk Score: ${data.fraud_risk_score || 5}/100</div></div>
+                        <div class="metric-card"><div class="metric-title">AUTHENTICATION</div><div class="metric-value" style="color: ${hasSpf && hasDmarc ? 'var(--green)' : 'var(--amber)'}; font-size: 13px;">${hasSpf ? 'SPF: PASS' : 'SPF: NONE'} | ${hasDmarc ? 'DMARC: PASS' : 'DMARC: NONE'}</div><div class="metric-sub">${hasSpf && hasDmarc ? 'Spoofing Protected' : 'Spoofing Possible'}</div></div>
                     </div>
-                    ${mx.length > 0 ? `<div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; font-weight: bold;">CONFIRMED MX EXCHANGES:</div><div style="font-family: monospace; font-size: 11px; color: var(--cyan); margin-bottom: 12px;">${mx.map(m => escapeHtml(m)).join('<br>')}</div>` : ''}
+                    ${mx.length > 0 ? `<div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; font-weight: bold;">CONFIRMED MX EXCHANGES (CLOUDFLARE DoH):</div><div style="font-family: monospace; font-size: 11px; color: var(--cyan); margin-bottom: 12px; background: rgba(8,13,26,0.6); padding: 8px; border-radius: 4px; border: 1px solid var(--border-dim);">${mx.map(m => escapeHtml(m)).join('<br>')}</div>` : '<div style="color: var(--red); font-size: 11px; margin-bottom: 12px;">Zero MX records resolved. Domain cannot receive inbound mail.</div>'}
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        ${Object.entries(breach).map(([k, v]) => `<a href="${v}" target="_blank" class="btn-preset" style="color: var(--cyan); text-decoration: none;"><span class="holo-glyph">[⌖]</span> SEARCH ${escapeHtml(k.toUpperCase())}</a>`).join('')}
+                    </div>
                 `;
             } else if (tool === 'dorks') {
                 const dorks = Array.isArray(data) ? data : (data.dorks || []);
@@ -2235,22 +2277,29 @@ HUD_HTML = """<!DOCTYPE html>
                     container.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted);">No dorks generated.</div>`;
                     return;
                 }
-                let html = `<table><thead><tr><th style="width: 180px;">INTEL CATEGORY</th><th>CUSTOM GOOGLE DORK</th><th style="width: 140px;">ACTION</th></tr></thead><tbody>`;
+                let html = `<table><thead><tr><th style="width: 170px;">INTEL CATEGORY</th><th>CUSTOM GOOGLE DORK</th><th style="width: 220px;">SEARCH ENGINES</th></tr></thead><tbody>`;
                 dorks.forEach(d => {
                     html += `<tr>
                         <td style="font-weight: bold; color: var(--amber);">${escapeHtml(d.category || 'Leak')}</td>
                         <td style="font-family: monospace; color: var(--cyan); font-size: 11px;">${escapeHtml(d.query)}</td>
-                        <td><a href="${d.search_url}" target="_blank" class="btn-preset" style="color: var(--green); text-decoration: none; display: inline-block;"><span class="holo-glyph">[⌖]</span> SEARCH GOOGLE</a></td>
+                        <td>
+                            <div style="display: flex; gap: 4px;">
+                                <a href="${d.search_url}" target="_blank" class="btn-preset" style="color: var(--green); text-decoration: none; padding: 3px 6px; font-size: 10px;"><span class="holo-glyph">[⌖]</span> GOOGLE</a>
+                                ${d.bing_url ? `<a href="${d.bing_url}" target="_blank" class="btn-preset" style="color: var(--neon-blue); text-decoration: none; padding: 3px 6px; font-size: 10px;"><span class="holo-glyph">[⌖]</span> BING</a>` : ''}
+                                ${d.duckduckgo_url ? `<a href="${d.duckduckgo_url}" target="_blank" class="btn-preset" style="color: var(--amber); text-decoration: none; padding: 3px 6px; font-size: 10px;"><span class="holo-glyph">[⌖]</span> DUCKDUCKGO</a>` : ''}
+                            </div>
+                        </td>
                     </tr>`;
                 });
                 html += `</tbody></table>`;
                 container.innerHTML = html;
             } else if (tool === 'github') {
                 if (data.found === false) {
-                    container.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--amber);"><span class="holo-glyph">[⬡]</span> Zero public GitHub activity confirmed for '@${escapeHtml(data.username || '')}'. No unverified data displayed.</div>`;
+                    container.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--amber);"><span class="holo-glyph">[⬡]</span> Zero public GitHub activity confirmed for '@${escapeHtml(data.username || '')}'. No unverified or speculative data displayed.</div>`;
                     return;
                 }
                 const emails = data.discovered_emails || [];
+                const repos = data.top_repositories || [];
                 container.innerHTML = `
                     <div style="display: flex; gap: 16px; align-items: flex-start; margin-bottom: 14px; background: rgba(8,13,26,0.6); padding: 14px; border: 1px solid var(--border-dim); border-radius: 6px;">
                         ${data.avatar_url ? `<img src="${data.avatar_url}" style="width: 64px; height: 64px; border-radius: 50%; border: 2px solid var(--cyan);" />` : ''}
@@ -2262,14 +2311,27 @@ HUD_HTML = """<!DOCTYPE html>
                                 <span>Location: <b style="color: var(--text-bright);">${escapeHtml(data.location || 'Unknown')}</b></span>
                                 <span>Public Repos: <b style="color: var(--green);">${data.public_repos || 0}</b></span>
                                 <span>Followers: <b style="color: var(--cyan);">${data.followers || 0}</b></span>
+                                <span>Created: <b style="color: var(--text-bright);">${escapeHtml(data.created_at || 'N/A')}</b></span>
                             </div>
                         </div>
                         <a href="${data.profile_url}" target="_blank" class="btn-action" style="text-decoration: none;"><span class="holo-glyph">[⧉]</span> VIEW PROFILE</a>
                     </div>
-                    ${emails.length > 0 ? `<div style="padding: 10px 14px; background: rgba(0, 255, 136, 0.08); border-left: 3px solid var(--green); margin-top: 10px; border-radius: 4px;">
-                        <span style="color: var(--green); font-weight: bold; font-size: 11px;"><span class="holo-glyph">[⚡]</span> EXPOSED GIT COMMIT AUTHOR EMAILS:</span>
+                    ${emails.length > 0 ? `<div style="padding: 10px 14px; background: rgba(0, 255, 136, 0.08); border-left: 3px solid var(--green); margin-bottom: 12px; border-radius: 4px;">
+                        <span style="color: var(--green); font-weight: bold; font-size: 11px;"><span class="holo-glyph">[⚡]</span> CONFIRMED COMMIT AUTHOR EMAILS (DISCOVERED IN PUBLIC PUSH EVENTS):</span>
                         <div style="font-family: monospace; color: var(--cyan); font-size: 12px; margin-top: 4px;">${emails.map(e => escapeHtml(e)).join(' | ')}</div>
-                    </div>` : '<div style="font-size: 11px; color: var(--text-muted);">No commit author emails publicly exposed in recent push events.</div>'}
+                    </div>` : '<div style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">Zero commit author emails publicly exposed in recent push events.</div>'}
+                    ${repos.length > 0 ? `
+                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; font-weight: bold;">TOP PUBLIC REPOSITORIES:</div>
+                        <table><thead><tr><th>REPOSITORY</th><th>PRIMARY LANGUAGE</th><th>STARS</th><th>FORKS</th><th>ACTION</th></tr></thead><tbody>
+                        ${repos.map(r => `<tr>
+                            <td style="font-weight: bold; color: var(--cyan);">${escapeHtml(r.name)}<div style="font-size: 10px; color: var(--text-muted);">${escapeHtml(r.description)}</div></td>
+                            <td><span class="holo-tag">${escapeHtml(r.language)}</span></td>
+                            <td style="color: var(--amber); font-weight: bold;">${r.stars} ★</td>
+                            <td style="color: var(--text-bright);">${r.forks}</td>
+                            <td><a href="${r.url}" target="_blank" class="btn-preset" style="color: var(--cyan); text-decoration: none; padding: 2px 6px; font-size: 10px;"><span class="holo-glyph">[⧉]</span> OPEN</a></td>
+                        </tr>`).join('')}
+                        </tbody></table>
+                    ` : ''}
                 `;
             } else if (tool === 'crypto') {
                 const chain = (data.network || data.currency || data.blockchain || 'Crypto').toUpperCase();
@@ -2291,7 +2353,7 @@ HUD_HTML = """<!DOCTYPE html>
                 container.innerHTML = `
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px;">
                         <div class="metric-card"><div class="metric-title">HASH STRING</div><div class="metric-value" style="color: var(--cyan); font-size: 13px; word-break: break-all;">${escapeHtml(data.hash)}</div><div class="metric-sub">Length: ${data.length || 0} characters</div></div>
-                        <div class="metric-card"><div class="metric-title">CANDIDATE ALGORITHMS</div><div class="metric-value" style="color: var(--green); font-size: 15px;">${escapeHtml(algos.slice(0, 2).join(', '))}</div><div class="metric-sub">${algos.length} possible hash types</div></div>
+                        <div class="metric-card"><div class="metric-title">CANDIDATE ALGORITHMS</div><div class="metric-value" style="color: var(--green); font-size: 14px;">${escapeHtml(algos.slice(0, 2).join(', '))}</div><div class="metric-sub">${algos.length} possible hash types</div></div>
                         <div class="metric-card"><div class="metric-title">ENCODING</div><div class="metric-value" style="color: var(--text-bright); font-size: 15px;">${data.is_hex ? 'Hexadecimal String' : 'Salted Crypt Format'}</div><div class="metric-sub">Standard Format</div></div>
                     </div>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -2307,7 +2369,7 @@ HUD_HTML = """<!DOCTYPE html>
                     return;
                 }
                 container.innerHTML = `
-                    <div style="margin-bottom: 12px; font-size: 12px; color: var(--text-bright);">Target: <b style="color: var(--cyan);">${escapeHtml(data.target || '')}</b> | Page Title: <i>${escapeHtml(data.page_title || '')}</i></div>
+                    <div style="margin-bottom: 12px; font-size: 12px; color: var(--text-bright);">Target: <b style="color: var(--cyan);">${escapeHtml(data.target || '')}</b> | Server: <b style="color: var(--green);">${escapeHtml(data.server_header || 'Hidden')}</b> | Page Title: <i>${escapeHtml(data.page_title || '')}</i></div>
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
                         <div class="table-container" style="padding: 10px;"><b style="color: var(--green);">EXTRACTED EMAILS (${emails.length}):</b><div style="font-family: monospace; font-size: 11px; margin-top: 6px; color: var(--cyan);">${emails.map(e => escapeHtml(e)).join('<br>') || 'None'}</div></div>
                         <div class="table-container" style="padding: 10px;"><b style="color: var(--cyan);">PHONE NUMBERS (${phones.length}):</b><div style="font-family: monospace; font-size: 11px; margin-top: 6px; color: var(--text-bright);">${phones.map(p => escapeHtml(p)).join('<br>') || 'None'}</div></div>
@@ -2316,8 +2378,22 @@ HUD_HTML = """<!DOCTYPE html>
                 `;
             } else if (tool === 'reputation') {
                 const sources = data.reputation_sources || {};
+                const findings = data.findings || [];
+                const isBlacklisted = data.is_blacklisted;
+                const score = data.threat_score || 0;
                 container.innerHTML = `
-                    <div style="font-size: 12px; color: var(--text-bright); margin-bottom: 12px;">Target Entity: <b style="color: var(--cyan);">${escapeHtml(data.target || '')}</b></div>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px;">
+                        <div class="metric-card"><div class="metric-title">TARGET ENTITY</div><div class="metric-value" style="color: var(--cyan); font-size: 15px;">${escapeHtml(data.target || '')}</div><div class="metric-sub">Resolved: ${escapeHtml(data.resolved_ip || 'N/A')}</div></div>
+                        <div class="metric-card"><div class="metric-title">DNSBL BLACKLIST</div><div class="metric-value" style="color: ${isBlacklisted ? 'var(--red)' : 'var(--green)'}; font-size: 16px;">${isBlacklisted ? '⚠️ BLACKLISTED' : 'CLEAN / UNLISTED'}</div><div class="metric-sub">Spamhaus / SpamCop</div></div>
+                        <div class="metric-card"><div class="metric-title">THREAT RATING</div><div class="metric-value" style="color: ${score >= 50 ? 'var(--red)' : 'var(--green)'}; font-size: 13.5px;">${escapeHtml(data.threat_rating || 'Clean')}</div><div class="metric-sub">${data.urlhaus_status || 'Normal'}</div></div>
+                        <div class="metric-card"><div class="metric-title">THREAT SCORE</div><div class="metric-value" style="color: ${score >= 50 ? 'var(--red)' : 'var(--green)'}; font-size: 18px;">${score}/100</div><div class="metric-sub">Risk Assessment</div></div>
+                    </div>
+                    <div class="table-container" style="padding: 12px; margin-bottom: 12px;">
+                        <b style="color: ${isBlacklisted ? 'var(--red)' : 'var(--green)'}; font-size: 12px;">REAL-TIME THREAT INTELLIGENCE FINDINGS:</b>
+                        <ul style="margin-left: 20px; font-size: 11.5px; color: var(--text-bright); margin-top: 6px;">
+                            ${findings.map(f => `<li>${escapeHtml(f)}</li>`).join('')}
+                        </ul>
+                    </div>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                         ${Object.entries(sources).map(([k, v]) => `<a href="${v}" target="_blank" class="btn-preset" style="color: var(--amber); text-decoration: none;"><span class="holo-glyph">[⌖]</span> QUERY ${escapeHtml(k.toUpperCase())}</a>`).join('')}
                     </div>
@@ -2325,12 +2401,20 @@ HUD_HTML = """<!DOCTYPE html>
             } else if (tool === 'url') {
                 const flags = data.heuristic_flags || [];
                 const risk = data.risk_score || 0;
+                const redirects = data.redirect_chain || [];
                 container.innerHTML = `
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px;">
-                        <div class="metric-card"><div class="metric-title">TARGET URL</div><div class="metric-value" style="color: var(--cyan); font-size: 14px; word-break: break-all;">${escapeHtml(data.url)}</div><div class="metric-sub">Host: ${escapeHtml(data.hostname || '')}</div></div>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px;">
+                        <div class="metric-card"><div class="metric-title">TARGET URL</div><div class="metric-value" style="color: var(--cyan); font-size: 13px; word-break: break-all;">${escapeHtml(data.url)}</div><div class="metric-sub">Host: ${escapeHtml(data.hostname || '')}</div></div>
+                        <div class="metric-card"><div class="metric-title">LIVE STATUS</div><div class="metric-value" style="color: ${data.is_online ? 'var(--green)' : 'var(--red)'}; font-size: 15px;">${data.is_online ? 'ONLINE (' + data.status_code + ')' : 'OFFLINE'}</div><div class="metric-sub">Server: ${escapeHtml(data.server_header || 'Hidden')}</div></div>
                         <div class="metric-card"><div class="metric-title">PHISHING RISK</div><div class="metric-value" style="color: ${risk >= 50 ? 'var(--red)' : (risk >= 25 ? 'var(--amber)' : 'var(--green)')}; font-size: 18px;">${risk}/100</div><div class="metric-sub">${escapeHtml(data.threat_rating || 'Clean')}</div></div>
                         <div class="metric-card"><div class="metric-title">FLAGS TRIGGERED</div><div class="metric-value" style="color: var(--text-bright); font-size: 18px;">${flags.length}</div><div class="metric-sub">Verified Heuristics</div></div>
                     </div>
+                    ${redirects.length > 1 ? `
+                        <div style="padding: 10px 14px; background: rgba(255, 51, 102, 0.08); border-left: 3px solid var(--red); margin-bottom: 12px; border-radius: 4px;">
+                            <span style="color: var(--red); font-weight: bold; font-size: 11px;"><span class="holo-glyph">[⚠️]</span> DECEPTIVE REDIRECT CHAIN DETECTED:</span>
+                            <div style="font-family: monospace; color: var(--text-bright); font-size: 11px; margin-top: 4px;">${redirects.map(r => escapeHtml(r)).join(' ➔ ')}</div>
+                        </div>
+                    ` : ''}
                     ${flags.length > 0 ? `<div class="table-container" style="padding: 12px;"><b style="color: var(--red);">TRIGGERED SUSPICIOUS SIGNALS:</b><ul style="margin-left: 20px; font-size: 11.5px; color: var(--text-main); margin-top: 6px;">${flags.map(f => `<li>${escapeHtml(f)}</li>`).join('')}</ul></div>` : '<div style="color: var(--green); font-size: 12px;"><span class="holo-glyph">[✔]</span> Zero phishing indicators or brand spoofing detected in URL hostname.</div>'}
                 `;
             } else {
@@ -3289,7 +3373,7 @@ def api_analyze_logs():
 
 @app.route("/api/osint/username", methods=["POST"])
 def api_osint_username():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     username = data.get("username", "")
     suite = AdvancedOsintSuite()
     res = suite.analyze_username(username)
@@ -3298,7 +3382,7 @@ def api_osint_username():
 
 @app.route("/api/osint/suite", methods=["POST"])
 def api_osint_suite():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     tool = data.get("tool", "graph")
     target = data.get("target", "localhost")
     suite = AdvancedOsintSuite()
@@ -3331,8 +3415,8 @@ def api_osint_suite():
 
 @app.route("/api/cryptotrace/trace", methods=["POST"])
 def api_cryptotrace_trace():
-    data = request.get_json() or {}
-    address = data.get("address", "").strip()
+    data = request.get_json(silent=True) or {}
+    address = (data.get("address") or data.get("wallet") or "").strip()
     tracer = CryptoTraceEngine()
     result = tracer.trace_wallet(address)
     return jsonify(result)
@@ -3340,7 +3424,7 @@ def api_cryptotrace_trace():
 
 @app.route("/api/cryptotrace/subpoena", methods=["POST"])
 def api_cryptotrace_subpoena():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     trace_result = data.get("trace_result", {})
     tracer = CryptoTraceEngine()
     dossier = tracer.generate_subpoena_dossier(trace_result)
@@ -3349,7 +3433,7 @@ def api_cryptotrace_subpoena():
 
 @app.route("/api/spiderfoot/recon", methods=["POST"])
 def api_spiderfoot_recon():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     target = data.get("target", "").strip()
     profile = data.get("profile", "all")
     recon = SpiderFootReconEngine()
