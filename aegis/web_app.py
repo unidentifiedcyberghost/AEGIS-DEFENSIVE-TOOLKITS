@@ -933,6 +933,30 @@ HUD_HTML = """<!DOCTYPE html>
                     </tbody>
                 </table>
             </div>
+
+            <!-- Vulnerable & Infected Directories / Backdoors / Databases Table -->
+            <div class="category-header-banner" style="margin-top: 18px;">
+                <div>
+                    <h2><span class="holo-glyph">[📁]</span> VULNERABLE &amp; INFECTED DIRECTORIES / WEBSHELLS / DATABASE AUDIT</h2>
+                    <p>Scans the target web server for infected website directories, exposed SQL database backups, administrative panels, and malicious PHP webshells.</p>
+                </div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 140px;">DIRECTORY / PATH</th>
+                            <th style="width: 180px;">CATEGORY</th>
+                            <th style="width: 100px;">SEVERITY</th>
+                            <th style="width: 170px;">STATUS</th>
+                            <th>REMEDIATION &amp; INSPECTION GUIDANCE</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyVulnerableDirs">
+                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 25px;">Ready. Run a defensive audit to inspect 20+ sensitive website paths, webshells, and databases.</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- ========================================== -->
@@ -1245,8 +1269,8 @@ HUD_HTML = """<!DOCTYPE html>
                     <button class="btn-preset" onclick="setSpiderFootTargetAndRun('localhost')">localhost (Self-Audit)</button>
                     <button class="btn-preset" onclick="setSpiderFootTargetAndRun('1.1.1.1')">1.1.1.1 (Cloudflare Clean)</button>
                     <button class="btn-preset" onclick="setSpiderFootTargetAndRun('185.220.101.5')">185.220.101.5 (Known Tor Exit)</button>
-                    <button class="btn-preset" onclick="setSpiderFootTargetAndRun('scam-crypto-wallet.org')">scam-crypto-wallet.org</button>
-                    <button class="btn-preset" onclick="setSpiderFootTargetAndRun('fraudster@darkmail.onion')">fraudster@darkmail.onion</button>
+                    <button class="btn-preset" onclick="setSpiderFootTargetAndRun('example.com')">example.com</button>
+                    <button class="btn-preset" onclick="setSpiderFootTargetAndRun('example@gmail.com')">example@gmail.com</button>
                 </div>
             </div>
 
@@ -1976,8 +2000,34 @@ HUD_HTML = """<!DOCTYPE html>
                         `;
                         tbody.appendChild(tr);
                     });
+                // Render vulnerable & infected directories / webshells / databases
+                const vulnDirs = report.vulnerable_directories || [];
+                const tbodyDirs = document.getElementById('tbodyVulnerableDirs');
+                if (tbodyDirs) {
+                    tbodyDirs.innerHTML = '';
+                    if (vulnDirs.length === 0) {
+                        tbodyDirs.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 25px;">No sensitive path checks executed.</td></tr>';
+                    } else {
+                        vulnDirs.forEach(d => {
+                            const tr = document.createElement('tr');
+                            const isExposed = (d.status || '').includes('INFECTED') || (d.status || '').includes('EXPOSED');
+                            const statusBadge = isExposed
+                                ? '<span class="badge-sev badge-crit"><span class="status-dot"></span> INFECTED / EXPOSED</span>'
+                                : '<span class="badge-sev badge-pass">✔ SECURE / PROTECTED</span>';
+                            const sevCls = d.severity === 'Critical' ? 'badge-crit' : (d.severity === 'High' ? 'badge-high' : 'badge-med');
+
+                            tr.innerHTML = `
+                                <td style="font-family: monospace; font-weight: bold; color: ${isExposed ? 'var(--red)' : 'var(--cyan)'};">${escapeHtml(d.path)}</td>
+                                <td style="color: var(--text-bright);">${escapeHtml(d.category || 'Sensitive Path')}<br><span style="font-size: 10px; color: var(--text-muted);">${escapeHtml(d.name || '')}</span></td>
+                                <td><span class="badge-sev ${sevCls}">${escapeHtml(d.severity)}</span></td>
+                                <td>${statusBadge} <span style="font-size: 10px; color: var(--text-muted); font-family: monospace;">(${d.code})</span></td>
+                                <td style="color: ${isExposed ? 'var(--amber)' : 'var(--text-muted)'}; font-size: 11px;">${escapeHtml(d.remediation)}</td>
+                            `;
+                            tbodyDirs.appendChild(tr);
+                        });
+                    }
                 }
-                logToConsole(`Audit complete: Score ${report.security_score || 100} (${report.score_grade || 'A+'}).`, 'PASS');
+                logToConsole(`Audit complete: Score ${report.security_score || 100} (${report.score_grade || 'A+'}). Inspected ${vulnDirs.length} sensitive paths.`, 'PASS');
             } catch (err) {
                 logToConsole('Audit execution failed: ' + err, 'THREAT');
             } finally {
@@ -2808,6 +2858,25 @@ HUD_HTML = """<!DOCTYPE html>
                 (dns.ipv6_addresses || []).forEach(ip => addTableRow(tbodyDns, ['AAAA (IPv6)', ip, 'Next-Gen IP']));
                 if (dns.reverse_dns && dns.reverse_dns !== 'None') addTableRow(tbodyDns, ['PTR (rDNS)', dns.reverse_dns, 'Reverse DNS Validation']);
                 (dns.mx_records || []).forEach(mx => addTableRow(tbodyDns, ['MX', mx, 'Mail Exchange Authority']));
+
+                // SSL/TLS Cryptanalysis
+                const ssl = recon.ssl || {};
+                const tbodySsl = document.getElementById('tbodyOsintSsl');
+                if (tbodySsl) {
+                    tbodySsl.innerHTML = '';
+                    if (!ssl || (!ssl.subject && !ssl.issuer)) {
+                        tbodySsl.innerHTML = '<tr><td colspan="2" style="text-align: center; color: var(--text-muted); padding: 15px;">No SSL/TLS certificate presented (Plain HTTP or Localhost).</td></tr>';
+                    } else {
+                        addTableRow(tbodySsl, ['Common Name (Subject)', ssl.subject || 'N/A']);
+                        addTableRow(tbodySsl, ['Issuer Authority', ssl.issuer || 'Self-Signed / Private CA']);
+                        addTableRow(tbodySsl, ['Valid From', ssl.valid_from || 'N/A']);
+                        addTableRow(tbodySsl, ['Expiration Date', ssl.valid_to || 'N/A']);
+                        addTableRow(tbodySsl, ['Days Remaining', `${ssl.days_remaining !== undefined ? ssl.days_remaining : 'N/A'} days`]);
+                        addTableRow(tbodySsl, ['Signature Algorithm', ssl.signature_algorithm || 'SHA-256 with RSA']);
+                        addTableRow(tbodySsl, ['Subject Alt Names (SAN)', (ssl.san || []).slice(0, 5).join(', ') || 'None']);
+                        addTableRow(tbodySsl, ['Certificate Status', ssl.is_expired ? '❌ EXPIRED' : (ssl.is_self_signed ? '⚠️ SELF-SIGNED' : '✔ VALID & TRUSTED')]);
+                    }
+                }
 
                 // IP Details, Origins, Routes, Tables
                 const details = recon.ip_details || {};

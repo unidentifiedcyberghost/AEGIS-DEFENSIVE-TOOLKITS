@@ -4,6 +4,29 @@ All notable changes, architectural implementations, enhancements, security patch
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.1] - 2026-10-16
+
+### 🛡️ Vulnerability Auditor Directory Sweeps, Target Connection Resilience & Strict OSINT Verification
+Maintenance and intelligence upgrade resolving public domain connectivity, integrating comprehensive website directory and webshell auditing, eliminating all soft-404/challenge false positives in Username OSINT, expanding SpiderFoot with database/backdoor sweeps, and populating live SSL cryptanalysis.
+
+### 🌟 New Features & Reliability Fixes
+- **🌐 Vulnerability Auditor & OWASP Target Connectivity Resilience (`aegis/auditor.py`):**
+  - **Resolved "Target Server Unreachable" for Public Domains:** Fixed connection dropouts for domains like `http://example.com` by adding automatic HTTP-to-HTTPS upgrade fallback, extended resilient socket timeout, and modern browser User-Agent headers (`Chrome/124`) to prevent edge WAF and bot drops.
+  - **Detailed Connection Diagnostics:** Replaced generic unreachable notices with exact exception telemetry (`ConnectionTimeout`, `SSLError`, `NameResolutionError`) to inform security operators immediately.
+- **📁 Vulnerable & Infected Directories / Webshell / Database Audit (`aegis/auditor.py`, `aegis/web_app.py`):**
+  - **20 Comprehensive Sensitive Path Checks:** Audits database dumps (`/database.sql`, `/dump.sql`, `/backup.sql`, `/db.sqlite3`), sensitive directories (`/admin/`, `/administrator/`, `/phpmyadmin/`, `/wp-admin/`, `/backup/`, `/uploads/`), and common attacker webshell backdoors (`/shell.php`, `/c99.php`, `/r57.php`, `/wso.php`).
+  - **Dedicated Web HUD Table (`[📁] VULNERABLE & INFECTED DIRECTORIES AUDIT`):** Added high-contrast inspection table in Tab 1 displaying exact path, category, severity, status (`INFECTED / EXPOSED` vs `SECURE / PROTECTED`), HTTP code, and direct remediation/removal guidance.
+- **🎯 Username OSINT False-Positive Elimination (`aegis/osint_suite.py`):**
+  - **Zero Unconfirmed Platforms Displayed:** Strictly filtered `analyze_username` to return ONLY confirmed accounts (`status == 'FOUND'`). Suppressed all non-existent or speculative entries.
+  - **Anti-Bot & Soft-404 Filters:** Added strict rejection for Cloudflare challenges, reCAPTCHAs, and soft-404 signatures across Steam Community, PyPI, Kaggle, Twitch, Spotify, HackTheBox, TryHackMe, Instagram, and TikTok. Integrated official public profile APIs (e.g. TryHackMe `api/v2/public-profile`).
+- **🕷️ SpiderFoot Scam Recon Engine Enhancements (`aegis/spiderfoot_recon.py`, `aegis/web_app.py`):**
+  - **Updated Quick Presets:** Replaced outdated placeholders with `example.com` and `example@gmail.com`.
+  - **3 New Active Modules:** Integrated `sfp_web_directories`, `sfp_database_exposure`, and `sfp_web_backdoors` to actively sweep target domains for exposed directories, SQL backups, and malicious webshell drops.
+- **🔐 SSL/TLS Cryptanalysis Telemetry (`aegis/web_app.py`):**
+  - Fully populated `tbodyOsintSsl` table with live certificate Common Name, Issuer Authority, validity dates, days remaining, signature algorithm, and SAN extensions.
+- **📜 Forensic Incident Dossier Fix (`aegis/active_defense.py`):**
+  - Added `ActiveDefenseManager.export_incident_report(report)` method generating SHA-256 sealed ISO/IEC 27037 and 18 U.S.C. § 2703(f) carrier subpoena dossiers.
+
 ---
 
 ## [2.6.0] - 2026-10-16

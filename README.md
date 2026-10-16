@@ -116,13 +116,28 @@ python main.py --sample-logs
 If you see the message:
 > *"Could not connect to http://example.com. Ensure the web server or localhost service is running."*
 
-Here is how to resolve it:
-1. **Scanning Localhost:**
+Here is why and how to resolve it:
+1. **Public Domain HTTPS / Port 80 Filter:**
+   Most modern public websites (including `example.com`) either drop or redirect unencrypted HTTP on port 80. Entering `https://example.com` or letting Aegis auto-upgrade ensures instant connection over TLS (port 443).
+2. **Dual-Stack IPv6/IPv4 Routing Delay:**
+   On Windows, Python attempts IPv6 connection first. Aegis v2.6.1 includes extended socket timeouts and modern browser User-Agent headers (`Chrome/124`) to bypass edge WAF / Cloudflare bot blocks.
+3. **Scanning Localhost:**
    Ensure your local web application (e.g., React, Vite, Express, Flask, Django, or Docker) is running on the specific port you entered (e.g. `http://localhost:3000` or `http://127.0.0.1:8000`).
-2. **Scanning Public Websites:**
-   Most modern public websites enforce HTTPS and block plain HTTP (port 80). **Ensure you include `https://`** when entering a public domain (e.g. `https://yourdomain.com`). Aegis now includes automatic HTTPS/HTTP fallback and multi-port probing to assist connection.
-3. **Local IP Auto-Discovery:**
-   Use the **"🎯 MY DETECTED LOCAL IPs"** button on the target bar to automatically detect and test your machine's LAN and loopback IP addresses.
+4. **Local IP Auto-Discovery:**
+   Use the **"[⌖] DETECTED HOST INTERFACES & LOCAL IPs"** bar with **"[◈] REFRESH IPs"** to automatically test and audit all your active network adapters.
+
+---
+
+## 📁 Vulnerable & Infected Website Directories / Databases / Webshells Audit
+
+Located directly in **Tab 1 (`[⬡] OWASP AUDIT`)**, this engine audits the web server document root for 20+ high-risk paths:
+* **Exposed SQL Database Dumps:** `/database.sql`, `/dump.sql`, `/backup.sql`, `/db.sqlite3`
+* **Malicious Attacker Webshells:** `/shell.php`, `/c99.php`, `/r57.php`, `/wso.php`
+* **Exposed Administrative Portals:** `/admin/`, `/administrator/`, `/phpmyadmin/`, `/wp-admin/`
+* **Public Backup & Upload Folders:** `/backup/`, `/uploads/`
+* **Private Credentials & Git Metadata:** `/.env`, `/.git/HEAD`, `/docker-compose.yml`, `/web.config`
+
+Each check displays its exact path, category, severity rating, real-time exposure status (`INFECTED / EXPOSED` vs `SECURE / PROTECTED`), HTTP status code, and concrete remediation instructions to eliminate the vulnerability.
 
 ---
 

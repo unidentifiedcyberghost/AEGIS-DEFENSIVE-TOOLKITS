@@ -89,6 +89,21 @@ class SpiderFootReconEngine:
             self._module_tech_stack(clean_target, findings)
             modules_run.append("sfp_tech_stack")
 
+        # 9. Web Directories & Sensitive Paths (sfp_web_directories)
+        if target_type in ("DOMAIN", "IP_ADDRESS"):
+            self._module_web_directories(clean_target, findings)
+            modules_run.append("sfp_web_directories")
+
+        # 10. Database Dump & Backup Exposure (sfp_database_exposure)
+        if target_type in ("DOMAIN", "IP_ADDRESS"):
+            self._module_database_exposure(clean_target, findings)
+            modules_run.append("sfp_database_exposure")
+
+        # 11. Malware Webshells & Backdoors (sfp_web_backdoors)
+        if target_type in ("DOMAIN", "IP_ADDRESS"):
+            self._module_web_backdoors(clean_target, findings)
+            modules_run.append("sfp_web_backdoors")
+
         elapsed_sec = round(time.time() - scan_start, 2)
 
         # Count Severities
@@ -375,3 +390,91 @@ class SpiderFootReconEngine:
                 })
         except Exception:
             pass
+
+    def _module_web_directories(self, target: str, findings: List[Dict[str, Any]]):
+        """Scans for exposed/infected website directories and sensitive management paths."""
+        base_url = f"https://{target}" if not target.startswith("http") else target
+        test_dirs = [
+            {"path": "/admin/", "name": "Administrative Interface", "sev": "HIGH", "kw": ["login", "admin", "dashboard"]},
+            {"path": "/administrator/", "name": "Joomla/CMS Administrator", "sev": "HIGH", "kw": ["administrator", "login"]},
+            {"path": "/backup/", "name": "Public Backup Directory", "sev": "HIGH", "kw": ["index of /backup", ".zip", ".sql"]},
+            {"path": "/uploads/", "name": "Public Uploads Directory", "sev": "MEDIUM", "kw": ["index of /uploads"]},
+            {"path": "/phpmyadmin/", "name": "phpMyAdmin Database Portal", "sev": "HIGH", "kw": ["phpmyadmin", "pma_"]},
+            {"path": "/wp-admin/", "name": "WordPress Admin Directory", "sev": "MEDIUM", "kw": ["wp-login.php", "wordpress"]},
+            {"path": "/.git/HEAD", "name": "Exposed Git Metadata", "sev": "CRITICAL", "kw": ["ref: refs/heads/"]},
+            {"path": "/.env", "name": "Environment Credentials File", "sev": "CRITICAL", "kw": ["DB_PASSWORD", "SECRET_KEY", "API_KEY"]}
+        ]
+
+        for d in test_dirs:
+            full_url = f"{base_url.rstrip('/')}{d['path']}"
+            try:
+                r = self.session.get(full_url, timeout=self.timeout, allow_redirects=False, verify=False)
+                if r.status_code == 200:
+                    text_lower = r.text.lower()
+                    if any(k.lower() in text_lower for k in d["kw"]):
+                        findings.append({
+                            "module": "sfp_web_directories",
+                            "type": "EXPOSED_DIRECTORY_OR_FILE",
+                            "data": full_url,
+                            "description": f"Exposed Sensitive Path: {d['name']} at {d['path']}",
+                            "confidence": "HIGH",
+                            "severity": d["sev"]
+                        })
+            except Exception:
+                pass
+
+    def _module_database_exposure(self, target: str, findings: List[Dict[str, Any]]):
+        """Scans for exposed SQL database dumps and SQLite files."""
+        base_url = f"https://{target}" if not target.startswith("http") else target
+        db_paths = [
+            {"path": "/database.sql", "name": "SQL Database Dump", "kw": ["CREATE TABLE", "INSERT INTO", "-- MySQL dump"]},
+            {"path": "/dump.sql", "name": "Database Dump File", "kw": ["CREATE TABLE", "INSERT INTO"]},
+            {"path": "/backup.sql", "name": "Database Backup File", "kw": ["CREATE TABLE", "INSERT INTO"]},
+            {"path": "/db.sqlite3", "name": "SQLite Database File", "kw": ["SQLite format 3"]}
+        ]
+
+        for db in db_paths:
+            full_url = f"{base_url.rstrip('/')}{db['path']}"
+            try:
+                r = self.session.get(full_url, timeout=self.timeout, stream=True, verify=False)
+                if r.status_code == 200:
+                    chunk = r.raw.read(512, decode_content=True).decode("utf-8", errors="ignore")
+                    if any(k in chunk for k in db["kw"]):
+                        findings.append({
+                            "module": "sfp_database_exposure",
+                            "type": "EXPOSED_DATABASE_DUMP",
+                            "data": full_url,
+                            "description": f"CRITICAL: Exposed Database File: {db['name']} ({db['path']}) accessible publicly!",
+                            "confidence": "HIGH",
+                            "severity": "CRITICAL"
+                        })
+            except Exception:
+                pass
+
+    def _module_web_backdoors(self, target: str, findings: List[Dict[str, Any]]):
+        """Scans for attacker webshell backdoors and malware drop files."""
+        base_url = f"https://{target}" if not target.startswith("http") else target
+        backdoor_paths = [
+            {"path": "/shell.php", "name": "Generic PHP Webshell", "kw": ["eval(", "system(", "passthru(", "base64_decode("]},
+            {"path": "/c99.php", "name": "c99 Webshell Backdoor", "kw": ["c99shell", "c99"]},
+            {"path": "/r57.php", "name": "r57 Webshell Backdoor", "kw": ["r57shell", "r57"]},
+            {"path": "/wso.php", "name": "WSO Webshell Backdoor", "kw": ["WSO", "FilesMan"]}
+        ]
+
+        for b in backdoor_paths:
+            full_url = f"{base_url.rstrip('/')}{b['path']}"
+            try:
+                r = self.session.get(full_url, timeout=self.timeout, stream=True, verify=False)
+                if r.status_code == 200:
+                    chunk = r.raw.read(1024, decode_content=True).decode("utf-8", errors="ignore")
+                    if any(k in chunk for k in b["kw"]):
+                        findings.append({
+                            "module": "sfp_web_backdoors",
+                            "type": "MALWARE_BACKDOOR_WEBSHELL",
+                            "data": full_url,
+                            "description": f"CRITICAL MALWARE: Webshell backdoor '{b['name']}' found at {b['path']}!",
+                            "confidence": "HIGH",
+                            "severity": "CRITICAL"
+                        })
+            except Exception:
+                pass

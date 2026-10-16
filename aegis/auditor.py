@@ -56,55 +56,187 @@ SECURITY_HEADERS = {
     }
 }
 
-# Sensitive Files often accidentally exposed on localhost / dev deployments
+# Expanded Sensitive Files, Database Dumps, Directories & Malware Webshell Checks
 SENSITIVE_LEAK_CHECKS = [
     {
         "path": "/.env",
         "name": "Environment Variables File (.env)",
+        "category": "Credential & Secret Leak",
         "indicators": ["DB_PASSWORD", "SECRET_KEY", "API_KEY", "APP_ENV", "DATABASE_URL", "AWS_"],
         "severity": "Critical",
         "penalty": 25,
-        "remediation": "Block access to dotfiles in your web server configuration (e.g., 'location ~ /\\. { deny all; }' in Nginx)."
+        "remediation": "Block access to dotfiles in web server configuration ('location ~ /\\. { deny all; }' in Nginx, or deny in .htaccess)."
     },
     {
         "path": "/.git/HEAD",
         "name": "Git Repository Metadata (.git/HEAD)",
+        "category": "Source Code Exposure",
         "indicators": ["ref: refs/heads/"],
         "severity": "Critical",
         "penalty": 25,
         "remediation": "Never serve the .git folder in public web roots. Deny access to .git directories immediately."
     },
     {
-        "path": "/.gitignore",
-        "name": "Git Ignore File (.gitignore)",
-        "indicators": ["node_modules", ".env", "*.log", "dist/"],
-        "severity": "Low",
-        "penalty": 5,
-        "remediation": "Prevent serving hidden developer configuration files."
+        "path": "/database.sql",
+        "name": "Exposed Database SQL Dump",
+        "category": "Database Exposure",
+        "indicators": ["CREATE TABLE", "INSERT INTO", "DROP TABLE", "-- MySQL dump"],
+        "severity": "Critical",
+        "penalty": 25,
+        "remediation": "Delete database dump files from public webroot immediately. Store backups outside the document root."
+    },
+    {
+        "path": "/dump.sql",
+        "name": "Database Dump File (/dump.sql)",
+        "category": "Database Exposure",
+        "indicators": ["CREATE TABLE", "INSERT INTO", "DROP TABLE", "-- MySQL dump"],
+        "severity": "Critical",
+        "penalty": 25,
+        "remediation": "Delete SQL dumps from document root immediately."
+    },
+    {
+        "path": "/backup.sql",
+        "name": "Database Backup File (/backup.sql)",
+        "category": "Database Exposure",
+        "indicators": ["CREATE TABLE", "INSERT INTO", "DROP TABLE"],
+        "severity": "Critical",
+        "penalty": 25,
+        "remediation": "Remove SQL backup files from public web accessible directories."
+    },
+    {
+        "path": "/db.sqlite3",
+        "name": "SQLite Database File (db.sqlite3)",
+        "category": "Database Exposure",
+        "indicators": ["SQLite format 3"],
+        "severity": "Critical",
+        "penalty": 25,
+        "remediation": "Move SQLite database outside of document root and configure server to deny .sqlite and .sqlite3 extensions."
+    },
+    {
+        "path": "/shell.php",
+        "name": "Malware Webshell Backdoor (/shell.php)",
+        "category": "Malware & Attacker Backdoor",
+        "indicators": ["eval(", "system(", "passthru(", "base64_decode(", "shell_exec("],
+        "severity": "Critical",
+        "penalty": 30,
+        "remediation": "CRITICAL: Malicious web shell detected! Quarantine/delete '/shell.php' immediately and inspect web server access logs for upload source."
+    },
+    {
+        "path": "/c99.php",
+        "name": "c99 Webshell Backdoor (/c99.php)",
+        "category": "Malware & Attacker Backdoor",
+        "indicators": ["c99shell", "c99", "eval(", "base64_decode("],
+        "severity": "Critical",
+        "penalty": 30,
+        "remediation": "CRITICAL: c99 web shell backdoor detected! Delete '/c99.php' immediately and investigate compromised FTP/CMS accounts."
+    },
+    {
+        "path": "/r57.php",
+        "name": "r57 Webshell Backdoor (/r57.php)",
+        "category": "Malware & Attacker Backdoor",
+        "indicators": ["r57shell", "r57", "eval("],
+        "severity": "Critical",
+        "penalty": 30,
+        "remediation": "CRITICAL: r57 web shell backdoor detected! Delete '/r57.php' immediately."
+    },
+    {
+        "path": "/wso.php",
+        "name": "WSO Webshell Backdoor (/wso.php)",
+        "category": "Malware & Attacker Backdoor",
+        "indicators": ["WSO", "FilesMan", "eval("],
+        "severity": "Critical",
+        "penalty": 30,
+        "remediation": "CRITICAL: WSO web shell backdoor detected! Delete '/wso.php' immediately."
+    },
+    {
+        "path": "/admin/",
+        "name": "Administrative Interface Directory (/admin/)",
+        "category": "Admin Portal Exposure",
+        "indicators": ["login", "admin", "dashboard", "password"],
+        "severity": "High",
+        "penalty": 15,
+        "remediation": "Restrict administrative directories by IP allowlisting (Nginx 'allow X.X.X.X; deny all;') or enforce 2FA/VPN access."
+    },
+    {
+        "path": "/administrator/",
+        "name": "Administrator Directory (/administrator/)",
+        "category": "Admin Portal Exposure",
+        "indicators": ["login", "administrator", "password"],
+        "severity": "High",
+        "penalty": 15,
+        "remediation": "Restrict '/administrator/' path access to internal management IPs."
+    },
+    {
+        "path": "/phpmyadmin/",
+        "name": "phpMyAdmin Database Management Interface",
+        "category": "Database Portal Exposure",
+        "indicators": ["phpMyAdmin", "pma_", "MySQL"],
+        "severity": "High",
+        "penalty": 20,
+        "remediation": "Restrict phpMyAdmin access to localhost or trusted internal management IP addresses."
+    },
+    {
+        "path": "/wp-admin/",
+        "name": "WordPress Admin Directory (/wp-admin/)",
+        "category": "CMS Admin Exposure",
+        "indicators": ["wp-login.php", "WordPress"],
+        "severity": "Medium",
+        "penalty": 10,
+        "remediation": "Enforce two-factor authentication on /wp-admin/ and limit login attempts using security plugins."
+    },
+    {
+        "path": "/backup/",
+        "name": "Backup Directory (/backup/)",
+        "category": "Backup Exposure",
+        "indicators": ["Index of /backup", ".zip", ".tar.gz", ".sql"],
+        "severity": "High",
+        "penalty": 20,
+        "remediation": "Remove public backup directory and store all archive backups outside the web server root."
+    },
+    {
+        "path": "/uploads/",
+        "name": "Uploads Directory (/uploads/)",
+        "category": "File Upload Directory",
+        "indicators": ["Index of /uploads"],
+        "severity": "Medium",
+        "penalty": 10,
+        "remediation": "Disable PHP/script execution inside the /uploads/ directory and turn off directory indexing."
+    },
+    {
+        "path": "/phpinfo.php",
+        "name": "PHP Diagnostic Info Page (/phpinfo.php)",
+        "category": "Information Disclosure",
+        "indicators": ["PHP Version", "Configuration File (php.ini)", "System"],
+        "severity": "High",
+        "penalty": 15,
+        "remediation": "Remove phpinfo() diagnostic scripts from public web servers."
     },
     {
         "path": "/docker-compose.yml",
         "name": "Docker Compose Configuration",
+        "category": "DevOps Config Exposure",
         "indicators": ["services:", "version:", "image:", "ports:"],
         "severity": "High",
         "penalty": 15,
         "remediation": "Ensure configuration files are stored outside the public document root."
     },
     {
-        "path": "/phpinfo.php",
-        "name": "PHP Info Diagnostic Page",
-        "indicators": ["PHP Version", "Configuration File (php.ini)", "System"],
-        "severity": "High",
-        "penalty": 15,
-        "remediation": "Remove phpinfo() scripts from production and public-facing environments."
-    },
-    {
         "path": "/web.config",
         "name": "IIS Web Server Configuration",
+        "category": "Server Config Exposure",
         "indicators": ["<configuration>", "<system.webServer>"],
         "severity": "High",
         "penalty": 15,
         "remediation": "Ensure IIS blocks serving .config files through Request Filtering."
+    },
+    {
+        "path": "/.gitignore",
+        "name": "Git Ignore File (.gitignore)",
+        "category": "Information Disclosure",
+        "indicators": ["node_modules", ".env", "*.log", "dist/"],
+        "severity": "Low",
+        "penalty": 5,
+        "remediation": "Prevent serving hidden developer configuration files."
     }
 ]
 
@@ -112,7 +244,7 @@ SENSITIVE_LEAK_CHECKS = [
 class WebAuditor:
     """Performs defensive posture audits against a target web server."""
 
-    def __init__(self, target_url: str, timeout: int = 6):
+    def __init__(self, target_url: str, timeout: int = 8):
         target_url = target_url.strip()
         parsed = urllib.parse.urlparse(target_url)
         if not parsed.scheme:
@@ -127,7 +259,10 @@ class WebAuditor:
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers.update({
-            "User-Agent": "AegisHUD-DefensiveAuditor/2.0 (Localhost & Web Security Inspector; +https://github.com/unidentifiedcyberghost/AEGIS-DEFENSIVE-TOOLKITS)"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 AegisDefensiveAuditor/2.0",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Connection": "keep-alive"
         })
 
     def run_full_audit(self, progress_callback=None) -> Dict[str, Any]:
@@ -146,6 +281,7 @@ class WebAuditor:
             "headers_audited": {},
             "cookies_audited": [],
             "leak_checks": [],
+            "vulnerable_directories": [],
             "cors_check": {},
             "methods_check": {},
             "summary": {"critical": 0, "high": 0, "medium": 0, "low": 0, "pass": 0}
@@ -157,16 +293,18 @@ class WebAuditor:
 
         if progress_callback:
             progress_callback(25, "Testing target connectivity and baseline latency...")
+        self.last_conn_error = None
         base_resp = self._test_connectivity()
         if not base_resp:
             report["score"] = 0
             report["grade"] = "F"
+            err_detail = f" ({self.last_conn_error})" if self.last_conn_error else ""
             report["findings"].append({
                 "id": "CONN_FAIL",
                 "severity": "Critical",
                 "title": "Target Server Unreachable",
-                "description": f"Could not connect to {self.target_url}. Ensure the web server or localhost service is running.",
-                "remediation": "1. If scanning localhost, ensure your local app (e.g. 'npm run dev', 'python -m http.server 8000', Flask, Express) is currently running on that port.\n2. If scanning a public domain, ensure you specify 'https://' if the site requires SSL (e.g. https://yourdomain.com).\n3. Check if your firewall or antivirus is blocking connection."
+                "description": f"Could not connect to {self.target_url}{err_detail}. Ensure the web server or localhost service is running.",
+                "remediation": "1. If scanning localhost, ensure your local app (e.g. 'npm run dev', 'python -m http.server 8000', Flask, Express) is currently running on that port.\n2. If scanning a public domain, ensure you specify 'https://' if the site requires SSL (e.g. https://yourdomain.com).\n3. Check if your firewall or antivirus is blocking outbound HTTP/HTTPS connection."
             })
             report["summary"]["critical"] += 1
             self._finalize_score(report)
@@ -195,9 +333,9 @@ class WebAuditor:
             progress_callback(75, "Checking CORS and HTTP method configuration...")
         self._audit_cors_and_methods(report)
 
-        # 5. Sensitive File Exposure Checks
+        # 5. Sensitive File Exposure & Vulnerable Directory Checks
         if progress_callback:
-            progress_callback(85, "Checking defensive docroot configuration & dotfile exposure...")
+            progress_callback(85, "Auditing website directories, databases & webshell exposures...")
         self._audit_sensitive_files(report)
 
         # Final Score & Grade Calculation
@@ -226,8 +364,8 @@ class WebAuditor:
         # 1. Try target_url directly
         try:
             return self.session.get(self.target_url, timeout=self.timeout, allow_redirects=True, verify=False)
-        except Exception:
-            pass
+        except Exception as e:
+            self.last_conn_error = f"{type(e).__name__}: {str(e)}"
 
         # 2. Try alternate scheme fallback (http <-> https)
         alt_scheme = "https" if self.parsed.scheme == "http" else "http"
@@ -239,11 +377,11 @@ class WebAuditor:
                 self.target_url = candidate_url.rstrip("/")
                 self.parsed = urllib.parse.urlparse(candidate_url)
                 return resp
-        except Exception:
-            pass
+        except Exception as e:
+            self.last_conn_error = f"{type(e).__name__}: {str(e)}"
 
         # 3. If localhost / local IP without explicit port, probe common active dev ports
-        if not self.parsed.port:
+        if not self.parsed.port and self.parsed.hostname in ("localhost", "127.0.0.1"):
             for alt_port in [8000, 3000, 5000, 8080, 5173, 4000, 8443]:
                 for sch in ["http", "https"]:
                     try:
@@ -634,18 +772,58 @@ class WebAuditor:
                         report["findings"].append({
                             "id": f"LEAK_EXPOSED_{check['path'].replace('/', '_').replace('.', '')}",
                             "severity": check["severity"],
-                            "title": f"Exposed Sensitive File: {check['name']}",
-                            "description": f"The file '{check['path']}' is directly accessible at {url} and contains sensitive signatures.",
+                            "title": f"Exposed Sensitive Path: {check['name']}",
+                            "description": f"The file/path '{check['path']}' is directly accessible at {url} and contains sensitive signatures.",
                             "remediation": check["remediation"]
                         })
                         report["summary"][check["severity"].lower()] += 1
                         report["leak_checks"].append({"path": check["path"], "status": "EXPOSED", "code": 200})
+                        report["vulnerable_directories"].append({
+                            "path": check["path"],
+                            "name": check["name"],
+                            "category": check.get("category", "Vulnerable Directory"),
+                            "severity": check["severity"],
+                            "status": "INFECTED / EXPOSED",
+                            "code": 200,
+                            "url": url,
+                            "remediation": check["remediation"]
+                        })
                     else:
                         report["leak_checks"].append({"path": check["path"], "status": "SAFE", "code": r.status_code})
+                        report["vulnerable_directories"].append({
+                            "path": check["path"],
+                            "name": check["name"],
+                            "category": check.get("category", "Vulnerable Directory"),
+                            "severity": check["severity"],
+                            "status": "SECURE / PROTECTED",
+                            "code": r.status_code,
+                            "url": url,
+                            "remediation": "Path is protected or returns non-leaking response."
+                        })
                 else:
                     report["leak_checks"].append({"path": check["path"], "status": "BLOCKED", "code": r.status_code})
-            except Exception:
+                    report["vulnerable_directories"].append({
+                        "path": check["path"],
+                        "name": check["name"],
+                        "category": check.get("category", "Vulnerable Directory"),
+                        "severity": check["severity"],
+                        "status": "BLOCKED / DENIED",
+                        "code": r.status_code,
+                        "url": url,
+                        "remediation": "Access is blocked (HTTP status code denied)."
+                    })
+            except Exception as e:
                 report["leak_checks"].append({"path": check["path"], "status": "ERROR", "code": 0})
+                report["vulnerable_directories"].append({
+                    "path": check["path"],
+                    "name": check["name"],
+                    "category": check.get("category", "Vulnerable Directory"),
+                    "severity": check["severity"],
+                    "status": "TIMEOUT / BLOCKED",
+                    "code": 0,
+                    "url": url,
+                    "remediation": f"Connection dropped or filtered: {str(e)[:60]}"
+                })
 
     def _finalize_score(self, report: Dict[str, Any]):
         score = max(0, min(100, report["score"]))

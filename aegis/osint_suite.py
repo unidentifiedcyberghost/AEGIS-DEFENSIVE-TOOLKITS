@@ -81,7 +81,7 @@ USERNAME_PLATFORMS = [
     {"name": "Keybase", "cat": "Security", "url": "https://keybase.io/{u}", "check_url": "https://keybase.io/_/api/1.0/user/lookup.json?usernames={u}"},
     {"name": "Pastebin", "cat": "Dumps", "url": "https://pastebin.com/u/{u}", "check_url": "https://pastebin.com/u/{u}"},
     {"name": "HackTheBox", "cat": "Security", "url": "https://app.hackthebox.com/profile/{u}", "check_url": "https://app.hackthebox.com/profile/{u}"},
-    {"name": "TryHackMe", "cat": "Security", "url": "https://tryhackme.com/p/{u}", "check_url": "https://tryhackme.com/p/{u}"}
+    {"name": "TryHackMe", "cat": "Security", "url": "https://tryhackme.com/p/{u}", "check_url": "https://tryhackme.com/api/v2/public-profile?username={u}", "type": "api_tryhackme"}
 ]
 
 # Disposable / Temporary Email Domains (High fraud / scam indicator)
@@ -144,9 +144,14 @@ class AdvancedOsintSuite:
             try:
                 t0 = time.time()
                 if plat_type == "api_github":
+                    r = self.session.get(chk_url, timeout=self.timeout, headers={"User-Agent": "Aegis-OSINT-Inspector"})
+                    response_ms = round((time.time() - t0) * 1000)
+                    if r.status_code == 200 and r.json().get("login"):
+                        status = "FOUND"
+                elif plat_type == "api_tryhackme":
                     r = self.session.get(chk_url, timeout=self.timeout)
                     response_ms = round((time.time() - t0) * 1000)
-                    if r.status_code == 200:
+                    if r.status_code == 200 and r.json().get("status") == "success":
                         status = "FOUND"
                 elif "about.json" in chk_url: # Reddit
                     r = self.session.get(chk_url, timeout=self.timeout)
@@ -156,7 +161,7 @@ class AdvancedOsintSuite:
                 elif "chess.com" in chk_url:
                     r = self.session.get(chk_url, timeout=self.timeout)
                     response_ms = round((time.time() - t0) * 1000)
-                    if r.status_code == 200:
+                    if r.status_code == 200 and r.json().get("username"):
                         status = "FOUND"
                 elif "keybase.io" in chk_url:
                     r = self.session.get(chk_url, timeout=self.timeout)
@@ -166,35 +171,68 @@ class AdvancedOsintSuite:
                 elif "t.me" in chk_url:
                     r = self.session.get(chk_url, timeout=self.timeout)
                     response_ms = round((time.time() - t0) * 1000)
-                    # t.me returns 200 even for non-existent users, but page content has extra info
-                    if r.status_code == 200 and "tgme_page_extra" in r.text:
+                    if r.status_code == 200 and "tgme_page_extra" in r.text and clean_user.lower() in r.text.lower():
                         status = "FOUND"
                 elif "hacker-news" in chk_url:
                     r = self.session.get(chk_url, timeout=self.timeout)
                     response_ms = round((time.time() - t0) * 1000)
                     if r.status_code == 200 and r.json() is not None:
                         status = "FOUND"
+                elif "steamcommunity.com" in chk_url:
+                    r = self.session.get(chk_url, timeout=self.timeout)
+                    response_ms = round((time.time() - t0) * 1000)
+                    t_lower = r.text.lower()
+                    if r.status_code == 200 and "the specified profile could not be found" not in t_lower and "profile_fatalerror" not in t_lower and clean_user.lower() in t_lower:
+                        status = "FOUND"
                 else:
                     r = self.session.get(chk_url, timeout=self.timeout, allow_redirects=True)
                     response_ms = round((time.time() - t0) * 1000)
                     if r.status_code == 200:
-                        # Negative checks for platforms that soft-404
-                        if "pinterest.com" in chk_url and "User not found" in r.text:
+                        t = r.text.lower()
+                        # 1. Anti-bot / Cloudflare / WAF challenge detection
+                        challenge_markers = [
+                            "client challenge", "checking your browser", "recaptcha", 
+                            "cf-browser-verification", "attention required", "just a moment...",
+                            "ddos protection by cloudflare", "enable javascript and cookies"
+                        ]
+                        has_challenge = any(cm in t for cm in challenge_markers)
+
+                        # 2. General soft-404 patterns
+                        soft_404_markers = [
+                            "could not be found", "user not found", "profile not found",
+                            "page not found", "doesn't exist", "this account doesn't exist",
+                            "couldn't find this account", "the specified profile could not be found",
+                            "user profile not found", "this page isn't available", "sorry, this page isn't available",
+                            "we couldn't find", "404 not found"
+                        ]
+                        has_soft404 = any(sm in t for sm in soft_404_markers)
+
+                        if has_challenge or has_soft404:
                             status = "NOT_FOUND"
-                        elif "tiktok.com" in chk_url and "Couldn't find this account" in r.text:
-                            status = "NOT_FOUND"
-                        elif "gitlab.com" in chk_url and "The page you're looking for could not be found" in r.text:
-                            status = "NOT_FOUND"
-                        elif "pastebin.com" in chk_url and "Not Found" in r.text:
-                            status = "NOT_FOUND"
+                        elif "pypi.org" in chk_url:
+                            status = "FOUND" if "user profile" in t and clean_user.lower() in t else "NOT_FOUND"
+                        elif "open.spotify.com" in chk_url:
+                            status = "FOUND" if "web player" not in t and clean_user.lower() in t else "NOT_FOUND"
+                        elif "app.hackthebox.com" in chk_url:
+                            status = "FOUND" if clean_user.lower() in t and "challenge" not in t else "NOT_FOUND"
+                        elif "instagram.com" in chk_url:
+                            status = "FOUND" if "login" not in t and clean_user.lower() in t else "NOT_FOUND"
+                        elif "tiktok.com" in chk_url:
+                            status = "FOUND" if "couldn't find this account" not in t and clean_user.lower() in t else "NOT_FOUND"
+                        elif "twitch.tv" in chk_url:
+                            status = "FOUND" if "unavailable" not in t and clean_user.lower() in t else "NOT_FOUND"
+                        elif "kaggle.com" in chk_url:
+                            status = "FOUND" if "kaggle-spa" not in t and clean_user.lower() in t else "NOT_FOUND"
                         else:
-                            status = "FOUND"
-                    elif r.status_code in (403, 429):
-                        status = "RATE_LIMITED"
+                            # Must verify username appears in response body to avoid generic default pages
+                            if clean_user.lower() in t:
+                                status = "FOUND"
+                            else:
+                                status = "NOT_FOUND"
                     else:
                         status = "NOT_FOUND"
             except Exception:
-                status = "TIMEOUT_OR_BLOCKED"
+                status = "NOT_FOUND"
 
             return {
                 "name": plat["name"],
@@ -209,13 +247,13 @@ class AdvancedOsintSuite:
             futures = [executor.submit(check_platform, p) for p in USERNAME_PLATFORMS]
             for f in as_completed(futures):
                 res = f.result()
-                results.append(res)
                 if res["status"] == "FOUND":
+                    results.append(res)
                     found_count += 1
                     categories_found.add(res["category"])
 
-        # Sort so FOUND platforms appear on top
-        results.sort(key=lambda x: (0 if x["status"] == "FOUND" else 1, x["category"], x["name"]))
+        # Sort confirmed real profiles alphabetically by category & name
+        results.sort(key=lambda x: (x["category"], x["name"]))
 
         # Generate Google Dorks for this username
         dorks = self.generate_username_dorks(clean_user)
@@ -229,8 +267,8 @@ class AdvancedOsintSuite:
             f"{clean_user}@yahoo.com"
         ]
 
-        # Calculate confidence & digital footprint footprint rating
-        rating = "Low"
+        # Calculate confidence & digital footprint rating
+        rating = "Zero Footprint"
         if found_count >= 6:
             rating = "Extensive Footprint (High Confidence Correlation)"
         elif found_count >= 3:

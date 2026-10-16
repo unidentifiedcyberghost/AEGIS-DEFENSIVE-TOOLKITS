@@ -216,3 +216,11 @@ standard digital evidence collection best practices (ISO/IEC 27037).
 [END OF FORMAL REPORT // AEGIS DEFENSIVE SUITE // DEVELOPED BY TEAM WHITE HAT]
 """
         return dossier
+
+    @staticmethod
+    def export_incident_report(report: Dict[str, Any]) -> str:
+        """Alias wrapper to generate formal law enforcement dossier from report dict."""
+        target_host = report.get("target_host") or report.get("target") or "Protected Web Asset"
+        attackers = report.get("attackers") or report.get("attacker_list") or []
+        raw_log = report.get("raw_log_excerpt") or report.get("raw_logs") or ""
+        return ActiveDefenseManager.generate_law_enforcement_dossier(target_host, attackers, raw_log)
