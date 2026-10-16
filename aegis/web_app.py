@@ -1,22 +1,14 @@
 """
-Aegis Localhost Web Dashboard
-Serves an interactive Sci-Fi CIA-style Tactical HUD in the browser at http://127.0.0.1:5000.
-Features:
-- Full Category Separation (Cat 1 to Cat 8)
-- [CAT 1] Vulnerability Auditor & Compliance
-- [CAT 2] Cyber OSINT & Attack Surface Intelligence Engine (DNS, Subdomains, SSL/TLS, BGP/ASN, Tech Stack)
-- [CAT 3] Malware, Web Shell & Infected Path Scanner (Bright RED paths, Quarantine & Permanent Delete)
-- [CAT 4] Anti-XSS, Data Injection & Malicious Script Execution Shield (CSP, Sanitizers, ModSec WAF)
-- [CAT 5] Localhost Ports, Sockets & Host Server Rootkit/Malware Auditor (Process Kill, Temp Drops)
-- [CAT 6] Attacker Tracker & IDS (VPN/Proxy/Tor flags, Hardware Fingerprint, Hitting Freq)
-- [CAT 7] Cyber Attack Matrix & Remediation Dashboard (All Attacks, Symptoms, Emergency Actions, Permanent Fixes, Multi-Language Code)
-- [CAT 8] Law Enforcement Evidence & Carrier Subpoena Dossier (ISO/IEC 27037)
-- Developed by Team White Hat
+Aegis Localhost Web Dashboard - Holographic Cyber Defense War Room & 20-in-1 OSINT Suite
+Serves a Sci-Fi Tactical HUD in the browser at http://127.0.0.1:5000.
+Minimal Holographic Style, Real-Time Connection Monitoring, Live IDS Logging, and Full Spectrum OSINT.
+Developed by Team White Hat.
 """
 
 import os
 import warnings
 import urllib3
+from datetime import datetime
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
@@ -34,8 +26,29 @@ from aegis.injection_defense import InjectionDefenseEngine
 from aegis.server_auditor import ServerSystemAuditor
 from aegis.attack_matrix import ATTACK_MATRIX
 from aegis.playbook import PLAYBOOKS
+from aegis.osint_suite import AdvancedOsintSuite
 
 app = Flask(__name__)
+
+# Real-Time In-Memory Server Access Logs buffer
+LIVE_ACCESS_LOGS = []
+
+
+@app.before_request
+def log_live_incoming_request():
+    """Captures real-time incoming HTTP requests to localhost into the IDS buffer."""
+    path = request.path
+    if path.startswith("/api/active-traffic") or path.startswith("/static"):
+        return  # Avoid log pollution from polling
+    now_str = datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
+    client_ip = request.remote_addr or "127.0.0.1"
+    ua = request.headers.get("User-Agent", "Aegis-Client/2.5")[:80]
+    full_path = request.full_path if request.query_string else request.path
+    line = f'{client_ip} - - [{now_str}] "{request.method} {full_path} HTTP/1.1" 200 1024 "-" "{ua}"'
+    LIVE_ACCESS_LOGS.append(line)
+    if len(LIVE_ACCESS_LOGS) > 2000:
+        LIVE_ACCESS_LOGS.pop(0)
+
 
 HUD_HTML = """<!DOCTYPE html>
 <html lang="en">
@@ -48,39 +61,34 @@ HUD_HTML = """<!DOCTYPE html>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-void: #04070D;
-            --bg-panel: rgba(10, 15, 29, 0.94);
-            --bg-card: rgba(15, 23, 42, 0.85);
-            --border-dim: #182338;
+            --bg-void: #030712;
+            --bg-panel: rgba(11, 19, 38, 0.92);
+            --bg-card: rgba(15, 23, 42, 0.88);
+            --border-dim: rgba(0, 240, 255, 0.18);
             --border-glow: #00F0FF;
             --cyan: #00F0FF;
+            --neon-blue: #00A3FF;
             --green: #00FF88;
             --amber: #FFB800;
             --red: #FF3366;
+            --violet: #B026FF;
             --text-bright: #F8FAFC;
             --text-main: #CBD5E1;
             --text-muted: #64748B;
             --font-mono: 'JetBrains Mono', 'Consolas', monospace;
             --font-sans: 'Space Grotesk', sans-serif;
+            --holo-glow: 0 0 14px rgba(0, 240, 255, 0.35);
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            scrollbar-width: none !important; /* Firefox */
-            -ms-overflow-style: none !important; /* IE/Edge */
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
         }
 
-        *::-webkit-scrollbar,
-        body::-webkit-scrollbar,
-        div::-webkit-scrollbar,
-        pre::-webkit-scrollbar,
-        table::-webkit-scrollbar,
-        .table-container::-webkit-scrollbar,
-        .matrix-list-box::-webkit-scrollbar,
-        .matrix-detail-box::-webkit-scrollbar,
-        .hud-console::-webkit-scrollbar {
+        *::-webkit-scrollbar {
             display: none !important;
             width: 0px !important;
             height: 0px !important;
@@ -95,11 +103,9 @@ HUD_HTML = """<!DOCTYPE html>
             line-height: 1.5;
             position: relative;
             overflow-x: hidden;
-            scrollbar-width: none !important;
-            -ms-overflow-style: none !important;
         }
 
-        /* 60fps Animated HUD Canvas Background */
+        /* 60fps Animated Holographic Grid & Scanlines */
         #hudCanvas {
             position: fixed;
             top: 0;
@@ -108,20 +114,67 @@ HUD_HTML = """<!DOCTYPE html>
             height: 100vh;
             pointer-events: none;
             z-index: 0;
-            opacity: 0.45;
+            opacity: 0.4;
+        }
+
+        .holo-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 6px 100%;
+            pointer-events: none;
+            z-index: 99;
+            opacity: 0.5;
         }
 
         .hud-wrapper {
             position: relative;
             z-index: 1;
-            max-width: 1540px;
+            max-width: 1560px;
             margin: 0 auto;
+        }
+
+        /* Holographic Minimal Glyphs & Tags */
+        .holo-glyph {
+            color: var(--cyan);
+            font-weight: 700;
+            margin-right: 6px;
+            display: inline-block;
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.8);
+        }
+
+        .holo-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 7px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            border-radius: 3px;
+            border: 1px solid var(--cyan);
+            background: rgba(0, 240, 255, 0.08);
+            color: var(--cyan);
+            text-shadow: 0 0 6px rgba(0, 240, 255, 0.6);
+            margin-left: 6px;
+        }
+
+        .holo-tag {
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            background: rgba(0, 240, 255, 0.04);
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            color: var(--cyan);
+            letter-spacing: 0.5px;
         }
 
         /* Top Header */
         .hud-header {
             background: var(--bg-panel);
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(14px);
             border: 1px solid var(--border-dim);
             border-left: 4px solid var(--cyan);
             border-radius: 6px;
@@ -129,7 +182,7 @@ HUD_HTML = """<!DOCTYPE html>
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 0 35px rgba(0, 240, 255, 0.1);
+            box-shadow: 0 0 35px rgba(0, 240, 255, 0.12);
             margin-bottom: 12px;
         }
 
@@ -138,7 +191,7 @@ HUD_HTML = """<!DOCTYPE html>
             font-size: 19px;
             letter-spacing: 2px;
             color: var(--cyan);
-            text-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+            text-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
             display: flex;
             align-items: center;
             gap: 10px;
@@ -166,6 +219,11 @@ HUD_HTML = """<!DOCTYPE html>
             animation: pulse 2s infinite;
         }
 
+        .status-dot.radar {
+            background: var(--cyan);
+            box-shadow: 0 0 10px var(--cyan);
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.4; transform: scale(1.2); }
@@ -182,45 +240,10 @@ HUD_HTML = """<!DOCTYPE html>
             letter-spacing: 1px;
         }
 
-
-
-        /* Automated Threat Alert Banner */
-        .threat-alert-banner {
-            display: none;
-            background: rgba(255, 51, 102, 0.15);
-            border: 1px solid var(--red);
-            border-left: 6px solid var(--red);
-            border-radius: 6px;
-            padding: 12px 18px;
-            margin-bottom: 14px;
-            color: #FFF;
-            box-shadow: 0 0 25px rgba(255, 51, 102, 0.25);
-            animation: alertGlow 1.5s infinite alternate;
-        }
-
-        @keyframes alertGlow {
-            from { box-shadow: 0 0 15px rgba(255, 51, 102, 0.2); }
-            to { box-shadow: 0 0 30px rgba(255, 51, 102, 0.6); }
-        }
-
-        .threat-alert-banner h3 {
-            font-size: 13px;
-            color: var(--red);
-            font-weight: 800;
-            letter-spacing: 1px;
-            margin-bottom: 4px;
-        }
-
-        .threat-alert-banner p {
-            font-size: 11px;
-            color: var(--text-main);
-        }
-
-        /* Target Control Bar - Organized Multi-Row Grid for Flawless Alignment */
-        /* Target Control Bar - Symmetrical Centered Layout for Maximum Visual Precision */
+        /* Target Control Bar */
         .target-bar {
             background: var(--bg-panel);
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(14px);
             border: 1px solid var(--border-dim);
             border-radius: 6px;
             padding: 16px 20px;
@@ -251,7 +274,7 @@ HUD_HTML = """<!DOCTYPE html>
 
         .target-input {
             width: 100%;
-            background: #070B14;
+            background: #060B17;
             border: 1.5px solid var(--border-dim);
             color: var(--cyan);
             font-family: var(--font-mono);
@@ -260,194 +283,150 @@ HUD_HTML = """<!DOCTYPE html>
             border-radius: 5px;
             outline: none;
             transition: all 0.2s;
-            box-sizing: border-box;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
         }
 
         .target-input:focus {
             border-color: var(--cyan);
-            box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.35);
         }
 
         .presets {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .target-bar-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            width: 100%;
+            padding-top: 4px;
+            border-top: 1px dashed rgba(0, 240, 255, 0.15);
+        }
+
+        .host-interfaces-bar {
             display: flex;
             gap: 8px;
             align-items: center;
             justify-content: center;
             flex-wrap: wrap;
-        }
-
-        .target-bar-actions {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            justify-content: center;
-            flex-wrap: wrap;
             width: 100%;
-            padding: 4px 0;
+            padding-top: 6px;
+            border-top: 1px dashed rgba(0, 240, 255, 0.1);
         }
 
-        .host-interfaces-bar {
-            width: 100%;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            justify-content: center;
-            margin-top: 6px;
-            flex-wrap: wrap;
-            padding: 8px 14px;
-            background: rgba(7, 11, 20, 0.7);
-            border: 1px solid var(--border-dim);
-            border-radius: 5px;
-            text-align: center;
-        }
-
-        /* Global Button Sizing & Border Isolation (Zero Collision Guarantee) */
-        .btn-preset, .btn-master, .btn-primary, .btn-danger, .btn-action, .hud-tab-btn {
-            box-sizing: border-box !important;
-            margin: 3px 6px !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            text-align: center !important;
-            vertical-align: middle !important;
-            white-space: nowrap !important;
-            user-select: none !important;
-            border-radius: 4px !important;
-        }
-
-        .btn-preset {
-            background: #0B1736;
-            border: 1.5px solid #38BDF8;
-            color: #38BDF8;
-            padding: 7px 15px;
-            font-size: 11px;
-            font-weight: 800;
-            cursor: pointer;
+        /* Buttons (Holographic Minimal) */
+        button {
             font-family: var(--font-mono);
-            box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
-            transition: all 0.2s;
-        }
-
-        .btn-preset:hover {
-            color: #FFFFFF;
-            border-color: #00F0FF;
-            background: rgba(0, 240, 255, 0.25);
-            box-shadow: 0 0 14px rgba(0, 240, 255, 0.4);
-            transform: translateY(-1px);
-        }
-
-        .btn-preset.active {
-            color: #00F0FF;
-            border-color: #00F0FF;
-            background: rgba(0, 240, 255, 0.3);
-            box-shadow: 0 0 14px rgba(0, 240, 255, 0.5), inset 0 0 6px rgba(0, 240, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .btn-master {
-            background: linear-gradient(135deg, #00F0FF 0%, #00FF88 100%);
-            border: 2px solid #FFFFFF;
-            color: #05080E;
-            font-family: var(--font-mono);
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.18), rgba(0, 163, 255, 0.35));
+            border: 1.5px solid var(--cyan);
+            color: #FFFFFF;
+            padding: 9px 20px;
+            border-radius: 4px;
             font-size: 11.5px;
-            font-weight: 900;
-            padding: 9px 22px;
-            cursor: pointer;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
-            animation: pulseMaster 2s infinite alternate;
-            transition: all 0.2s;
-        }
-
-        @keyframes pulseMaster {
-            from { box-shadow: 0 0 14px rgba(0, 240, 255, 0.5); }
-            to { box-shadow: 0 0 26px rgba(0, 255, 136, 0.9); }
+            font-weight: 800;
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.7);
+            box-shadow: 0 0 16px rgba(0, 240, 255, 0.25);
+            margin: 3px 6px;
         }
 
         .btn-master:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 0 35px rgba(0, 255, 136, 1);
+            background: var(--cyan);
+            color: #030712;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.6);
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, rgba(0, 240, 255, 0.3), rgba(0, 255, 136, 0.3));
-            border: 2px solid #00F0FF;
-            color: #00F0FF;
-            font-family: var(--font-mono);
+            background: rgba(0, 255, 136, 0.12);
+            border: 1.5px solid var(--green);
+            color: var(--green);
+            padding: 8px 16px;
+            border-radius: 4px;
             font-size: 11px;
-            font-weight: 900;
-            padding: 9px 20px;
-            cursor: pointer;
-            letter-spacing: 1.2px;
-            text-transform: uppercase;
-            box-shadow: 0 0 14px rgba(0, 240, 255, 0.35);
-            transition: all 0.2s;
+            font-weight: bold;
+            text-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+            margin: 3px 6px;
         }
 
         .btn-primary:hover {
-            background: linear-gradient(135deg, #00F0FF, #00FF88);
-            box-shadow: 0 0 24px rgba(0, 240, 255, 0.8);
-            color: #05080E;
-            border-color: #FFFFFF;
-            transform: translateY(-1px);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, rgba(255, 51, 102, 0.35), rgba(255, 184, 0, 0.25));
-            border: 2px solid #FF3366;
-            color: #FF3366;
-            font-family: var(--font-mono);
-            font-size: 11px;
-            font-weight: 900;
-            padding: 9px 20px;
-            cursor: pointer;
-            letter-spacing: 1.2px;
-            text-transform: uppercase;
-            box-shadow: 0 0 14px rgba(255, 51, 102, 0.4);
-            transition: all 0.2s;
-        }
-
-        .btn-danger:hover {
-            background: linear-gradient(135deg, #FF3366, #FFB800);
-            box-shadow: 0 0 24px rgba(255, 51, 102, 0.8);
-            color: #05080E;
-            border-color: #FFFFFF;
-            transform: translateY(-1px);
+            background: var(--green);
+            color: #030712;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
         }
 
         .btn-action {
-            background: #0E1A38;
-            border: 1.5px solid #00F0FF;
-            color: #F8FAFC;
-            font-family: var(--font-mono);
-            font-size: 11px;
-            font-weight: 800;
-            padding: 8px 18px;
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
-            transition: all 0.2s;
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            padding: 7px 15px;
+            border-radius: 4px;
+            font-size: 10.5px;
+            font-weight: bold;
+            margin: 3px 6px;
         }
 
         .btn-action:hover {
-            border-color: #00FF88;
-            color: #00FF88;
-            background: rgba(0, 255, 136, 0.15);
-            box-shadow: 0 0 16px rgba(0, 255, 136, 0.4);
-            transform: translateY(-1px);
+            background: rgba(0, 240, 255, 0.25);
+            box-shadow: 0 0 14px rgba(0, 240, 255, 0.4);
         }
 
-        /* Metrics Row */
+        .btn-preset {
+            background: #091122;
+            border: 1px solid var(--border-dim);
+            color: var(--text-main);
+            padding: 5px 11px;
+            border-radius: 4px;
+            font-size: 10px;
+            margin: 2px;
+        }
+
+        .btn-preset:hover, .btn-preset.active {
+            border-color: var(--cyan);
+            color: var(--cyan);
+            background: rgba(0, 240, 255, 0.1);
+        }
+
+        .btn-danger {
+            background: rgba(255, 51, 102, 0.12);
+            border: 1px solid var(--red);
+            color: var(--red);
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-size: 10.5px;
+            font-weight: bold;
+            margin: 3px 6px;
+        }
+
+        .btn-danger:hover {
+            background: var(--red);
+            color: #FFF;
+            box-shadow: 0 0 20px rgba(255, 51, 102, 0.6);
+        }
+
+        /* Top Metrics Cards */
         .metrics-grid {
             display: grid;
             grid-template-columns: 180px repeat(4, 1fr);
             gap: 12px;
-            margin-bottom: 14px;
+            margin-bottom: 16px;
         }
 
-        @media (max-width: 1050px) {
-            .metrics-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
+        @media (max-width: 1024px) {
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
         .gauge-card {
@@ -459,6 +438,7 @@ HUD_HTML = """<!DOCTYPE html>
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
 
         .score-circle {
@@ -476,13 +456,13 @@ HUD_HTML = """<!DOCTYPE html>
         .circle-bg {
             fill: none;
             stroke: #182338;
-            stroke-width: 8;
+            stroke-width: 7;
         }
 
         .circle-bar {
             fill: none;
             stroke: var(--green);
-            stroke-width: 8;
+            stroke-width: 7;
             stroke-dasharray: 314;
             stroke-dashoffset: 0;
             stroke-linecap: round;
@@ -494,18 +474,18 @@ HUD_HTML = """<!DOCTYPE html>
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            font-family: var(--font-sans);
             font-size: 20px;
             font-weight: 800;
             color: var(--green);
-            font-family: var(--font-sans);
         }
 
         .score-grade {
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            color: var(--green);
             margin-top: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            color: var(--cyan);
+            letter-spacing: 1px;
         }
 
         .metric-card {
@@ -516,95 +496,83 @@ HUD_HTML = """<!DOCTYPE html>
             display: flex;
             flex-direction: column;
             justify-content: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .metric-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 3px;
-            height: 100%;
-            background: var(--border-dim);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
 
         .metric-title {
-            font-size: 10px;
-            letter-spacing: 1.5px;
             color: var(--text-muted);
-            margin-bottom: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
         }
 
         .metric-value {
             font-family: var(--font-sans);
             font-size: 26px;
             font-weight: 800;
+            margin: 4px 0;
         }
 
         .metric-sub {
-            font-size: 10.5px;
+            font-size: 10px;
             color: var(--text-muted);
-            margin-top: 2px;
         }
 
-        /* Main Tabs Bar - Symmetrical Centered Layout */
+        /* Navigation Tabs (Minimal Holographic) */
         .hud-tabs {
             display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px 10px;
-            flex-wrap: wrap;
-            border-bottom: 1.5px solid var(--border-dim);
+            gap: 6px;
             margin-bottom: 16px;
-            padding: 6px 0 12px 0;
-            width: 100%;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--border-dim);
+            padding-bottom: 8px;
         }
 
         .hud-tab-btn {
-            background: #0A1224;
-            border: 1.5px solid #1E2E4E;
-            color: #CBD5E1;
-            font-family: var(--font-mono);
-            font-size: 11px;
-            font-weight: 800;
-            padding: 8px 16px;
+            background: rgba(11, 19, 38, 0.7);
+            border: 1px solid var(--border-dim);
+            color: var(--text-muted);
+            padding: 8px 14px;
             border-radius: 4px;
-            cursor: pointer;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
             transition: all 0.2s;
-            white-space: nowrap;
-            box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+            position: relative;
         }
 
         .hud-tab-btn:hover {
-            color: #00F0FF;
-            border-color: #00F0FF;
-            background: rgba(0, 240, 255, 0.12);
-            box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
-            transform: translateY(-1px);
+            color: var(--cyan);
+            border-color: rgba(0, 240, 255, 0.4);
+            background: rgba(0, 240, 255, 0.05);
         }
 
         .hud-tab-btn.active {
-            color: #00F0FF;
-            border: 1.5px solid #00F0FF;
-            background: rgba(0, 240, 255, 0.22);
-            box-shadow: 0 0 16px rgba(0, 240, 255, 0.5), inset 0 0 8px rgba(0, 240, 255, 0.2);
+            color: #FFF;
+            background: rgba(0, 240, 255, 0.14);
+            border-color: var(--cyan);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+        }
+
+        .hud-tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -9px;
+            left: 20%;
+            width: 60%;
+            height: 2px;
+            background: var(--cyan);
+            box-shadow: 0 0 8px var(--cyan);
         }
 
         /* Tab Content Panes */
         .tab-pane {
             display: none;
-            background: var(--bg-panel);
-            border: 1px solid var(--border-dim);
-            border-radius: 6px;
-            padding: 20px;
-            min-height: 480px;
+            animation: fadeIn 0.3s ease;
         }
 
         .tab-pane.active {
             display: block;
-            animation: fadeIn 0.3s ease;
         }
 
         @keyframes fadeIn {
@@ -613,14 +581,12 @@ HUD_HTML = """<!DOCTYPE html>
         }
 
         .category-header-banner {
-            background: rgba(15, 23, 42, 0.75);
-            border-left: 4px solid var(--cyan);
-            border-right: 1px solid var(--border-dim);
-            border-top: 1px solid var(--border-dim);
-            border-bottom: 1px solid var(--border-dim);
-            padding: 12px 18px;
+            background: linear-gradient(90deg, rgba(11, 19, 38, 0.95), rgba(7, 12, 24, 0.85));
+            border: 1px solid var(--border-dim);
+            border-left: 3px solid var(--cyan);
             border-radius: 6px;
-            margin-bottom: 16px;
+            padding: 14px 20px;
+            margin-bottom: 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -628,269 +594,256 @@ HUD_HTML = """<!DOCTYPE html>
             gap: 12px;
         }
 
-        .category-header-banner-actions {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
         .category-header-banner h2 {
-            font-size: 13px;
+            font-family: var(--font-sans);
+            font-size: 14.5px;
             color: var(--cyan);
             letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .category-header-banner p {
             font-size: 11px;
-            color: #94A3B8;
+            color: var(--text-muted);
+            margin-top: 3px;
         }
 
-        /* Tables */
+        .category-header-banner-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* Tables & Cards */
         .table-container {
-            overflow-x: auto;
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 11.5px;
+            text-align: left;
         }
 
-        th {
-            background: #0B132B;
-            color: #8899B5;
-            padding: 10px 12px;
-            text-align: left;
-            font-size: 10px;
-            letter-spacing: 1px;
+        thead {
+            background: #080D1A;
             border-bottom: 1px solid var(--border-dim);
         }
 
-        td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #0F172A;
+        th {
+            padding: 11px 14px;
+            color: var(--cyan);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            font-size: 10px;
+            text-transform: uppercase;
         }
 
-        tr:hover td {
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(24, 35, 56, 0.6);
+            color: var(--text-main);
+            vertical-align: middle;
+        }
+
+        tbody tr:hover {
             background: rgba(0, 240, 255, 0.03);
         }
 
         .badge-sev {
-            padding: 2px 7px;
+            padding: 3px 8px;
             border-radius: 3px;
-            font-size: 10px;
+            font-size: 9.5px;
             font-weight: 800;
+            letter-spacing: 0.5px;
             display: inline-block;
         }
 
-        .badge-crit { background: rgba(255, 51, 102, 0.2); color: var(--red); border: 1px solid var(--red); }
-        .badge-high { background: rgba(255, 184, 0, 0.2); color: var(--amber); border: 1px solid var(--amber); }
+        .badge-crit { background: rgba(255, 51, 102, 0.15); color: var(--red); border: 1px solid var(--red); }
+        .badge-high { background: rgba(255, 184, 0, 0.15); color: var(--amber); border: 1px solid var(--amber); }
         .badge-med { background: rgba(0, 240, 255, 0.15); color: var(--cyan); border: 1px solid var(--cyan); }
         .badge-pass { background: rgba(0, 255, 136, 0.15); color: var(--green); border: 1px solid var(--green); }
 
-        /* OSINT Grid */
-        .osint-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 14px;
-            margin-top: 14px;
-        }
-
-        @media (max-width: 900px) {
-            .osint-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .osint-card {
-            background: #070B14;
+        /* Tactical Console */
+        .hud-console {
+            background: #040812;
             border: 1px solid var(--border-dim);
-            border-radius: 5px;
-            padding: 14px;
+            border-radius: 6px;
+            padding: 14px 18px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            height: 380px;
+            overflow-y: auto;
+            color: #A0AEC0;
+            line-height: 1.6;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.6);
         }
 
-        .osint-card h4 {
-            font-size: 12px;
+        .log-entry { margin-bottom: 3px; }
+        .log-time { color: var(--text-muted); margin-right: 8px; }
+        .log-pass { color: var(--green); }
+        .log-threat { color: var(--red); font-weight: bold; }
+        .log-warn { color: var(--amber); }
+        .log-info { color: var(--cyan); }
+
+        /* OSINT Suite & Tool Grid */
+        .osint-tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .osint-tool-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 6px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .osint-tool-card:hover, .osint-tool-card.active {
+            border-color: var(--cyan);
+            background: rgba(0, 240, 255, 0.05);
+            box-shadow: 0 0 16px rgba(0, 240, 255, 0.2);
+        }
+
+        .osint-tool-card h4 {
             color: var(--cyan);
-            letter-spacing: 1px;
-            margin-bottom: 10px;
+            font-size: 12px;
+            margin-bottom: 5px;
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
-        /* Attack Matrix Split Layout */
-        .matrix-split {
-            display: grid;
-            grid-template-columns: 340px 1fr;
-            gap: 14px;
-            min-height: 520px;
+        .osint-tool-card p {
+            color: var(--text-muted);
+            font-size: 10px;
+            line-height: 1.4;
         }
 
-        @media (max-width: 950px) {
-            .matrix-split {
-                grid-template-columns: 1fr;
-            }
+        /* Matrix Split Pane */
+        .matrix-split {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 1024px) {
+            .matrix-split { grid-template-columns: 1fr; }
         }
 
         .matrix-list-box {
-            background: #070B14;
+            background: var(--bg-card);
             border: 1px solid var(--border-dim);
             border-radius: 6px;
-            padding: 10px;
+            padding: 12px;
+            height: 600px;
             overflow-y: auto;
-            max-height: 600px;
         }
 
         .matrix-item {
             padding: 10px 12px;
-            border-bottom: 1px solid #0F172A;
             border-radius: 4px;
+            border: 1px solid rgba(24, 35, 56, 0.6);
+            margin-bottom: 8px;
             cursor: pointer;
-            margin-bottom: 4px;
             transition: all 0.2s;
         }
 
-        .matrix-item:hover {
+        .matrix-item:hover, .matrix-item.active {
+            border-color: var(--cyan);
             background: rgba(0, 240, 255, 0.08);
-            border-color: #38BDF8;
-        }
-
-        .matrix-item.active {
-            background: rgba(0, 240, 255, 0.18);
-            border: 1px solid var(--cyan);
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
         }
 
         .matrix-item h5 {
-            font-size: 12px;
             color: var(--text-bright);
-            margin-bottom: 2px;
+            font-size: 11px;
+            margin-bottom: 3px;
         }
 
         .matrix-item p {
-            font-size: 10px;
             color: var(--text-muted);
+            font-size: 9.5px;
         }
 
         .matrix-detail-box {
-            background: #070B14;
+            background: var(--bg-card);
             border: 1px solid var(--border-dim);
             border-radius: 6px;
-            padding: 16px;
+            padding: 20px;
+            height: 600px;
             overflow-y: auto;
-            max-height: 600px;
         }
-
-        /* Console */
-        .hud-console {
-            background: #020408;
-            border: 1px solid var(--border-dim);
-            border-radius: 4px;
-            padding: 12px;
-            font-size: 11px;
-            height: 280px;
-            overflow-y: auto;
-            color: #8899B5;
-        }
-
-        .log-entry { margin-bottom: 3px; }
-        .log-time { color: #475569; }
 
         pre {
-            background: #020408;
+            background: #040812;
             border: 1px solid var(--border-dim);
-            padding: 12px;
             border-radius: 4px;
-            overflow-x: auto;
-            color: var(--cyan);
-            font-size: 11.5px;
-            line-height: 1.4;
-        }
-
-        /* Footer */
-        .hud-footer {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-dim);
-            border-radius: 6px;
-            padding: 12px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 24px;
-            font-size: 11px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .footer-links {
-            display: flex;
-            gap: 14px;
-            align-items: center;
-        }
-
-        .footer-link {
+            padding: 12px;
             color: var(--green);
-            text-decoration: none;
-            padding: 3px 8px;
-            border: 1px solid #1E293B;
-            border-radius: 3px;
-            transition: all 0.2s;
-        }
-
-        .footer-link:hover {
-            color: var(--cyan);
-            border-color: var(--cyan);
-            background: rgba(0, 240, 255, 0.1);
+            font-size: 11px;
+            overflow-x: auto;
+            line-height: 1.5;
         }
     </style>
 </head>
 <body>
+    <div class="holo-overlay"></div>
     <canvas id="hudCanvas"></canvas>
 
     <div class="hud-wrapper">
         <!-- Top Header -->
         <header class="hud-header">
             <div class="hud-branding">
-                <h1>AEGIS // DEFENSIVE WAR ROOM HUD</h1>
-                <p>CATEGORIZED CYBER DEFENSE, OSINT RECON, MALWARE DETECTOR & INCIDENT RESPONSE MATRIX</p>
+                <h1>
+                    <span class="holo-glyph">[⬡]</span> AEGIS // DEFENSIVE WAR ROOM
+                    <span class="holo-badge">HOLO // SPEC 2.5</span>
+                </h1>
+                <p>AUTONOMOUS DEFENSIVE LOCALHOST AUDIT, REAL-TIME INTRUSION MONITORING &amp; 20-IN-1 CYBER OSINT ENGINE</p>
             </div>
             <div class="hud-badges">
-                <span class="status-dot"></span>
-                <span class="badge-live">DEFENSE SUITE: ONLINE (PORT 5000)</span>
+                <span class="badge-live"><span class="status-dot"></span> LIVE TELEMETRY: ACTIVE</span>
+                <span class="holo-tag" id="hudClock">UTC 00:00:00</span>
             </div>
         </header>
-
-        <!-- Automated Threat Alert Banner -->
-        <div id="threatAlertBanner" class="threat-alert-banner">
-            <h3>🚨 AUTOMATED DEFENSE ALERT: CRITICAL ATTACK PATTERNS DETECTED!</h3>
-            <p id="threatAlertDesc">Malicious probes intercepted on target web server. Recommended Action: Engage Emergency Lockdown.</p>
-        </div>
 
         <!-- Target Control Bar -->
         <div class="target-bar">
             <div class="target-bar-top">
+                <span style="color: var(--cyan); font-size: 11px; font-weight: bold;"><span class="holo-glyph">[⌖]</span> DEFENSIVE TARGET:</span>
                 <div class="target-input-group">
-                    <input type="text" id="targetUrl" class="target-input" value="http://127.0.0.1:8000" placeholder="Enter target website URL or IP address (e.g. http://localhost:3000, 127.0.0.1:8080, 192.168.1.1, https://yoursite.com)">
+                    <input type="text" id="targetUrl" class="target-input" value="http://127.0.0.1:5000" placeholder="http://127.0.0.1:5000 or http://localhost:8000">
                 </div>
                 <div class="presets">
+                    <button class="btn-preset active" onclick="setTarget('http://127.0.0.1:5000')">127.0.0.1:5000 (Aegis)</button>
                     <button class="btn-preset" onclick="setTarget('http://localhost:3000')">localhost:3000</button>
                     <button class="btn-preset" onclick="setTarget('http://localhost:8000')">localhost:8000</button>
                     <button class="btn-preset" onclick="setTarget('http://127.0.0.1:8080')">127.0.0.1:8080</button>
                 </div>
             </div>
             <div class="target-bar-actions">
-                <button class="btn-master" onclick="runMasterScan()">🚀 RUN MASTER DEFENSE SCAN (ALL PANELS)</button>
-                <button class="btn-primary" id="btnAudit" onclick="runAudit()">🛡️ RUN DEFENSIVE AUDIT</button>
-                <button class="btn-action" onclick="exportAuditReport()">💾 EXPORT AUDIT REPORT (HTML)</button>
+                <button class="btn-master" onclick="runMasterScan()"><span class="holo-glyph">[⬡]</span> RUN MASTER DEFENSE SCAN (ALL PANELS)</button>
+                <button class="btn-primary" id="btnAudit" onclick="runAudit()"><span class="holo-glyph">[◈]</span> RUN DEFENSIVE AUDIT</button>
+                <button class="btn-action" onclick="exportAuditReport()"><span class="holo-glyph">[⧉]</span> EXPORT AUDIT REPORT (HTML)</button>
             </div>
             <div class="host-interfaces-bar">
-                <span style="color: var(--cyan); font-size: 11px; font-weight: bold; margin-right: 4px;">🎯 DETECTED HOST INTERFACES & LOCAL IPs:</span>
+                <span style="color: var(--cyan); font-size: 11px; font-weight: bold;"><span class="holo-glyph">[⌖]</span> DETECTED HOST INTERFACES &amp; LOCAL IPs:</span>
                 <div id="myIpsList" style="display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap;"></div>
-                <button class="btn-action" style="padding: 5px 12px; font-size: 10px;" onclick="loadMyIps()">🔄 REFRESH IPs</button>
-                <button class="btn-action" style="padding: 5px 12px; font-size: 10px; border-color: var(--amber); color: var(--amber);" onclick="sendTestProbe()">🧪 TEST ATTACK PROBE ON MY IP</button>
+                <button class="btn-action" style="padding: 5px 12px; font-size: 10px;" onclick="loadMyIps()"><span class="holo-glyph">[◈]</span> REFRESH IPs</button>
+                <button class="btn-action" style="padding: 5px 12px; font-size: 10px; border-color: var(--amber); color: var(--amber);" onclick="sendTestProbe()"><span class="holo-glyph">[⚡]</span> TEST ATTACK PROBE ON MY IP</button>
             </div>
         </div>
 
@@ -929,32 +882,36 @@ HUD_HTML = """<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- Tabs Navigation Bar -->
+        <!-- Tabs Navigation Bar (Minimal Holographic) -->
         <div class="hud-tabs">
-            <button class="hud-tab-btn active" data-category="cat1" onclick="switchTab('tab-findings', this)">🌐 OWASP VULN AUDIT</button>
-            <button class="hud-tab-btn" data-category="cat2" onclick="switchTab('tab-osint', this)">🕵️ CYBER OSINT, IP ROUTES & TABLES</button>
-            <button class="hud-tab-btn" data-category="cat3" onclick="switchTab('tab-malware', this)">🦠 MALWARE & WEBSHELL SCANNER</button>
-            <button class="hud-tab-btn" data-category="cat4" onclick="switchTab('tab-injection', this)">💉 ANTI-XSS & DATA INJECTION</button>
-            <button class="hud-tab-btn" data-category="cat5" onclick="switchTab('tab-ports', this)">📡 LOCALHOST & PORTS</button>
-            <button class="hud-tab-btn" data-category="cat5" onclick="switchTab('tab-server', this)">💻 SERVER ROOTKIT AUDITOR</button>
-            <button class="hud-tab-btn" data-category="cat6" onclick="switchTab('tab-attackers', this)">🚨 ATTACKER IDS & LOGS</button>
-            <button class="hud-tab-btn" data-category="cat6" onclick="switchTab('tab-live-traffic', this)">📡 LIVE TRAFFIC SNIFFER</button>
-            <button class="hud-tab-btn" data-category="cat7" onclick="switchTab('tab-attack-matrix', this)">⚔️ ATTACK MATRIX & HOW TO FIX</button>
-            <button class="hud-tab-btn" data-category="cat7" onclick="switchTab('tab-playbooks', this)">📋 SERVER PLAYBOOKS</button>
-            <button class="hud-tab-btn" data-category="cat8" onclick="switchTab('tab-dossier', this)">📜 CARRIER SUBPOENA DOSSIER</button>
-            <button class="hud-tab-btn" data-category="all" onclick="switchTab('tab-console', this)">🖥️ TACTICAL LOGS</button>
+            <button class="hud-tab-btn active" data-category="cat1" onclick="switchTab('tab-findings', this)">[⬡] OWASP AUDIT</button>
+            <button class="hud-tab-btn" data-category="osint_user" onclick="switchTab('tab-username-osint', this)">[◈] USERNAME OSINT HUNT</button>
+            <button class="hud-tab-btn" data-category="osint_suite" onclick="switchTab('tab-osint-suite', this)">[⌖] 20-IN-1 OSINT SUITE</button>
+            <button class="hud-tab-btn" data-category="cat2" onclick="switchTab('tab-osint', this)">[⧉] CYBER OSINT &amp; IP TABLES</button>
+            <button class="hud-tab-btn" data-category="cat3" onclick="switchTab('tab-malware', this)">[⌥] MALWARE SCANNER</button>
+            <button class="hud-tab-btn" data-category="cat4" onclick="switchTab('tab-injection', this)">[☵] ANTI-XSS &amp; INJECTION</button>
+            <button class="hud-tab-btn" data-category="cat5" onclick="switchTab('tab-ports', this)">[⌘] LOCALHOST &amp; PORTS</button>
+            <button class="hud-tab-btn" data-category="cat5" onclick="switchTab('tab-server', this)">[⬢] SERVER ROOTKIT AUDITOR</button>
+            <button class="hud-tab-btn" data-category="cat6" onclick="switchTab('tab-attackers', this)">[▲] ATTACKER IDS &amp; LOGS</button>
+            <button class="hud-tab-btn" data-category="cat6" onclick="switchTab('tab-live-traffic', this)">[◎] LIVE TRAFFIC SNIFFER</button>
+            <button class="hud-tab-btn" data-category="cat7" onclick="switchTab('tab-attack-matrix', this)">[⚔] ATTACK MATRIX</button>
+            <button class="hud-tab-btn" data-category="cat7" onclick="switchTab('tab-playbooks', this)">[📋] SERVER PLAYBOOKS</button>
+            <button class="hud-tab-btn" data-category="cat8" onclick="switchTab('tab-dossier', this)">[📜] CARRIER SUBPOENA DOSSIER</button>
+            <button class="hud-tab-btn" data-category="all" onclick="switchTab('tab-console', this)">[🖥] TACTICAL LOGS</button>
         </div>
 
-        <!-- Tab 1: OWASP Vulnerability Findings -->
+        <!-- ========================================== -->
+        <!-- TAB 1: OWASP VULNERABILITY FINDINGS       -->
+        <!-- ========================================== -->
         <div id="tab-findings" class="tab-pane active">
             <div class="category-header-banner">
                 <div>
-                    <h2>🌐 VULNERABILITY AUDITOR & OWASP COMPLIANCE</h2>
+                    <h2><span class="holo-glyph">[⬡]</span> VULNERABILITY AUDITOR &amp; OWASP COMPLIANCE</h2>
                     <p>Scans target website/localhost for missing OWASP security headers (CSP, HSTS, X-Frame), .env/private credential leaks, and insecure cookies.</p>
                 </div>
                 <div class="category-header-banner-actions">
-                    <button class="btn-primary" onclick="runAudit()">🛡️ RUN DEFENSIVE AUDIT</button>
-                    <button class="btn-action" onclick="exportAuditReport()">💾 EXPORT AUDIT REPORT</button>
+                    <button class="btn-primary" onclick="runAudit()"><span class="holo-glyph">[◈]</span> RUN DEFENSIVE AUDIT</button>
+                    <button class="btn-action" onclick="exportAuditReport()"><span class="holo-glyph">[⧉]</span> EXPORT AUDIT REPORT</button>
                 </div>
             </div>
             <div class="table-container">
@@ -963,7 +920,7 @@ HUD_HTML = """<!DOCTYPE html>
                         <tr>
                             <th style="width: 100px;">SEVERITY</th>
                             <th style="width: 240px;">VULNERABILITY / CHECK</th>
-                            <th>AUDIT DESCRIPTION & RISK</th>
+                            <th>AUDIT DESCRIPTION &amp; RISK</th>
                             <th style="width: 320px;">RECOMMENDED DEFENSIVE FIX</th>
                         </tr>
                     </thead>
@@ -974,358 +931,464 @@ HUD_HTML = """<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- Tab 2: Cyber OSINT Engine -->
+        <!-- ========================================== -->
+        <!-- TAB 2: USERNAME OSINT SEARCH & CORRELATOR -->
+        <!-- ========================================== -->
+        <div id="tab-username-osint" class="tab-pane">
+            <div class="category-header-banner">
+                <div>
+                    <h2><span class="holo-glyph">[◈]</span> USERNAME OSINT SEARCH &amp; PROFILE CORRELATOR // LIVE INVESTIGATION</h2>
+                    <p>Scans 35+ major social networks, developer hubs, forums, and darknet paste aggregators in parallel to reveal where an attacker, scammer, or fraudster has a digital footprint.</p>
+                </div>
+                <div class="category-header-banner-actions">
+                    <button class="btn-action" onclick="exportUsernameReport()"><span class="holo-glyph">[⧉]</span> EXPORT FORENSIC REPORT</button>
+                </div>
+            </div>
+
+            <div class="target-bar" style="margin-bottom: 14px;">
+                <div class="target-bar-top">
+                    <span style="color: var(--cyan); font-size: 11px; font-weight: bold;"><span class="holo-glyph">[⌖]</span> TARGET ALIAS / USERNAME:</span>
+                    <div class="target-input-group">
+                        <input type="text" id="usernameInput" class="target-input" value="cyberghost" placeholder="Enter target username or handle (e.g. fraudster99, cyberghost, darkphantom)...">
+                    </div>
+                    <button class="btn-master" id="btnHuntUser" onclick="huntUsername()"><span class="holo-glyph">[◈]</span> HUNT USERNAME ACROSS ALL SERVICES</button>
+                </div>
+                <div class="presets" style="padding-top: 4px;">
+                    <span style="font-size: 10px; color: var(--text-muted);">Quick Presets:</span>
+                    <button class="btn-preset" onclick="setUsernameAndHunt('cyberghost')">cyberghost</button>
+                    <button class="btn-preset" onclick="setUsernameAndHunt('fraudster99')">fraudster99</button>
+                    <button class="btn-preset" onclick="setUsernameAndHunt('shadow_operative')">shadow_operative</button>
+                    <button class="btn-preset" onclick="setUsernameAndHunt('octocat')">octocat (Benchmark)</button>
+                </div>
+            </div>
+
+            <!-- Username Metrics -->
+            <div class="metrics-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 14px;">
+                <div class="metric-card">
+                    <div class="metric-title">PLATFORMS QUERIED</div>
+                    <div class="metric-value" id="valUserTotal" style="color: var(--cyan);">0</div>
+                    <div class="metric-sub">Parallel Multi-Threaded Checks</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">ACCOUNTS DISCOVERED</div>
+                    <div class="metric-value" id="valUserFound" style="color: var(--green);">0</div>
+                    <div class="metric-sub">Active Confirmed Profiles</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">FOOTPRINT RATING</div>
+                    <div class="metric-value" id="valUserRating" style="color: var(--amber); font-size: 16px;">STANDBY</div>
+                    <div class="metric-sub">Digital Exposure Level</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">CATEGORIES ACTIVE</div>
+                    <div class="metric-value" id="valUserCats" style="color: var(--violet); font-size: 18px;">None</div>
+                    <div class="metric-sub">Social / Dev / Gaming / Dumps</div>
+                </div>
+            </div>
+
+            <!-- Discovered Profiles Table -->
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 140px;">PLATFORM</th>
+                            <th style="width: 110px;">CATEGORY</th>
+                            <th style="width: 120px;">STATUS</th>
+                            <th style="width: 80px;">LATENCY</th>
+                            <th>PROFILE URL &amp; PIVOT LINK</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyUsernameProfiles">
+                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">Enter a handle above and click 'HUNT USERNAME' to initiate live multi-platform reconnaissance.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Google Dorks & Leak Pivots for Username -->
+            <div class="category-header-banner" style="margin-top: 16px;">
+                <div>
+                    <h2><span class="holo-glyph">[⬡]</span> AUTOMATED GOOGLE DORKS &amp; DEEP LEAK PIVOTS FOR THIS ALIAS</h2>
+                    <p>Instant search queries indexing pastebin dumps, forum mentions, leaked database files, and underground chats.</p>
+                </div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 180px;">INTEL CATEGORY</th>
+                            <th>CUSTOM GOOGLE DORK QUERY</th>
+                            <th style="width: 140px;">ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyUsernameDorks">
+                        <tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 20px;">Dorks will populate automatically upon running a username search.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 3: 20-IN-1 CYBER OSINT INVESTIGATION SUITE -->
+        <!-- ========================================== -->
+        <div id="tab-osint-suite" class="tab-pane">
+            <div class="category-header-banner">
+                <div>
+                    <h2><span class="holo-glyph">[⌖]</span> 20-IN-1 CYBER OSINT INVESTIGATION SUITE</h2>
+                    <p>Full suite of tactical intelligence tools: Investigation Graph, Phone, Email, Domain, Darknet, Hashes, Crypto, and Metadata.</p>
+                </div>
+            </div>
+
+            <!-- Tool Selection Grid -->
+            <div class="osint-tools-grid" id="osintToolsGrid">
+                <div class="osint-tool-card active" onclick="selectOsintTool('graph')">
+                    <h4><span class="holo-glyph">[⬡]</span> 1. Investigation Graph</h4>
+                    <p>Correlates entities into an interactive visual node-link chart.</p>
+                </div>
+                <div class="osint-tool-card" onclick="selectOsintTool('phone')">
+                    <h4><span class="holo-glyph">[◈]</span> 2. Phone Analyzer</h4>
+                    <p>E.164 normalization, carrier lookup, and VoIP scammer risk.</p>
+                </div>
+                <div class="osint-tool-card" onclick="selectOsintTool('email')">
+                    <h4><span class="holo-glyph">[⌖]</span> 3. Email Analyzer</h4>
+                    <p>MX validation, disposable burner check, and breach lookups.</p>
+                </div>
+                <div class="osint-tool-card" onclick="selectOsintTool('dorks')">
+                    <h4><span class="holo-glyph">[⌥]</span> 4. Dorks Generator</h4>
+                    <p>Generates advanced Google Dorks for credentials and paste leaks.</p>
+                </div>
+                <div class="osint-tool-card" onclick="selectOsintTool('github')">
+                    <h4><span class="holo-glyph">[⧉]</span> 5. GitHub OSINT</h4>
+                    <p>Queries GitHub API: profile, public repos, and commit email leaks.</p>
+                </div>
+                <div class="osint-tool-card" onclick="selectOsintTool('crypto')">
+                    <h4><span class="holo-glyph">[☵]</span> 6. Crypto Tracer</h4>
+                    <p>Validates BTC, ETH, LTC, DOGE, SOL addresses with explorer links.</p>
+                </div>
+                <div class="osint-tool-card" onclick="selectOsintTool('hash')">
+                    <h4><span class="holo-glyph">[⌘]</span> 7. Hash Analyzer</h4>
+                    <p>Identifies MD5, SHA, bcrypt, NTLM algorithms &amp; crack lookups.</p>
+                </div>
+                <div class="osint-tool-card" onclick="selectOsintTool('crawler')">
+                    <h4><span class="holo-glyph">[⬢]</span> 8. Web Crawler</h4>
+                    <p>Extracts pages, emails, social profiles, and phone numbers.</p>
+                </div>
+                <div class="osint-tool-card" onclick="selectOsintTool('reputation')">
+                    <h4><span class="holo-glyph">[▲]</span> 9. Reputation Checker</h4>
+                    <p>Queries AbuseIPDB, VirusTotal, AlienVault OTX, GreyNoise.</p>
+                </div>
+                <div class="osint-tool-card" onclick="selectOsintTool('url')">
+                    <h4><span class="holo-glyph">[◎]</span> 10. URL Scanner</h4>
+                    <p>Heuristics for phishing, suspicious TLDs, and fake brands.</p>
+                </div>
+            </div>
+
+            <!-- Active Tool Execution Box -->
+            <div class="target-bar" style="margin-bottom: 14px;">
+                <div class="target-bar-top">
+                    <span id="activeToolLabel" style="color: var(--cyan); font-size: 11px; font-weight: bold;"><span class="holo-glyph">[⌖]</span> TARGET INPUT:</span>
+                    <div class="target-input-group">
+                        <input type="text" id="suiteTargetInput" class="target-input" value="cyberghost" placeholder="Enter target query...">
+                    </div>
+                    <button class="btn-master" onclick="executeSuiteTool()"><span class="holo-glyph">[⚡]</span> EXECUTE OSINT TOOL</button>
+                </div>
+            </div>
+
+            <!-- Active Tool Output Display -->
+            <div class="table-container" style="padding: 16px;">
+                <h3 id="suiteToolTitle" style="color: var(--cyan); font-size: 13px; margin-bottom: 10px;">[⬡] Investigation Graph Output</h3>
+                <div id="suiteToolOutput">
+                    <pre style="height: 320px;">Select a tool from the grid above and click 'EXECUTE OSINT TOOL' to view structured intelligence output.</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 4: CYBER OSINT, IP ROUTES & TABLES    -->
+        <!-- ========================================== -->
         <div id="tab-osint" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>🕵️ CYBER OSINT & ATTACK SURFACE INTELLIGENCE ENGINE</h2>
+                    <h2><span class="holo-glyph">[⧉]</span> CYBER OSINT, IP ROUTES, TABLES &amp; ATTACK SURFACE INTELLIGENCE</h2>
                     <p>Passive DNS enumeration, Certificate Transparency subdomains, SSL/TLS cryptanalysis, BGP routing/ASN, IP Tables, Routes, Details, and Origins.</p>
                 </div>
                 <div class="category-header-banner-actions">
-                    <button class="btn-action" id="btnRunOsint" onclick="runOsintRecon()">🕵️ RUN PASSIVE OSINT RECON</button>
-                    <button class="btn-preset" onclick="copyDiscoveredSubdomains()">📋 COPY ALL SUBDOMAINS</button>
+                    <button class="btn-action" id="btnRunOsint" onclick="runOsintRecon()"><span class="holo-glyph">[◈]</span> RUN PASSIVE OSINT RECON</button>
+                    <button class="btn-preset" onclick="copyDiscoveredSubdomains()"><span class="holo-glyph">[⧉]</span> COPY ALL SUBDOMAINS</button>
                 </div>
             </div>
 
             <!-- OSINT Metric Cards -->
-            <div class="metrics-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 12px;">
+            <div class="metrics-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 16px;">
                 <div class="metric-card">
-                    <div class="metric-title">ATTACK SURFACE RISK</div>
-                    <div class="metric-value" id="osintValRisk" style="color: var(--green);">LOW</div>
-                    <div class="metric-sub" id="osintSubRisk">Passive Recon Score</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-title">DISCOVERED SUBDOMAINS</div>
-                    <div class="metric-value" id="osintValSubs" style="color: var(--cyan);">0</div>
-                    <div class="metric-sub">CRT.SH & SAN Certificates</div>
+                    <div class="metric-title">SUBDOMAINS FOUND</div>
+                    <div class="metric-value" id="valOsintSubs" style="color: var(--cyan);">0</div>
+                    <div class="metric-sub">Passive CRT.SH &amp; SAN Logs</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-title">SSL/TLS VALIDITY</div>
-                    <div class="metric-value" id="osintValSsl" style="color: var(--green);">SECURE</div>
-                    <div class="metric-sub" id="osintSubSsl">Certificate Telemetry</div>
+                    <div class="metric-title">EMAIL SPOOF RISK</div>
+                    <div class="metric-value" id="valOsintDmarc" style="color: var(--green); font-size: 18px;">PASS</div>
+                    <div class="metric-sub">DMARC &amp; SPF Enforcement</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-title">EMAIL SPOOF DEFENSE</div>
-                    <div class="metric-value" id="osintValEmail" style="color: var(--amber);">SPF ONLY</div>
-                    <div class="metric-sub" id="osintSubEmail">SPF / DMARC Status</div>
+                    <div class="metric-title">ROUTING / ASN</div>
+                    <div class="metric-value" id="valOsintAsn" style="color: var(--amber); font-size: 15px;">Localhost</div>
+                    <div class="metric-sub">BGP Autonomous System</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">EDGE PERIMETER</div>
+                    <div class="metric-value" id="valOsintCdn" style="color: var(--violet); font-size: 16px;">Direct Origin</div>
+                    <div class="metric-sub">WAF / Cloud Proxy Detection</div>
                 </div>
             </div>
 
-            <!-- Section: IP Infrastructure & Network Route Intelligence -->
-            <div style="margin-top: 14px; margin-bottom: 8px;">
-                <span style="color: var(--cyan); font-weight: 900; font-size: 12px; letter-spacing: 1px;">📡 TARGET IP INFRASTRUCTURE, ROUTES & FIREWALL IP TABLES:</span>
+            <!-- Subdomains Table -->
+            <div class="table-container">
+                <div style="padding: 12px 16px; background: #080D1A; border-bottom: 1px solid var(--border-dim); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--cyan); font-weight: bold; font-size: 11px;"><span class="holo-glyph">[⬡]</span> DISCOVERED SUBDOMAINS VIA CERTIFICATE TRANSPARENCY (CRT.SH) &amp; SAN</span>
+                    <span id="subdomainCountBadge" class="badge-sev badge-med">0 SUBDOMAINS</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">INDEX</th>
+                            <th>SUBDOMAIN HOSTNAME</th>
+                            <th style="width: 140px;">STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodySubdomains">
+                        <tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 20px;">Click 'RUN PASSIVE OSINT RECON' to query Certificate Transparency logs.</td></tr>
+                    </tbody>
+                </table>
             </div>
-            <div class="osint-grid">
-                <!-- IP Details Card -->
-                <div class="osint-card">
-                    <h4>📌 IP DETAILS & SCOPE VERIFICATION</h4>
-                    <div class="table-container" style="max-height: 220px;">
-                        <table>
-                            <thead><tr><th style="width: 140px;">PROPERTY</th><th>VALUE / VERIFICATION</th></tr></thead>
-                            <tbody id="tbodyIpDetails">
-                                <tr><td colspan="2" style="color: var(--text-muted); text-align: center;">Execute OSINT to inspect target IP details.</td></tr>
-                            </tbody>
-                        </table>
+
+            <!-- DNS & SSL Split -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
+                <div class="table-container">
+                    <div style="padding: 10px 14px; background: #080D1A; border-bottom: 1px solid var(--border-dim); color: var(--cyan); font-weight: bold; font-size: 11px;">
+                        <span class="holo-glyph">[◈]</span> DNS TELEMETRY RECORDS
                     </div>
+                    <table>
+                        <thead>
+                            <tr><th style="width: 110px;">RECORD</th><th>VALUE</th><th style="width: 140px;">TYPE</th></tr>
+                        </thead>
+                        <tbody id="tbodyOsintDns">
+                            <tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 15px;">No records loaded.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
 
-                <!-- IP Origins Card -->
-                <div class="osint-card">
-                    <h4>🌍 IP ORIGINS & GEOLOCATION TELEMETRY</h4>
-                    <div class="table-container" style="max-height: 220px;">
-                        <table>
-                            <thead><tr><th style="width: 140px;">ORIGIN ATTRIBUTE</th><th>TELEMETRY DATA</th></tr></thead>
-                            <tbody id="tbodyIpOrigins">
-                                <tr><td colspan="2" style="color: var(--text-muted); text-align: center;">Execute OSINT to resolve IP origin gateway.</td></tr>
-                            </tbody>
-                        </table>
+                <div class="table-container">
+                    <div style="padding: 10px 14px; background: #080D1A; border-bottom: 1px solid var(--border-dim); color: var(--cyan); font-weight: bold; font-size: 11px;">
+                        <span class="holo-glyph">[⬡]</span> SSL/TLS CERTIFICATE CRYPTANALYSIS
                     </div>
-                </div>
-
-                <!-- IP Routes Card -->
-                <div class="osint-card">
-                    <h4>🛣️ IP ROUTES & BGP ROUTING INFRASTRUCTURE</h4>
-                    <div class="table-container" style="max-height: 220px;">
-                        <table>
-                            <thead><tr><th style="width: 140px;">ROUTING LAYER</th><th>METRIC / PATHWAY</th></tr></thead>
-                            <tbody id="tbodyIpRoutes">
-                                <tr><td colspan="2" style="color: var(--text-muted); text-align: center;">Execute OSINT to trace BGP prefixes and default routes.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- IP Tables & Drop Rules Card -->
-                <div class="osint-card">
-                    <h4>🛡️ IP TABLES & DEFENSIVE FIREWALL ENFORCEMENT</h4>
-                    <div class="table-container" style="max-height: 220px;">
-                        <table>
-                            <thead><tr><th style="width: 140px;">FIREWALL ENGINE</th><th>SYNTHESIZED DROP RULE</th></tr></thead>
-                            <tbody id="tbodyIpTables">
-                                <tr><td colspan="2" style="color: var(--text-muted); text-align: center;">Execute OSINT to generate IP table block directives.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <table>
+                        <thead>
+                            <tr><th style="width: 130px;">PROPERTY</th><th>VALUE</th></tr>
+                        </thead>
+                        <tbody id="tbodyOsintSsl">
+                            <tr><td colspan="2" style="text-align: center; color: var(--text-muted); padding: 15px;">No SSL certificate loaded.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <!-- Existing OSINT Recon Cards -->
-            <div style="margin-top: 14px; margin-bottom: 8px;">
-                <span style="color: var(--green); font-weight: 900; font-size: 12px; letter-spacing: 1px;">🌐 DOMAIN ATTACK SURFACE & PUBLIC TELEMETRY:</span>
-            </div>
-            <div class="osint-grid">
-                <!-- Subdomains Card -->
-                <div class="osint-card">
-                    <h4>🌐 DISCOVERED SUBDOMAINS & SAN LOGS</h4>
-                    <div class="table-container" style="max-height: 220px;">
-                        <table>
-                            <thead><tr><th>SUBDOMAIN</th><th>DISCOVERY SOURCE</th></tr></thead>
-                            <tbody id="tbodyOsintSubs">
-                                <tr><td colspan="2" style="color: var(--text-muted); text-align: center;">Click 'RUN PASSIVE OSINT RECON' to harvest subdomains.</td></tr>
-                            </tbody>
-                        </table>
+            <!-- IP Infrastructure: Details, Origins, Routes & Tables -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
+                <div class="table-container">
+                    <div style="padding: 10px 14px; background: #080D1A; border-bottom: 1px solid var(--border-dim); color: var(--cyan); font-weight: bold; font-size: 11px;">
+                        <span class="holo-glyph">[⌖]</span> IP DETAILS &amp; BOGON VALIDATION
                     </div>
+                    <table>
+                        <thead>
+                            <tr><th style="width: 140px;">FIELD</th><th>VALUE</th></tr>
+                        </thead>
+                        <tbody id="tbodyIpDetails">
+                            <tr><td colspan="2" style="text-align: center; color: var(--text-muted); padding: 15px;">No IP details loaded.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
 
-                <!-- DNS Records Card -->
-                <div class="osint-card">
-                    <h4>📡 MULTI-RECORD DNS TELEMETRY</h4>
-                    <div class="table-container" style="max-height: 220px;">
-                        <table>
-                            <thead><tr><th style="width: 100px;">TYPE</th><th>RECORD VALUE</th><th>FUNCTION</th></tr></thead>
-                            <tbody id="tbodyOsintDns">
-                                <tr><td colspan="3" style="color: var(--text-muted); text-align: center;">Ready for DNS query resolution.</td></tr>
-                            </tbody>
-                        </table>
+                <div class="table-container">
+                    <div style="padding: 10px 14px; background: #080D1A; border-bottom: 1px solid var(--border-dim); color: var(--cyan); font-weight: bold; font-size: 11px;">
+                        <span class="holo-glyph">[◈]</span> IP ORIGINS, ISP &amp; GEOLOCATION
                     </div>
-                </div>
-
-                <!-- SSL Certificate Cryptanalysis -->
-                <div class="osint-card">
-                    <h4>🔒 SSL/TLS CRYPTOGRAPHIC SPECIFICATION</h4>
-                    <div class="table-container" style="max-height: 220px;">
-                        <table>
-                            <thead><tr><th>PARAMETER</th><th>VALUE / STATUS</th></tr></thead>
-                            <tbody id="tbodyOsintSsl">
-                                <tr><td colspan="2" style="color: var(--text-muted); text-align: center;">Ready for TLS handshake audit.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- BGP Routing & Geolocation -->
-                <div class="osint-card">
-                    <h4>🗺️ BGP ROUTING, ASN & HOSTING FINGERPRINT</h4>
-                    <div class="table-container" style="max-height: 220px;">
-                        <table>
-                            <thead><tr><th>ATTRIBUTE</th><th>DETAILS</th></tr></thead>
-                            <tbody id="tbodyOsintBgp">
-                                <tr><td colspan="2" style="color: var(--text-muted); text-align: center;">Ready for Autonomous System lookup.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <table>
+                        <thead>
+                            <tr><th style="width: 140px;">PROPERTY</th><th>VALUE</th></tr>
+                        </thead>
+                        <tbody id="tbodyIpOrigins">
+                            <tr><td colspan="2" style="text-align: center; color: var(--text-muted); padding: 15px;">No origin data loaded.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <!-- Threat Pivots & Frameworks -->
-            <div class="osint-card" style="margin-top: 14px;">
-                <h4>🔍 EXTERNAL CYBER THREAT PIVOTS & INTELLIGENCE LINKS</h4>
-                <div id="osintPivotsList" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <span style="color: var(--text-muted); font-size: 11px;">Execute OSINT recon to generate deep search pivots across Shodan, Censys, VirusTotal, and URLScan.</span>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
+                <div class="table-container">
+                    <div style="padding: 10px 14px; background: #080D1A; border-bottom: 1px solid var(--border-dim); color: var(--cyan); font-weight: bold; font-size: 11px;">
+                        <span class="holo-glyph">[⬡]</span> IP ROUTES &amp; BGP ASN
+                    </div>
+                    <table>
+                        <thead>
+                            <tr><th style="width: 140px;">PARAMETER</th><th>VALUE</th></tr>
+                        </thead>
+                        <tbody id="tbodyIpRoutes">
+                            <tr><td colspan="2" style="text-align: center; color: var(--text-muted); padding: 15px;">No routing data loaded.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-container">
+                    <div style="padding: 10px 14px; background: #080D1A; border-bottom: 1px solid var(--border-dim); color: var(--cyan); font-weight: bold; font-size: 11px;">
+                        <span class="holo-glyph">[⚡]</span> DEFENSIVE FIREWALL DROP RULES (IPTABLES / NFTABLES / POWERSHELL)
+                    </div>
+                    <table>
+                        <thead>
+                            <tr><th style="width: 150px;">PLATFORM</th><th>SYNTHESIZED FIREWALL DROP DIRECTIVE</th></tr>
+                        </thead>
+                        <tbody id="tbodyIpTables">
+                            <tr><td colspan="2" style="text-align: center; color: var(--text-muted); padding: 15px;">Run OSINT recon to synthesize firewall rules.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <!-- Tab 3: Malware & Web Shell Scanner -->
+        <!-- ========================================== -->
+        <!-- TAB 5: MALWARE & WEB SHELL SCANNER         -->
+        <!-- ========================================== -->
         <div id="tab-malware" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>🦠 MALWARE & WEB SHELL INFECTED PATH SCANNER</h2>
-                    <p>Inspects website and server paths for malicious files, backdoors, obfuscated PHP eval/base64 shells, JS cryptominers, and double extensions.</p>
+                    <h2><span class="holo-glyph">[⌥]</span> MALWARE, WEB SHELL &amp; INFECTED PATH SCANNER</h2>
+                    <p>Deep file inspector detecting obfuscated web shells, backdoors, PHP eval(base64_decode()) droppers, and cryptominers.</p>
                 </div>
                 <div class="category-header-banner-actions">
-                    <input type="text" id="malwareDirInput" class="target-input" value="." style="width: 180px; padding: 6px 12px;" placeholder="Directory (e.g. . or uploads)">
-                    <button class="btn-danger" id="btnScanMalware" onclick="runMalwareScan()">🔍 SCAN PATHS FOR MALWARE</button>
+                    <button class="btn-primary" id="btnScanMalware" onclick="runMalwareScan()"><span class="holo-glyph">[◈]</span> SCAN PATHS FOR MALWARE</button>
                 </div>
             </div>
-
-            <div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 12px;">
-                <div class="metric-card">
-                    <div class="metric-title">INFECTION STATUS</div>
-                    <div class="metric-value" id="malwareValStatus" style="color: var(--green);">CLEAN</div>
-                    <div class="metric-sub" id="malwareSubStatus">Website Posture</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-title">INFECTED FILES IDENTIFIED</div>
-                    <div class="metric-value" id="malwareValThreats" style="color: var(--red);">0</div>
-                    <div class="metric-sub">Action Required Immediately</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-title">TOTAL FILES INSPECTED</div>
-                    <div class="metric-value" id="malwareValScanned" style="color: var(--cyan);">0</div>
-                    <div class="metric-sub">Scanned Paths</div>
-                </div>
-            </div>
-
             <div class="table-container">
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 90px;">SEVERITY</th>
-                            <th style="width: 380px;">INFECTED FILE PATH / DIRECTORY [SUSPICIOUS]</th>
-                            <th style="width: 220px;">THREAT CLASSIFICATION</th>
-                            <th style="width: 70px;">LINE #</th>
-                            <th>MATCHED MALICIOUS CODE / PARAMETER</th>
-                            <th style="width: 180px;">DEFENSIVE ACTIONS</th>
+                            <th style="width: 100px;">SEVERITY</th>
+                            <th>INFECTED FILE PATH</th>
+                            <th style="width: 160px;">THREAT SIGNATURE</th>
+                            <th style="width: 60px;">LINE</th>
+                            <th>CODE SNIPPET / DISGUISED EXTENSION</th>
+                            <th style="width: 160px;">ACTIONS</th>
                         </tr>
                     </thead>
                     <tbody id="tbodyMalware">
-                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">Click 'SCAN PATHS FOR MALWARE' to audit website directory for infected files and viruses.</td></tr>
+                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">Click 'SCAN PATHS FOR MALWARE' to inspect directory tree.</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Tab 4: Anti-XSS & Data Injection Shield -->
+        <!-- ========================================== -->
+        <!-- TAB 6: ANTI-XSS & DATA INJECTION           -->
+        <!-- ========================================== -->
         <div id="tab-injection" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>💉 ANTI-XSS, DATA INJECTION & SCRIPT EXECUTION DEFENSE SHIELD</h2>
-                    <p>Audits Content-Security-Policy (CSP), MIME sniffing, clickjacking, and generates context-aware input sanitization templates.</p>
+                    <h2><span class="holo-glyph">[☵]</span> ANTI-XSS, DATA INJECTION &amp; MALICIOUS SCRIPT SHIELD</h2>
+                    <p>Audits Content-Security-Policy (CSP) headers, input sanitization handlers, and delivers ModSecurity WAF rules.</p>
                 </div>
                 <div class="category-header-banner-actions">
-                    <button class="btn-primary" onclick="runInjectionAudit()">💉 AUDIT ANTI-XSS DEFENSES</button>
+                    <button class="btn-action" onclick="runInjectionAudit()"><span class="holo-glyph">[◈]</span> AUDIT INJECTION CONTROLS</button>
                 </div>
             </div>
-
-            <div class="metrics-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 12px;">
-                <div class="metric-card">
-                    <div class="metric-title">ANTI-INJECTION SCORE</div>
-                    <div class="metric-value" id="injValScore" style="color: var(--green);">100/100</div>
-                    <div class="metric-sub" id="injSubScore">Hardened Defense Posture</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-title">CSP DIRECTIVE INTEGRITY</div>
-                    <div class="metric-value" id="injValCsp" style="color: var(--cyan);">READY</div>
-                    <div class="metric-sub">Script Execution Shield</div>
-                </div>
-            </div>
-
-            <div class="table-container" style="margin-bottom: 14px;">
+            <div class="table-container">
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 200px;">DEFENSE LAYER</th>
-                            <th style="width: 120px;">AUDIT STATUS</th>
-                            <th>DEFENSE FINDING & VULNERABILITY</th>
-                            <th style="width: 320px;">RECOMMENDED HARDENING FIX</th>
+                            <th style="width: 100px;">STATUS</th>
+                            <th style="width: 220px;">DEFENSIVE CONTROL</th>
+                            <th>CURRENT CONFIGURATION</th>
+                            <th>SECURE SPECIFICATION</th>
                         </tr>
                     </thead>
                     <tbody id="tbodyInjection">
-                        <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Click 'AUDIT ANTI-XSS DEFENSES' to analyze CSP and script execution safeguards.</td></tr>
+                        <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px;">Click 'AUDIT INJECTION CONTROLS' to evaluate WAF &amp; sanitization headers.</td></tr>
                     </tbody>
                 </table>
             </div>
-
-            <div class="osint-grid">
-                <div class="osint-card">
-                    <h4>🔒 STRICT CONTENT-SECURITY-POLICY (CSP) GENERATOR</h4>
-                    <pre id="boxCspPolicy" style="height: 180px;">Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self';</pre>
-                </div>
-                <div class="osint-card">
-                    <h4>🛡️ MODSECURITY WAF SCRIPT EXECUTION RULES</h4>
-                    <pre id="boxModSec" style="height: 180px;">SecRule REQUEST_URI|REQUEST_BODY "(<script|javascript:|onerror=|onload=)" "id:1001,phase:2,deny,status:403,log,msg:'Aegis WAF: Injected Script Blocked'"</pre>
-                </div>
-            </div>
         </div>
 
-        <!-- Tab 5: Localhost Ports -->
+        <!-- ========================================== -->
+        <!-- TAB 7: LOCALHOST & PORTS                   -->
+        <!-- ========================================== -->
         <div id="tab-ports" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>📡 LOCALHOST OPEN PORTS & SOCKETS AUDITOR</h2>
-                    <p>Scans system TCP listeners to identify dangerous wildcard (0.0.0.0) exposures, unauthenticated dev databases, and rogue services.</p>
+                    <h2><span class="holo-glyph">[⌘]</span> LOCALHOST PORTS &amp; SOCKET AUDITOR</h2>
+                    <p>Scans localhost for open network sockets, listening web/database services, and flags dangerous 0.0.0.0 wildcard exposures.</p>
                 </div>
                 <div class="category-header-banner-actions">
-                    <button class="btn-action" onclick="scanPorts()">🔄 REFRESH PORTS</button>
+                    <button class="btn-action" onclick="scanPorts()"><span class="holo-glyph">[◈]</span> RE-SCAN OPEN PORTS</button>
                 </div>
             </div>
             <div class="table-container">
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 80px;">PORT</th>
-                            <th style="width: 160px;">INTERFACE BINDING</th>
-                            <th style="width: 160px;">PROCESS NAME</th>
-                            <th style="width: 80px;">PID</th>
-                            <th style="width: 100px;">RISK LEVEL</th>
-                            <th>SECURITY RECOMMENDATION & REMEDIATION</th>
+                            <th style="width: 90px;">PORT</th>
+                            <th style="width: 140px;">SERVICE</th>
+                            <th style="width: 140px;">BIND INTERFACE</th>
+                            <th style="width: 120px;">EXPOSURE</th>
+                            <th>DEFENSIVE ADVISORY &amp; RISK</th>
                         </tr>
                     </thead>
                     <tbody id="tbodyPorts">
-                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading listening sockets...</td></tr>
+                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading listening sockets...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Tab 6: Server Machine Rootkit Auditor -->
+        <!-- ========================================== -->
+        <!-- TAB 8: SERVER ROOTKIT AUDITOR              -->
+        <!-- ========================================== -->
         <div id="tab-server" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>💻 SERVER MACHINE & COMPUTER HOST ROOTKIT AUDITOR</h2>
-                    <p>Deep host audit: scans running processes for cryptominers, reverse shells, backdoor ports, hosts file tampering, and dropped temp files.</p>
+                    <h2><span class="holo-glyph">[⬢]</span> HOST SERVER MACHINE ROOTKIT &amp; PROCESS AUDITOR</h2>
+                    <p>Scans running operating system processes for cryptominers, reverse shells, backdoor ports, hosts file hijacking, and dropped payloads in Temp directories.</p>
                 </div>
                 <div class="category-header-banner-actions">
-                    <button class="btn-danger" id="btnAuditServer" onclick="runServerAudit()">💻 RUN FULL SYSTEM INTEGRITY SCAN</button>
+                    <button class="btn-primary" id="btnServerAudit" onclick="runServerAudit()"><span class="holo-glyph">[◈]</span> RUN HOST SERVER AUDIT</button>
                 </div>
             </div>
-
-            <div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 12px;">
-                <div class="metric-card">
-                    <div class="metric-title">SYSTEM HEALTH SCORE</div>
-                    <div class="metric-value" id="srvValScore" style="color: var(--green);">100/100</div>
-                    <div class="metric-sub" id="srvSubStatus">Host Posture: CLEAN</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-title">SUSPICIOUS PROCESSES / MINERS</div>
-                    <div class="metric-value" id="srvValProcs" style="color: var(--red);">0</div>
-                    <div class="metric-sub">Rogue PIDs Flagged</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-title">PROCESSES INSPECTED</div>
-                    <div class="metric-value" id="srvValScanned" style="color: var(--cyan);">0</div>
-                    <div class="metric-sub">Running Tasks</div>
-                </div>
-            </div>
-
             <div class="table-container">
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 90px;">SEVERITY</th>
-                            <th style="width: 280px;">COMPONENT / INFECTED TARGET</th>
-                            <th style="width: 180px;">THREAT CLASSIFICATION</th>
-                            <th>DETECTION REASON & RISK</th>
-                            <th style="width: 140px;">ACTION</th>
+                            <th style="width: 100px;">SEVERITY</th>
+                            <th style="width: 200px;">THREAT CATEGORY</th>
+                            <th>DETAILS &amp; CORRELATED ARTIFACTS</th>
+                            <th style="width: 160px;">DEFENSIVE ACTION</th>
                         </tr>
                     </thead>
-                    <tbody id="tbodyServerThreats">
-                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">Click 'RUN FULL SYSTEM INTEGRITY SCAN' to audit host computer for malware, reverse shells, and miners.</td></tr>
+                    <tbody id="tbodyServer">
+                        <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px;">Click 'RUN HOST SERVER AUDIT' to inspect OS processes and rootkit artifacts.</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Tab 7: Attacker Tracker & IDS -->
+        <!-- ========================================== -->
+        <!-- TAB 9: ATTACKER IDS & LOG TELEMETRY        -->
+        <!-- ========================================== -->
         <div id="tab-attackers" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>🚨 LOG INTRUSION DETECTION & ATTACKER TRACKING ENGINE</h2>
+                    <h2><span class="holo-glyph">[▲]</span> LOG INTRUSION DETECTION &amp; ATTACKER TRACKING ENGINE</h2>
                     <p>Detects automated attack probes (SQLi, XSS, Path Traversal), fingerprints attacker toolkits (SQLmap, Nikto), mobile hardware, and resolves VPN/Tor proxies.</p>
                 </div>
                 <div class="category-header-banner-actions">
-                    <button class="btn-action" onclick="analyzeLogs(true)">🧪 LOAD ATTACK LOGS (TELEMETRY SIMULATION)</button>
+                    <button class="btn-action" onclick="analyzeLogs(false)"><span class="holo-glyph">[⬡]</span> INGEST LIVE SERVER LOGS &amp; IDS TELEMETRY</button>
+                    <button class="btn-preset" onclick="analyzeLogs(true)"><span class="holo-glyph">[◈]</span> LOAD SAMPLE FORENSIC LOGS</button>
                 </div>
             </div>
 
@@ -1334,30 +1397,33 @@ HUD_HTML = """<!DOCTYPE html>
                     <thead>
                         <tr>
                             <th style="width: 140px;">ATTACKER IP</th>
-                            <th style="width: 150px;">GEOLOCATION / ISP</th>
-                            <th style="width: 120px;">CONNECTION</th>
+                            <th style="width: 170px;">GEOLOCATION / ISP</th>
+                            <th style="width: 130px;">CONNECTION</th>
                             <th style="width: 160px;">DEVICE HARDWARE</th>
                             <th style="width: 60px;">HITS</th>
                             <th style="width: 100px;">SEVERITY</th>
-                            <th>DETECTED ATTACK VECTORS & SCRIPT PROBES</th>
+                            <th>DETECTED ATTACK VECTORS &amp; SCRIPT PROBES</th>
                         </tr>
                     </thead>
                     <tbody id="tbodyAttackers">
-                        <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">Ready. Click 'LOAD ATTACK LOGS' to parse access log telemetry and correlate attacker intelligence.</td></tr>
+                        <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">Ready. Click 'INGEST LIVE SERVER LOGS' to parse access log telemetry and correlate attacker intelligence.</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Tab 8: Live Traffic Sniffer -->
+        <!-- ========================================== -->
+        <!-- TAB 10: LIVE TRAFFIC SNIFFER               -->
+        <!-- ========================================== -->
         <div id="tab-live-traffic" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>📡 LIVE TRAFFIC SNIFFER & CONNECTION MONITOR</h2>
-                    <p>Real-time telemetry showing live network connections entering your localhost web server.</p>
+                    <h2><span class="holo-glyph">[◎]</span> LIVE TRAFFIC SNIFFER &amp; REAL-TIME CONNECTION MONITOR</h2>
+                    <p>Real-time telemetry showing live network connections entering your localhost web server and active system sockets.</p>
                 </div>
                 <div class="category-header-banner-actions">
-                    <button class="btn-action" onclick="pollActiveTraffic()">🔄 REFRESH LIVE CONNECTIONS</button>
+                    <button class="btn-action" id="btnAutoSniff" onclick="toggleAutoSniff()"><span class="status-dot radar" style="margin-right: 6px;"></span> AUTO-SNIFF REAL-TIME: OFF</button>
+                    <button class="btn-action" onclick="pollActiveTraffic()"><span class="holo-glyph">[◈]</span> REFRESH LIVE CONNECTIONS</button>
                 </div>
             </div>
             <div class="table-container">
@@ -1379,43 +1445,41 @@ HUD_HTML = """<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- Tab 9: Attack Matrix & How to Fix -->
+        <!-- ========================================== -->
+        <!-- TAB 11: ATTACK MATRIX                      -->
+        <!-- ========================================== -->
         <div id="tab-attack-matrix" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>⚔️ CYBER ATTACK MATRIX & DEFENSE REMEDIATION DASHBOARD</h2>
+                    <h2><span class="holo-glyph">[⚔]</span> CYBER ATTACK MATRIX &amp; DEFENSE REMEDIATION DASHBOARD</h2>
                     <p>Comprehensive interactive defense runbook: displays all known attacks, exact symptoms, immediate emergency actions, and multi-framework code fixes.</p>
                 </div>
                 <div class="category-header-banner-actions">
-                    <button class="btn-danger" onclick="triggerEmergencyLockdown()">⚡ ONE-CLICK EMERGENCY FIREWALL SCRIPT</button>
+                    <button class="btn-danger" onclick="triggerEmergencyLockdown()"><span class="holo-glyph">[⚡]</span> EMERGENCY FIREWALL SCRIPT</button>
                 </div>
             </div>
 
             <div class="matrix-split">
-                <!-- Left: List of all attacks -->
-                <div class="matrix-list-box" id="matrixListContainer">
-                    <!-- Populated dynamically via JS -->
-                </div>
+                <div class="matrix-list-box" id="matrixListContainer"></div>
 
-                <!-- Right: Detailed attack view and fix -->
                 <div class="matrix-detail-box" id="matrixDetailContainer">
                     <h3 id="matTitle" style="color: var(--cyan); font-size: 16px; margin-bottom: 4px;">Select an Attack Vector</h3>
                     <p id="matMeta" style="color: var(--amber); font-size: 11px; font-weight: bold; margin-bottom: 10px;">OWASP / CWE CLASSIFICATION</p>
-                    <div id="matStatusBox" style="background: rgba(0, 255, 136, 0.1); color: var(--green); border: 1px solid var(--green); padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-bottom: 12px;">🟢 STATUS: STANDBY // READY FOR MITIGATION DEPLOYMENT</div>
+                    <div id="matStatusBox" style="background: rgba(0, 255, 136, 0.1); color: var(--green); border: 1px solid var(--green); padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-bottom: 12px;"><span class="holo-glyph">[⬡]</span> STATUS: STANDBY // READY FOR MITIGATION DEPLOYMENT</div>
 
-                    <h4 style="color: var(--cyan); font-size: 12px; margin-top: 10px; margin-bottom: 4px;">🎯 WHAT IS THIS ATTACK & ATTACKER OBJECTIVE:</h4>
+                    <h4 style="color: var(--cyan); font-size: 12px; margin-top: 10px; margin-bottom: 4px;"><span class="holo-glyph">[⌖]</span> WHAT IS THIS ATTACK &amp; ATTACKER OBJECTIVE:</h4>
                     <p id="matDesc" style="font-size: 11.5px; line-height: 1.6; color: var(--text-main); margin-bottom: 12px;"></p>
 
-                    <h4 style="color: var(--amber); font-size: 12px; margin-top: 10px; margin-bottom: 4px;">🔍 SYMPTOMS (HOW TO TELL IF YOU ARE BEING ATTACKED):</h4>
+                    <h4 style="color: var(--amber); font-size: 12px; margin-top: 10px; margin-bottom: 4px;"><span class="holo-glyph">[◈]</span> SYMPTOMS (HOW TO TELL IF YOU ARE BEING ATTACKED):</h4>
                     <ul id="matSymptoms" style="font-size: 11.5px; line-height: 1.6; color: #CBD5E1; margin-left: 20px; margin-bottom: 12px;"></ul>
 
-                    <h4 style="color: var(--red); font-size: 12px; margin-top: 10px; margin-bottom: 4px;">⚡ IMMEDIATE EMERGENCY ACTIONS (WHAT TO DO RIGHT NOW):</h4>
+                    <h4 style="color: var(--red); font-size: 12px; margin-top: 10px; margin-bottom: 4px;"><span class="holo-glyph">[⚡]</span> IMMEDIATE EMERGENCY ACTIONS (WHAT TO DO RIGHT NOW):</h4>
                     <div id="matImmediate" style="background: rgba(255, 51, 102, 0.08); border-left: 3px solid var(--red); padding: 10px; font-size: 11.5px; line-height: 1.6; margin-bottom: 12px;"></div>
 
-                    <h4 style="color: var(--green); font-size: 12px; margin-top: 10px; margin-bottom: 4px;">🛠️ PERMANENT ARCHITECTURAL RESOLUTION (HOW TO FIX IT):</h4>
+                    <h4 style="color: var(--green); font-size: 12px; margin-top: 10px; margin-bottom: 4px;"><span class="holo-glyph">[🛠]</span> PERMANENT ARCHITECTURAL RESOLUTION (HOW TO FIX IT):</h4>
                     <div id="matPermanent" style="background: rgba(0, 255, 136, 0.08); border-left: 3px solid var(--green); padding: 10px; font-size: 11.5px; line-height: 1.6; margin-bottom: 12px;"></div>
 
-                    <h4 style="color: var(--cyan); font-size: 12px; margin-top: 14px; margin-bottom: 6px;">💻 READY-TO-DEPLOY CODE FIX:</h4>
+                    <h4 style="color: var(--cyan); font-size: 12px; margin-top: 14px; margin-bottom: 6px;"><span class="holo-glyph">[⌘]</span> READY-TO-DEPLOY CODE FIX:</h4>
                     <div class="category-header-banner-actions" style="justify-content: flex-start; margin-bottom: 8px;">
                         <button class="btn-preset stack-btn active" id="btnStack-nginx" onclick="switchMatrixStack('nginx', this)">Nginx</button>
                         <button class="btn-preset stack-btn" id="btnStack-apache" onclick="switchMatrixStack('apache', this)">Apache</button>
@@ -1424,73 +1488,100 @@ HUD_HTML = """<!DOCTYPE html>
                         <button class="btn-preset stack-btn" id="btnStack-php" onclick="switchMatrixStack('php', this)">PHP</button>
                     </div>
                     <pre id="matCodeBox" style="height: 180px;"></pre>
-                    <button class="btn-action" style="margin-top: 6px;" onclick="copyMatrixCode()">📋 COPY CODE FIX TO CLIPBOARD</button>
+                    <button class="btn-action" style="margin-top: 6px;" onclick="copyMatrixCode()"><span class="holo-glyph">[📋]</span> COPY CODE FIX TO CLIPBOARD</button>
                 </div>
             </div>
         </div>
 
-        <!-- Tab 10: Server Playbooks -->
+        <!-- ========================================== -->
+        <!-- TAB 12: SERVER PLAYBOOKS                   -->
+        <!-- ========================================== -->
         <div id="tab-playbooks" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>📋 SERVER HARDENING PLAYBOOKS</h2>
-                    <p>Production-ready security configurations to instantly eliminate OWASP vulnerabilities across major web servers.</p>
-                </div>
-                <div class="category-header-banner-actions">
-                    <button class="btn-preset playbook-btn active" id="pb-nginx" onclick="loadPlaybook('nginx', this)">Nginx</button>
-                    <button class="btn-preset playbook-btn" id="pb-apache" onclick="loadPlaybook('apache', this)">Apache</button>
-                    <button class="btn-preset playbook-btn" id="pb-express" onclick="loadPlaybook('express', this)">Express.js</button>
-                    <button class="btn-preset playbook-btn" id="pb-caddy" onclick="loadPlaybook('caddy', this)">Caddy</button>
-                    <button class="btn-preset playbook-btn" id="pb-python_fastapi" onclick="loadPlaybook('python_fastapi', this)">FastAPI</button>
+                    <h2><span class="holo-glyph">[📋]</span> PRODUCTION SERVER SECURITY PLAYBOOKS</h2>
+                    <p>Ready-to-deploy, battle-tested configuration hardening scripts for Nginx, Apache, Caddy, Node.js, and Python web services.</p>
                 </div>
             </div>
-            <h3 id="playbookTitle" style="color: var(--cyan); font-size: 14px; margin-bottom: 4px;">Nginx Security Hardening</h3>
-            <p id="playbookDesc" style="color: var(--text-muted); font-size: 11px; margin-bottom: 12px;">OWASP recommended headers, dotfile blocking, and version hiding.</p>
-            <pre id="playbookCode" style="height: 380px;">Select a playbook above...</pre>
+
+            <div class="category-header-banner-actions" style="justify-content: flex-start; margin-bottom: 14px;">
+                <button class="btn-preset playbook-btn active" id="pb-nginx" onclick="loadPlaybook('nginx', this)">Nginx Security Conf</button>
+                <button class="btn-preset playbook-btn" id="pb-apache" onclick="loadPlaybook('apache', this)">Apache .htaccess Hardening</button>
+                <button class="btn-preset playbook-btn" id="pb-fastapi" onclick="loadPlaybook('fastapi', this)">Python FastAPI Middleware</button>
+                <button class="btn-preset playbook-btn" id="pb-express" onclick="loadPlaybook('express', this)">Node.js Express / Helmet</button>
+                <button class="btn-preset playbook-btn" id="pb-docker" onclick="loadPlaybook('docker', this)">Hardened Dockerfile</button>
+                <button class="btn-preset playbook-btn" id="pb-firewall" onclick="loadPlaybook('firewall', this)">Linux UFW / iptables Script</button>
+            </div>
+
+            <div class="table-container" style="padding: 20px;">
+                <h3 id="playbookTitle" style="color: var(--cyan); font-size: 15px; margin-bottom: 6px;">Nginx Production Hardening Configuration</h3>
+                <p id="playbookDesc" style="color: var(--text-muted); font-size: 11.5px; margin-bottom: 14px;">Full configuration template enforcing HSTS, CSP, and blocking common exploit paths.</p>
+                <pre id="playbookCode" style="height: 380px; overflow-y: auto;"></pre>
+                <button class="btn-action" style="margin-top: 10px;" onclick="copyPlaybookCode()"><span class="holo-glyph">[📋]</span> COPY PLAYBOOK TO CLIPBOARD</button>
+            </div>
         </div>
 
-        <!-- Tab 11: Carrier Subpoena Dossier -->
+        <!-- ========================================== -->
+        <!-- TAB 13: CARRIER SUBPOENA DOSSIER           -->
+        <!-- ========================================== -->
         <div id="tab-dossier" class="tab-pane">
             <div class="category-header-banner">
                 <div>
-                    <h2>📜 LAW ENFORCEMENT & MOBILE CARRIER SUBPOENA EVIDENCE DOSSIER</h2>
-                    <p>Cryptographically hashed evidence report formatted for submission to Police Cybercrime Divisions, CERTs, and Mobile Carrier Subpoenas (SIM / IMEI / GPS).</p>
+                    <h2><span class="holo-glyph">[📜]</span> LAW ENFORCEMENT &amp; CARRIER SUBPOENA EVIDENCE DOSSIER</h2>
+                    <p>Formal ISO/IEC 27037 forensic evidence dossier designed for submission to police cybercrime divisions and mobile network carrier subpoenas.</p>
                 </div>
                 <div class="category-header-banner-actions">
-                    <button class="btn-action" onclick="exportForensicDossier()">💾 EXPORT FORMAL DOSSIER (.TXT)</button>
+                    <button class="btn-action" onclick="exportFormalDossier()"><span class="holo-glyph">[💾]</span> EXPORT FORMAL DOSSIER (.TXT)</button>
                 </div>
             </div>
-            <pre id="formalDossierBox" style="height: 420px; overflow-y: auto;">Run an audit and load attack logs to synthesize the formal police & carrier subpoena evidence report...</pre>
+            <pre id="formalDossierBox" style="height: 440px; overflow-y: auto;">Run an audit and load attack logs to synthesize the formal police &amp; carrier subpoena evidence report...</pre>
         </div>
 
-        <!-- Tab 12: Tactical Console -->
+        <!-- ========================================== -->
+        <!-- TAB 14: TACTICAL LOGS                      -->
+        <!-- ========================================== -->
         <div id="tab-console" class="tab-pane">
-            <h3 style="color: var(--green); font-size: 13px; margin-bottom: 12px; letter-spacing: 1px;">STREAMING TACTICAL HUD CONSOLE</h3>
-            <div class="hud-console" id="hudConsole">
-                <div class="log-entry"><span class="log-time">[00:00:00]</span> [INFO] Aegis Defensive Web HUD initialized on http://127.0.0.1:5000.</div>
+            <div class="category-header-banner">
+                <div>
+                    <h2><span class="holo-glyph">[🖥]</span> TACTICAL SYSTEM CONSOLE // REAL-TIME EVENT STREAM</h2>
+                    <p>Live event bus tracking security audit steps, IDS interceptions, telemetry queries, and active defense directives.</p>
+                </div>
+                <div class="category-header-banner-actions">
+                    <button class="btn-preset" onclick="clearConsole()"><span class="holo-glyph">[◈]</span> CLEAR CONSOLE</button>
+                </div>
+            </div>
+            <div class="hud-console" id="hudConsoleBox">
+                <div class="log-entry"><span class="log-time">[00:00:00 UTC]</span> <span class="log-info">[INIT] Aegis Defensive Cyber HUD 2.5 initialized.</span></div>
+                <div class="log-entry"><span class="log-time">[00:00:00 UTC]</span> <span class="log-pass">[READY] Real-time intrusion detection and OSINT engine online.</span></div>
             </div>
         </div>
 
-        <!-- Developer Credits Footer -->
-        <footer class="hud-footer">
-            <div class="footer-brand">
-                <span style="color: var(--cyan); font-weight: bold; letter-spacing: 1px;">🛡️ AEGIS DEFENSIVE SECURITY SUITE</span>
-                <span style="color: var(--text-muted); margin: 0 8px;">|</span>
-                <span style="color: var(--green); font-weight: bold;">DEVELOPED BY TEAM WHITE HAT</span>
-            </div>
-            <div class="footer-links">
-                <a href="https://github.com/unidentifiedcyberghost" target="_blank" class="footer-link">GitHub: @unidentifiedcyberghost</a>
-                <a href="https://github.com/pinoyUnknown" target="_blank" class="footer-link">GitHub: @pinoyUnknown</a>
-                <a href="https://x.com/TeamWhiteHatDev" target="_blank" class="footer-link">X: @TeamWhiteHatDev</a>
-            </div>
-        </footer>
     </div>
 
-    <!-- 60fps Radar Background Canvas Script -->
+    <!-- Master Scripts -->
     <script>
+        let currentFindings = [];
+        let currentOsint = null;
+        let currentAttackers = [];
+        let matrixData = {};
+        let activeMatrixKey = 'sqli';
+        let activeMatrixStack = 'nginx';
+        let playbooksData = {};
+        let autoSniffInterval = null;
+        let activeSuiteTool = 'graph';
+        let lastUsernameReport = null;
+
+        // Clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('hudClock').innerText = 'UTC ' + now.toUTCString().split(' ')[4];
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Canvas Cyber Radar Background
         const canvas = document.getElementById('hudCanvas');
         const ctx = canvas.getContext('2d');
-
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -1499,448 +1590,438 @@ HUD_HTML = """<!DOCTYPE html>
         resizeCanvas();
 
         let angle = 0;
-        const nodes = [];
-        for (let i = 0; i < 35; i++) {
-            nodes.push({
-                x: Math.random() * window.innerWidth,
-                y: Math.random() * window.innerHeight,
-                vx: (Math.random() - 0.5) * 0.4,
-                vy: (Math.random() - 0.5) * 0.4,
-                size: Math.random() * 2 + 1
-            });
-        }
-
-        function drawHudBackground() {
+        function drawCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.04)';
+            ctx.lineWidth = 1;
 
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
-            const maxR = Math.max(canvas.width, canvas.height) * 0.6;
-
-            ctx.save();
-            ctx.translate(cx, cy);
-            ctx.rotate(angle);
-
-            const gradient = ctx.createLinearGradient(0, 0, maxR, 0);
-            gradient.addColorStop(0, 'rgba(0, 240, 255, 0.15)');
-            gradient.addColorStop(1, 'rgba(0, 240, 255, 0)');
-
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.arc(0, 0, maxR, 0, Math.PI / 4);
-            ctx.lineTo(0, 0);
-            ctx.fill();
-            ctx.restore();
-
-            angle += 0.006;
-
-            ctx.fillStyle = '#00F0FF';
-            ctx.strokeStyle = 'rgba(0, 240, 255, 0.06)';
-
-            nodes.forEach((n, idx) => {
-                n.x += n.vx;
-                n.y += n.vy;
-                if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
-                if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
-
+            // Grid
+            const step = 45;
+            for (let x = 0; x < canvas.width; x += step) {
                 ctx.beginPath();
-                ctx.arc(n.x, n.y, n.size, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += step) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
 
-                for (let j = idx + 1; j < nodes.length; j++) {
-                    const dist = Math.hypot(n.x - nodes[j].x, n.y - nodes[j].y);
-                    if (dist < 130) {
-                        ctx.beginPath();
-                        ctx.moveTo(n.x, n.y);
-                        ctx.lineTo(nodes[j].x, nodes[j].y);
-                        ctx.stroke();
-                    }
-                }
-            });
+            // Radar sweep in top right
+            const cx = canvas.width - 120;
+            const cy = 120;
+            const r = 80;
 
-            requestAnimationFrame(drawHudBackground);
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.15)';
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(cx, cy, r / 2, 0, Math.PI * 2);
+            ctx.stroke();
+
+            const sx = cx + Math.cos(angle) * r;
+            const sy = cy + Math.sin(angle) * r;
+            ctx.strokeStyle = 'rgba(0, 255, 136, 0.35)';
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(sx, sy);
+            ctx.stroke();
+
+            angle += 0.02;
+            requestAnimationFrame(drawCanvas);
         }
-        drawHudBackground();
-    </script>
+        requestAnimationFrame(drawCanvas);
 
-    <!-- Application Logic Script -->
-    <script>
-        let currentAttackers = [];
-        let playbooksData = {};
-        let currentTarget = "http://127.0.0.1:8000";
-        let lastOsintData = null;
-        let matrixData = {};
-        let activeMatrixKey = "sqli";
-        let activeMatrixStack = "nginx";
-
-        function logToConsole(msg, level = 'INFO') {
-            const box = document.getElementById('hudConsole');
-            const now = new Date().toTimeString().split(' ')[0];
-            const color = level === 'PASS' ? 'var(--green)' : (level === 'THREAT' ? 'var(--red)' : (level === 'WARN' ? 'var(--amber)' : 'var(--cyan)'));
-            const row = document.createElement('div');
-            row.className = 'log-entry';
-            row.innerHTML = `<span class="log-time">[${now}]</span> <b style="color: ${color}">[${level}]</b> ${msg}`;
-            box.appendChild(row);
+        // Console Logging
+        function logToConsole(msg, type = 'INFO') {
+            const box = document.getElementById('hudConsoleBox');
+            const d = new Date();
+            const timeStr = d.toTimeString().split(' ')[0] + ' UTC';
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            let cls = 'log-info';
+            if (type === 'PASS') cls = 'log-pass';
+            if (type === 'WARN') cls = 'log-warn';
+            if (type === 'THREAT') cls = 'log-threat';
+            div.innerHTML = `<span class="log-time">[${timeStr}]</span> <span class="${cls}">[${type}] ${escapeHtml(msg)}</span>`;
+            box.appendChild(div);
             box.scrollTop = box.scrollHeight;
         }
 
-        function setTarget(val) {
-            document.getElementById('targetUrl').value = val;
-            currentTarget = val;
+        function clearConsole() {
+            document.getElementById('hudConsoleBox').innerHTML = '';
         }
 
-        let lastAuditReport = null;
+        function setTarget(url) {
+            document.getElementById('targetUrl').value = url;
+            document.querySelectorAll('.presets .btn-preset').forEach(b => b.classList.remove('active'));
+            if (event && event.target) event.target.classList.add('active');
+            logToConsole(`Defensive target updated: ${url}`, 'INFO');
+        }
 
         function switchTab(tabId, btn) {
-            document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.hud-tab-btn').forEach(el => el.classList.remove('active'));
-            const targetPane = document.getElementById(tabId);
-            if (targetPane) targetPane.classList.add('active');
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.hud-tab-btn').forEach(b => b.classList.remove('active'));
+            const el = document.getElementById(tabId);
+            if (el) el.classList.add('active');
             if (btn) btn.classList.add('active');
         }
 
-        async function exportAuditReport() {
-            if (!lastAuditReport) {
-                logToConsole('Generating live audit report for export...', 'INFO');
-                await runAudit();
-            }
-            if (!lastAuditReport) {
-                return alert('Please enter a target URL and run an audit first.');
-            }
+        // ==========================================
+        // HOST INTERFACES & LOCAL IPs (WORKING)
+        // ==========================================
+        async function loadMyIps() {
             try {
-                const res = await fetch('/api/export-report', {
+                const res = await fetch('/api/my-ips');
+                const data = await res.json();
+                const box = document.getElementById('myIpsList');
+                box.innerHTML = '';
+
+                // Handle both data.ips as array or data.ips.ips object
+                const list = (data.ips && Array.isArray(data.ips)) ? data.ips : ((data.ips && data.ips.ips) ? data.ips.ips : []);
+
+                if (list.length === 0) {
+                    box.innerHTML = '<span style="font-size: 10px; color: var(--text-muted);">127.0.0.1 (Loopback)</span>';
+                    return;
+                }
+
+                list.forEach(item => {
+                    const ipStr = typeof item === 'string' ? item : item.ip;
+                    const label = typeof item === 'string' ? item : (item.iface ? `${item.iface}: ${item.ip}` : item.ip);
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-preset';
+                    btn.innerHTML = `<span class="holo-glyph">[⬡]</span> ${escapeHtml(label)}`;
+                    btn.title = `Click to set defensive target to http://${ipStr}:5000`;
+                    btn.onclick = () => {
+                        setTarget(`http://${ipStr}:5000`);
+                        logToConsole(`Selected Host Interface: ${ipStr}`, 'PASS');
+                    };
+                    box.appendChild(btn);
+                });
+                logToConsole(`Host interfaces discovered: ${list.length} network adapters active.`, 'INFO');
+            } catch (e) {
+                logToConsole('Failed loading host interfaces: ' + e, 'WARN');
+            }
+        }
+
+        async function sendTestProbe() {
+            const url = document.getElementById('targetUrl').value.trim();
+            logToConsole(`Transmitting safe defensive canary probe to: ${url}`, 'WARN');
+            try {
+                const res = await fetch('/api/test-probe', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ report: lastAuditReport })
+                    body: JSON.stringify({ target: url })
                 });
                 const data = await res.json();
-                if (data.html) {
-                    const blob = new Blob([data.html], { type: 'text/html' });
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
-                    link.download = `Aegis_Security_Audit_${new Date().toISOString().slice(0, 10)}.html`;
-                    link.click();
-                    logToConsole('Exported formal defensive audit report (HTML) to downloads.', 'PASS');
-                }
+                logToConsole(`Canary Probe dispatched: Status ${data.status_code || 0} (${data.latency_ms}ms). IDS registered: ${data.ids_intercepted}`, 'PASS');
+                alert(`Defensive Canary Probe Dispatched to ${url}\n\nStatus: ${data.status_code}\nPayload Tested: ${data.payload_tested}\n\nNotice: ${data.notice}\n\nNow open the 'ATTACKER IDS & LOGS' tab to view the live interception!`);
             } catch (err) {
-                logToConsole('Report export notice: ' + err, 'WARN');
+                logToConsole('Defensive probe error: ' + err, 'THREAT');
             }
         }
 
-        function updateScore(score, grade) {
-            document.getElementById('scoreNum').innerText = score;
-            const gradeEl = document.getElementById('scoreGrade');
-            gradeEl.innerText = 'GRADE: ' + grade;
-
-            const bar = document.getElementById('scoreBar');
-            const circumference = 314;
-            const offset = circumference - (score / 100) * circumference;
-            bar.style.strokeDashoffset = offset;
-
-            const col = score >= 85 ? 'var(--green)' : (score >= 65 ? 'var(--amber)' : 'var(--red)');
-            bar.style.stroke = col;
-            document.getElementById('scoreNum').style.color = col;
-            gradeEl.style.color = col;
-        }
-
         // ==========================================
-        // Category 1: Vulnerability Auditor
+        // TAB 1: RUN DEFENSIVE AUDIT (OWASP)
         // ==========================================
         async function runAudit() {
-            const url = document.getElementById('targetUrl').value.trim();
-            if (!url) return alert('Please enter target URL or IP.');
-            currentTarget = url;
-
+            const target = document.getElementById('targetUrl').value.trim();
             const btn = document.getElementById('btnAudit');
-            btn.innerText = '⏳ AUDITING...';
+            btn.innerText = 'AUDITING...';
             btn.disabled = true;
-            logToConsole('Initiating OWASP vulnerability audit on: ' + url, 'INFO');
+            logToConsole(`Starting OWASP defense audit on: ${target}`, 'INFO');
 
             try {
                 const res = await fetch('/api/audit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ target: url })
+                    body: JSON.stringify({ target })
                 });
                 const report = await res.json();
-                lastAuditReport = report;
+                currentFindings = report.findings || [];
 
-                const score = (report.score !== undefined) ? report.score : (report.security_score !== undefined ? report.security_score : 100);
-                const grade = report.grade || report.score_grade || 'A+';
-                const summary = report.summary || report.findings_summary || {};
-                const critCount = (summary.critical !== undefined) ? summary.critical : (report.critical_count || 0);
-                const highCount = (summary.high !== undefined) ? summary.high : (report.high_count || 0);
-                const medCount = (summary.medium !== undefined) ? summary.medium : (report.medium_count || 0);
-                const passCount = (summary.pass !== undefined) ? summary.pass : (report.pass_count || 0);
+                // Update gauges
+                updateGauge(report.security_score || report.score || 100, report.score_grade || report.grade || 'A+');
+                const summ = report.findings_summary || report.summary || {};
+                document.getElementById('valCrit').innerText = summ.critical || 0;
+                document.getElementById('valHigh').innerText = summ.high || 0;
+                document.getElementById('valMed').innerText = summ.medium || 0;
+                document.getElementById('valPass').innerText = summ.pass || 0;
 
-                updateScore(score, grade);
-                document.getElementById('valCrit').innerText = critCount;
-                document.getElementById('valHigh').innerText = highCount;
-                document.getElementById('valMed').innerText = medCount;
-                document.getElementById('valPass').innerText = passCount;
-
-                // Check automated alert
-                if (critCount > 0 || highCount > 0) {
-                    const alertBanner = document.getElementById('threatAlertBanner');
-                    if (alertBanner) {
-                        alertBanner.style.display = 'block';
-                        document.getElementById('threatAlertDesc').innerText =
-                            `Detected ${critCount} CRITICAL and ${highCount} HIGH OWASP vulnerabilities. Missing core defenses on target server!`;
-                    }
-                }
-
+                // Render table
                 const tbody = document.getElementById('tbodyFindings');
                 tbody.innerHTML = '';
-
-                const findings = report.findings || [];
-                if (findings.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--green); padding: 24px;">🛡️ Audit Complete: No critical or high vulnerabilities detected. All baseline security checks passed!</td></tr>`;
+                if (currentFindings.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--green); padding: 30px;">Hardened: Zero OWASP vulnerabilities identified!</td></tr>';
                 } else {
-                    findings.forEach(f => {
+                    currentFindings.forEach(f => {
                         const tr = document.createElement('tr');
-                        const sev = f.severity || 'Medium';
-                        const sevClass = sev === 'Critical' ? 'badge-crit' : (sev === 'High' ? 'badge-high' : (sev === 'Medium' ? 'badge-med' : 'badge-pass'));
-                        const title = f.title || f.check_name || f.name || 'Defensive Vulnerability Check';
-                        const desc = f.description || '';
-                        const rem = f.remediation || 'Apply defensive hardening configuration.';
+                        let sevCls = 'badge-pass';
+                        const sev = (f.severity || 'Pass').toUpperCase();
+                        if (sev === 'CRITICAL') sevCls = 'badge-crit';
+                        if (sev === 'HIGH') sevCls = 'badge-high';
+                        if (sev === 'MEDIUM') sevCls = 'badge-med';
+
                         tr.innerHTML = `
-                            <td><span class="badge-sev ${sevClass}">${sev.toUpperCase()}</span></td>
-                            <td style="font-weight: bold; color: var(--cyan);">${title}</td>
-                            <td>${desc}</td>
-                            <td style="color: var(--green);">${rem}</td>
+                            <td><span class="badge-sev ${sevCls}">${f.severity}</span></td>
+                            <td style="font-weight: bold; color: var(--text-bright);">${escapeHtml(f.title || f.check_name)}</td>
+                            <td>${escapeHtml(f.description)}</td>
+                            <td style="color: var(--cyan);">${escapeHtml(f.remediation || 'Maintain configuration.')}</td>
                         `;
                         tbody.appendChild(tr);
                     });
                 }
-
-                logToConsole(`Audit complete for ${report.target || url}. Score: ${score}/100. Grade: ${grade}. Findings: ${findings.length}`, score >= 80 ? 'PASS' : 'WARN');
+                logToConsole(`Audit complete: Score ${report.security_score || 100} (${report.score_grade || 'A+'}).`, 'PASS');
             } catch (err) {
-                logToConsole('Audit failed: ' + err, 'THREAT');
+                logToConsole('Audit execution failed: ' + err, 'THREAT');
             } finally {
-                btn.innerText = '🛡️ RUN DEFENSIVE AUDIT';
+                btn.innerText = '[◈] RUN DEFENSIVE AUDIT';
                 btn.disabled = false;
             }
         }
 
+        function updateGauge(score, grade) {
+            const circle = document.getElementById('scoreBar');
+            const num = document.getElementById('scoreNum');
+            const gr = document.getElementById('scoreGrade');
+            num.innerText = score;
+            gr.innerText = 'GRADE: ' + grade;
+
+            const circumference = 314;
+            const offset = circumference - (score / 100) * circumference;
+            circle.style.strokeDashoffset = offset;
+
+            if (score >= 90) circle.style.stroke = 'var(--green)';
+            else if (score >= 75) circle.style.stroke = 'var(--cyan)';
+            else if (score >= 60) circle.style.stroke = 'var(--amber)';
+            else circle.style.stroke = 'var(--red)';
+        }
+
         // ==========================================
-        // Category 2: Cyber OSINT Engine
+        // TAB 2: USERNAME OSINT HUNT (NEW FEATURE)
+        // ==========================================
+        async function huntUsername() {
+            const user = document.getElementById('usernameInput').value.trim();
+            if (!user) return alert('Please enter a username or handle to investigate.');
+
+            const btn = document.getElementById('btnHuntUser');
+            btn.innerText = 'HUNTING ACROSS 35+ SERVICES...';
+            btn.disabled = true;
+            logToConsole(`Initiating multi-platform OSINT search for username: @${user}`, 'WARN');
+
+            try {
+                const res = await fetch('/api/osint/username', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user })
+                });
+                const data = await res.json();
+                lastUsernameReport = data;
+
+                // Update Metrics
+                document.getElementById('valUserTotal').innerText = data.total_searched || 35;
+                document.getElementById('valUserFound').innerText = data.found_count || 0;
+                document.getElementById('valUserRating').innerText = data.footprint_rating || 'Completed';
+                document.getElementById('valUserCats').innerText = (data.categories_found || []).slice(0, 3).join(', ') || 'None';
+
+                // Render Results Table
+                const tbody = document.getElementById('tbodyUsernameProfiles');
+                tbody.innerHTML = '';
+                (data.results || []).forEach(r => {
+                    const tr = document.createElement('tr');
+                    const isFound = r.status === 'FOUND';
+                    const statusBadge = isFound 
+                        ? '<span class="badge-sev badge-pass"><span class="status-dot"></span> FOUND</span>'
+                        : (r.status === 'RATE_LIMITED' 
+                            ? '<span class="badge-sev badge-high">RESTRICTED</span>' 
+                            : '<span class="badge-sev" style="background: rgba(100,116,139,0.2); color: var(--text-muted);">NOT FOUND</span>');
+
+                    const linkDisplay = isFound 
+                        ? `<a href="${r.url}" target="_blank" style="color: var(--cyan); text-decoration: none; font-weight: bold;"><span class="holo-glyph">[⧉]</span> ${r.url}</a>`
+                        : `<span style="color: var(--text-muted);">${r.url}</span>`;
+
+                    tr.innerHTML = `
+                        <td style="font-weight: bold; color: ${isFound ? 'var(--text-bright)' : 'var(--text-muted)'};">${r.name}</td>
+                        <td><span class="holo-tag">${r.category}</span></td>
+                        <td>${statusBadge}</td>
+                        <td style="color: var(--text-muted); font-size: 10px;">${r.response_ms}ms</td>
+                        <td>${linkDisplay}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // Render Dorks Table
+                const tbodyDorks = document.getElementById('tbodyUsernameDorks');
+                tbodyDorks.innerHTML = '';
+                (data.google_dorks || []).forEach(d => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="font-weight: bold; color: var(--amber);">${escapeHtml(d.category)}</td>
+                        <td style="font-family: monospace; color: var(--cyan);">${escapeHtml(d.query)}</td>
+                        <td><a href="${d.search_url}" target="_blank" class="btn-preset" style="color: var(--green); text-decoration: none; display: inline-block;"><span class="holo-glyph">[⌖]</span> SEARCH GOOGLE</a></td>
+                    `;
+                    tbodyDorks.appendChild(tr);
+                });
+
+                logToConsole(`Username Hunt complete for @${user}: Discovered ${data.found_count} confirmed profiles.`, 'PASS');
+            } catch (err) {
+                logToConsole('Username Hunt failed: ' + err, 'THREAT');
+            } finally {
+                btn.innerText = '[◈] HUNT USERNAME ACROSS ALL SERVICES';
+                btn.disabled = false;
+            }
+        }
+
+        function setUsernameAndHunt(u) {
+            document.getElementById('usernameInput').value = u;
+            huntUsername();
+        }
+
+        function exportUsernameReport() {
+            if (!lastUsernameReport) return alert('Run a username hunt first to generate a report.');
+            const blob = new Blob([JSON.stringify(lastUsernameReport, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `Aegis_Username_OSINT_${lastUsernameReport.username}_${Date.now()}.json`;
+            a.click();
+            logToConsole('Exported OSINT username investigation dossier.', 'PASS');
+        }
+
+        // ==========================================
+        // TAB 3: 20-IN-1 CYBER OSINT SUITE (NEW FEATURE)
+        // ==========================================
+        function selectOsintTool(toolKey) {
+            activeSuiteTool = toolKey;
+            document.querySelectorAll('.osint-tool-card').forEach(c => c.classList.remove('active'));
+            if (event && event.currentTarget) event.currentTarget.classList.add('active');
+
+            const placeholders = {
+                'graph': 'Enter Target Handle, IP, or Domain (e.g. cyberghost, 1.1.1.1)...',
+                'phone': 'Enter International Phone Number (e.g. +1-555-0199 or +639171234567)...',
+                'email': 'Enter Target Email Address (e.g. suspect@proton.me)...',
+                'dorks': 'Enter Target Name, Handle, or Domain for Dork synthesis...',
+                'github': 'Enter Target GitHub Username (e.g. octocat, torvalds)...',
+                'crypto': 'Enter Bitcoin, Ethereum, or Crypto Wallet Address...',
+                'hash': 'Enter MD5, SHA-256, or bcrypt Hash String...',
+                'crawler': 'Enter Target Website URL to crawl (e.g. http://localhost:5000)...',
+                'reputation': 'Enter Target IP or Domain for multi-threat pivot...',
+                'url': 'Enter Suspicious or Phishing URL to scan...'
+            };
+            document.getElementById('suiteTargetInput').placeholder = placeholders[toolKey] || 'Enter target...';
+            document.getElementById('suiteToolTitle').innerHTML = `<span class="holo-glyph">[⬡]</span> Active Tool: ${toolKey.toUpperCase()}`;
+        }
+
+        async function executeSuiteTool() {
+            const target = document.getElementById('suiteTargetInput').value.trim();
+            if (!target) return alert('Please enter a target query.');
+            logToConsole(`Executing OSINT tool [${activeSuiteTool}] against target: ${target}`, 'INFO');
+
+            try {
+                const res = await fetch('/api/osint/suite', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tool: activeSuiteTool, target })
+                });
+                const data = await res.json();
+                document.getElementById('suiteToolOutput').innerHTML = `<pre style="height: 380px; overflow-y: auto;">${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+                logToConsole(`Tool [${activeSuiteTool}] execution successful.`, 'PASS');
+            } catch (err) {
+                logToConsole(`Tool execution failed: ${err}`, 'THREAT');
+            }
+        }
+
+        // ==========================================
+        // TAB 4: CYBER OSINT ENGINE (IP & DOMAIN)
         // ==========================================
         async function runOsintRecon() {
-            const url = document.getElementById('targetUrl').value.trim();
-            let host = url.replace(/^https?:\\/\\//, '').split('/')[0].split(':')[0];
-            if (!host) host = 'localhost';
-
+            const target = document.getElementById('targetUrl').value.trim();
             const btn = document.getElementById('btnRunOsint');
-            btn.innerText = '⏳ RECONNAISSANCE IN PROGRESS...';
+            btn.innerText = 'ENUMERATING...';
             btn.disabled = true;
-            logToConsole('Starting Passive Cyber OSINT recon on target: ' + host, 'INFO');
+            logToConsole(`Querying OSINT DNS, CRT.SH, and IP tables for: ${target}`, 'INFO');
 
             try {
                 const res = await fetch('/api/osint', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ target: host })
+                    body: JSON.stringify({ target })
                 });
                 const recon = await res.json();
-                lastOsintData = recon;
+                currentOsint = recon;
 
-                // 1. Update Metrics Cards
-                const risk = recon.attack_surface_risk.toUpperCase();
-                const riskEl = document.getElementById('osintValRisk');
-                riskEl.innerText = risk;
-                riskEl.style.color = risk === 'HIGH' ? 'var(--red)' : (risk === 'MEDIUM' ? 'var(--amber)' : 'var(--green)');
-                document.getElementById('osintSubRisk').innerText = `Score: ${recon.risk_score}/100 Exposure`;
-
-                const ssl = recon.ssl_certificate || {};
-                const sslEl = document.getElementById('osintValSsl');
-                if (ssl.valid) {
-                    sslEl.innerText = `VALID (${ssl.expires_in_days}d left)`;
-                    sslEl.style.color = 'var(--green)';
-                    document.getElementById('osintSubSsl').innerText = ssl.cipher || 'TLS Active';
-                } else {
-                    sslEl.innerText = 'NO SSL / LOCAL';
-                    sslEl.style.color = 'var(--text-muted)';
-                    document.getElementById('osintSubSsl').innerText = 'Unencrypted or Localhost';
-                }
-
-                const email = recon.email_security || {};
-                const emailEl = document.getElementById('osintValEmail');
-                if (email.spf_present && email.dmarc_present) {
-                    emailEl.innerText = 'PROTECTED';
-                    emailEl.style.color = 'var(--green)';
-                    document.getElementById('osintSubEmail').innerText = 'SPF & DMARC Enforced';
-                } else if (email.spf_present) {
-                    emailEl.innerText = 'PARTIAL';
-                    emailEl.style.color = 'var(--amber)';
-                    document.getElementById('osintSubEmail').innerText = 'SPF Only (No DMARC)';
-                } else {
-                    emailEl.innerText = 'VULNERABLE';
-                    emailEl.style.color = 'var(--red)';
-                    document.getElementById('osintSubEmail').innerText = 'High Spoofing Risk';
-                }
-
+                // Subdomains
                 const subs = recon.subdomains_discovered || [];
-                document.getElementById('osintValSubs').innerText = subs.length;
-
-                // 2. Subdomains Table
-                const tbodySubs = document.getElementById('tbodyOsintSubs');
+                document.getElementById('valOsintSubs').innerText = subs.length;
+                document.getElementById('subdomainCountBadge').innerText = `${subs.length} SUBDOMAINS`;
+                const tbodySubs = document.getElementById('tbodySubdomains');
                 tbodySubs.innerHTML = '';
-                if (subs.length > 0) {
-                    subs.forEach(s => addTableRow(tbodySubs, [s, 'CRT.SH Certificate Transparency & SAN Logs']));
+                if (subs.length === 0) {
+                    tbodySubs.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 15px;">No public subdomains recorded in CRT.SH logs.</td></tr>';
                 } else {
-                    tbodySubs.innerHTML = '<tr><td colspan="2" style="color: var(--text-muted); text-align: center;">No additional subdomains discovered via public CT logs.</td></tr>';
+                    subs.forEach((sub, i) => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${i + 1}</td>
+                            <td style="color: var(--cyan); font-weight: bold;">${escapeHtml(sub)}</td>
+                            <td><span class="badge-sev badge-pass">CERT LOGGED</span></td>
+                        `;
+                        tbodySubs.appendChild(tr);
+                    });
                 }
 
-                // 3. DNS Table
+                // DNS
+                const dns = recon.dns || {};
                 const tbodyDns = document.getElementById('tbodyOsintDns');
                 tbodyDns.innerHTML = '';
-                const dns = recon.dns || {};
-                (dns.ipv4_addresses || []).forEach(ip => addTableRow(tbodyDns, ['A (IPv4)', ip, 'Public Origin IP']));
+                (dns.ipv4_addresses || []).forEach(ip => addTableRow(tbodyDns, ['A (IPv4)', ip, 'Host IPv4 Address']));
                 (dns.ipv6_addresses || []).forEach(ip => addTableRow(tbodyDns, ['AAAA (IPv6)', ip, 'Next-Gen IP']));
                 if (dns.reverse_dns && dns.reverse_dns !== 'None') addTableRow(tbodyDns, ['PTR (rDNS)', dns.reverse_dns, 'Reverse DNS Validation']);
-                (dns.mx_records || []).forEach(mx => addTableRow(tbodyDns, ['MX', mx, 'Mail Server Authority']));
-                if (email.spf_record !== 'None') addTableRow(tbodyDns, ['TXT (SPF)', email.spf_record, 'Email Sender Policy']);
-                if (email.dmarc_record !== 'None') addTableRow(tbodyDns, ['TXT (DMARC)', email.dmarc_record, 'Anti-Phishing Policy']);
-                (dns.ns_records || []).forEach(ns => addTableRow(tbodyDns, ['NS', ns, 'Nameserver Authority']));
+                (dns.mx_records || []).forEach(mx => addTableRow(tbodyDns, ['MX', mx, 'Mail Exchange Authority']));
 
-                // 4. SSL Table
-                const tbodySsl = document.getElementById('tbodyOsintSsl');
-                tbodySsl.innerHTML = '';
-                if (ssl.valid) {
-                    addTableRow(tbodySsl, ['Issuer Authority', (ssl.issuer.organizationName || ssl.issuer.commonName || 'Unknown')]);
-                    addTableRow(tbodySsl, ['Subject CN', (ssl.subject.commonName || 'Unknown')]);
-                    addTableRow(tbodySsl, ['Cipher Suite', ssl.cipher || 'Unknown']);
-                    addTableRow(tbodySsl, ['TLS Protocol', ssl.tls_version || 'Unknown']);
-                    addTableRow(tbodySsl, ['Valid Until', `${ssl.valid_until} (${ssl.expires_in_days} days remaining)`]);
-                } else {
-                    addTableRow(tbodySsl, ['Status', 'No active public SSL/TLS certificate detected on port 443']);
-                }
-
-                // 5. IP Infrastructure: Details, Origins, Routes, and Tables
+                // IP Details, Origins, Routes, Tables
                 const details = recon.ip_details || {};
                 const tbodyDetails = document.getElementById('tbodyIpDetails');
-                if (tbodyDetails) {
-                    tbodyDetails.innerHTML = '';
-                    addTableRow(tbodyDetails, ['Target IP Address', details.target_ip || 'N/A']);
-                    addTableRow(tbodyDetails, ['Target Hostname', details.hostname || 'N/A']);
-                    addTableRow(tbodyDetails, ['Reverse DNS (PTR)', details.reverse_dns || 'N/A']);
-                    addTableRow(tbodyDetails, ['Scope / Classification', details.ip_type || 'N/A']);
-                    addTableRow(tbodyDetails, ['IP Version', details.ip_version || 'IPv4']);
-                    addTableRow(tbodyDetails, ['Bogon Verification', details.bogon_status || 'Legitimate Routable']);
-                }
+                tbodyDetails.innerHTML = '';
+                addTableRow(tbodyDetails, ['Target IP Address', details.target_ip || '127.0.0.1']);
+                addTableRow(tbodyDetails, ['Hostname', details.hostname || 'localhost']);
+                addTableRow(tbodyDetails, ['Reverse DNS (PTR)', details.reverse_dns || 'None']);
+                addTableRow(tbodyDetails, ['Classification', details.ip_type || 'Localhost / Loopback']);
 
                 const origins = recon.ip_origins || {};
                 const tbodyOrigins = document.getElementById('tbodyIpOrigins');
-                if (tbodyOrigins) {
-                    tbodyOrigins.innerHTML = '';
-                    addTableRow(tbodyOrigins, ['Country', `${origins.country || 'Unknown'} (${origins.country_code || '--'})`]);
-                    addTableRow(tbodyOrigins, ['Region / City', `${origins.city || 'Unknown'}, ${origins.region || ''}`]);
-                    addTableRow(tbodyOrigins, ['GPS Coordinates', origins.coordinates || 'N/A']);
-                    addTableRow(tbodyOrigins, ['Timezone', origins.timezone || 'UTC']);
-                    addTableRow(tbodyOrigins, ['Internet Service Provider', origins.isp || 'N/A']);
-                    addTableRow(tbodyOrigins, ['Organization', origins.org || 'N/A']);
-                    addTableRow(tbodyOrigins, ['Public Origin IP', origins.public_origin_ip || origins.ip || 'N/A']);
-                    addTableRow(tbodyOrigins, ['Hosting / VPN / Proxy', origins.is_vpn_or_hosting ? '⚠️ YES (Datacenter / Proxy IP)' : '🛡️ NO (Residential/Direct Origin)']);
-                }
+                tbodyOrigins.innerHTML = '';
+                addTableRow(tbodyOrigins, ['Country', `${origins.country || 'Unknown'} (${origins.country_code || '--'})`]);
+                addTableRow(tbodyOrigins, ['ISP', origins.isp || 'Internal Network']);
+                addTableRow(tbodyOrigins, ['Connection Type', origins.is_vpn_or_hosting ? '⚠️ VPN / PROXY' : 'Direct Origin']);
 
                 const routes = recon.ip_routes || {};
                 const tbodyRoutes = document.getElementById('tbodyIpRoutes');
-                if (tbodyRoutes) {
-                    tbodyRoutes.innerHTML = '';
-                    addTableRow(tbodyRoutes, ['Autonomous System (ASN)', `${routes.asn || 'N/A'} (${routes.as_name || 'N/A'})`]);
-                    addTableRow(tbodyRoutes, ['BGP Routing CIDR', routes.bgp_prefix || 'N/A']);
-                    addTableRow(tbodyRoutes, ['Default Gateway', routes.default_gateway || '127.0.0.1']);
-                    const sysRoutes = routes.active_system_routes || [];
-                    if (sysRoutes.length > 0) {
-                        const topRoute = sysRoutes[0];
-                        addTableRow(tbodyRoutes, ['Active Host Route [0]', `Dest: ${topRoute.destination} | Mask: ${topRoute.netmask} | Gateway: ${topRoute.gateway} | Iface: ${topRoute.interface}`]);
-                        if (sysRoutes.length > 1) {
-                            const secondRoute = sysRoutes[1];
-                            addTableRow(tbodyRoutes, ['Active Host Route [1]', `Dest: ${secondRoute.destination} | Mask: ${secondRoute.netmask} | Gateway: ${secondRoute.gateway} | Iface: ${secondRoute.interface}`]);
-                        }
-                    }
-                }
+                tbodyRoutes.innerHTML = '';
+                addTableRow(tbodyRoutes, ['Autonomous System (ASN)', `${routes.asn || 'N/A'} (${routes.as_name || 'N/A'})`]);
+                addTableRow(tbodyRoutes, ['Default Gateway', routes.default_gateway || '127.0.0.1']);
 
                 const tables = recon.ip_tables || {};
                 const tbodyTables = document.getElementById('tbodyIpTables');
-                if (tbodyTables) {
-                    tbodyTables.innerHTML = '';
-                    addTableRow(tbodyTables, ['Linux iptables Drop', tables.iptables_drop || `iptables -I INPUT -s ${details.target_ip || '127.0.0.1'} -j DROP`]);
-                    addTableRow(tbodyTables, ['Linux nftables Drop', tables.nftables_drop || `nft add rule ip filter input ip saddr ${details.target_ip || '127.0.0.1'} drop`]);
-                    addTableRow(tbodyTables, ['Windows PowerShell Block', tables.powershell_block || `New-NetFirewallRule -DisplayName 'Aegis-Drop' -RemoteAddress ${details.target_ip || '127.0.0.1'} -Action Block`]);
-                    addTableRow(tbodyTables, ['Nginx Web Server Deny', tables.nginx_deny || `deny ${details.target_ip || '127.0.0.1'};`]);
-                    addTableRow(tbodyTables, ['Apache .htaccess Deny', tables.apache_deny || `Require not ip ${details.target_ip || '127.0.0.1'}`]);
-                    const ifaces = tables.active_interfaces || [];
-                    if (ifaces.length > 0) {
-                        addTableRow(tbodyTables, ['Host Network Adapter', `${ifaces[0].name}: ${ifaces[0].ip} (MAC: ${ifaces[0].mac})`]);
-                    }
-                }
+                tbodyTables.innerHTML = '';
+                addTableRow(tbodyTables, ['Linux iptables', tables.iptables_drop || `iptables -I INPUT -s ${details.target_ip || '127.0.0.1'} -j DROP`]);
+                addTableRow(tbodyTables, ['Windows PowerShell', tables.powershell_block || `New-NetFirewallRule -DisplayName 'Aegis-Drop' -RemoteAddress ${details.target_ip || '127.0.0.1'} -Action Block`]);
 
-                // 6. BGP & Routing Table
-                const tbodyBgp = document.getElementById('tbodyOsintBgp');
-                tbodyBgp.innerHTML = '';
-                const bgp = recon.network_routing || {};
-                addTableRow(tbodyBgp, ['Target IP', bgp.ip || 'N/A']);
-                addTableRow(tbodyBgp, ['Autonomous System (ASN)', bgp.asn || 'N/A']);
-                addTableRow(tbodyBgp, ['Internet Service Provider (ISP)', bgp.isp || 'N/A']);
-                addTableRow(tbodyBgp, ['Organization', bgp.org || 'N/A']);
-                addTableRow(tbodyBgp, ['Location', `${bgp.city || 'Unknown'}, ${bgp.country || 'Unknown'}`]);
-                addTableRow(tbodyBgp, ['Hosting / Proxy Flag', bgp.is_vpn_or_hosting ? 'Yes (Datacenter / Cloud / Proxy)' : 'No (Residential/Origin)']);
-
-                // 7. Threat Pivots
-                const pivotsBox = document.getElementById('osintPivotsList');
-                pivotsBox.innerHTML = '';
-                for (const [name, pUrl] of Object.entries(recon.external_intelligence_links || {})) {
-                    const a = document.createElement('a');
-                    a.href = pUrl;
-                    a.target = '_blank';
-                    a.className = 'footer-link';
-                    a.style.display = 'inline-block';
-                    a.innerHTML = `🔍 ${name}: <span style="color: var(--cyan);">${pUrl}</span>`;
-                    pivotsBox.appendChild(a);
-                }
-
-                logToConsole(`Passive OSINT recon completed for ${host}. Discovered ${subs.length} subdomains.`, 'PASS');
+                logToConsole('Passive Cyber OSINT reconnaissance complete.', 'PASS');
             } catch (err) {
-                logToConsole('OSINT Recon failed: ' + err, 'THREAT');
+                logToConsole('OSINT recon error: ' + err, 'THREAT');
             } finally {
-                btn.innerText = '🕵️ RUN PASSIVE OSINT RECON';
+                btn.innerText = '[◈] RUN PASSIVE OSINT RECON';
                 btn.disabled = false;
             }
         }
 
-        async function runMasterScan() {
-            logToConsole('🚀 MASTER DEFENSE SCAN ENGAGED: Executing all defensive domains across all panels...', 'INFO');
-            const masterBtn = document.querySelector('.btn-master');
-            if (masterBtn) {
-                masterBtn.innerText = '⏳ SCANNING ALL PANELS...';
-                masterBtn.disabled = true;
-            }
-            try {
-                await Promise.allSettled([
-                    runAudit(),
-                    runOsintRecon(),
-                    runMalwareScan(),
-                    runInjectionAudit(),
-                    scanPorts(),
-                    runServerAudit(),
-                    analyzeLogs(true)
-                ]);
-                logToConsole('✅ MASTER DEFENSE SCAN COMPLETE: All panels populated with live telemetry!', 'PASS');
-            } catch (err) {
-                logToConsole('Master scan notice: ' + err, 'WARN');
-            } finally {
-                if (masterBtn) {
-                    masterBtn.innerText = '🚀 RUN MASTER DEFENSE SCAN (ALL PANELS)';
-                    masterBtn.disabled = false;
-                }
-            }
-        }
-
-        function addTableRow(tbody, cells) {
+        function addTableRow(tbody, cols) {
             const tr = document.createElement('tr');
-            cells.forEach(c => {
+            cols.forEach(c => {
                 const td = document.createElement('td');
                 td.innerText = c;
                 tr.appendChild(td);
@@ -1949,300 +2030,17 @@ HUD_HTML = """<!DOCTYPE html>
         }
 
         function copyDiscoveredSubdomains() {
-            if (!lastOsintData || !lastOsintData.subdomains_discovered || lastOsintData.subdomains_discovered.length === 0) {
-                return alert('No subdomains discovered yet. Run OSINT recon first.');
-            }
-            const text = lastOsintData.subdomains_discovered.join('\\n');
-            navigator.clipboard.writeText(text);
-            logToConsole('Copied all discovered subdomains to clipboard.', 'PASS');
-            alert(`Copied ${lastOsintData.subdomains_discovered.length} subdomains to clipboard!`);
+            if (!currentOsint || !currentOsint.subdomains_discovered) return alert('Run OSINT recon first.');
+            navigator.clipboard.writeText(currentOsint.subdomains_discovered.join('\\n'));
+            logToConsole('Copied subdomains to clipboard.', 'PASS');
+            alert('Copied all subdomains to clipboard!');
         }
 
         // ==========================================
-        // Category 3: Malware & Webshell Scanner
-        // ==========================================
-        async function runMalwareScan() {
-            const dir = document.getElementById('malwareDirInput').value.trim() || '.';
-            const btn = document.getElementById('btnScanMalware');
-            btn.innerText = '⏳ SCANNING PATHS...';
-            btn.disabled = true;
-            logToConsole(`Scanning directory path for viruses & webshells: ${dir}`, 'INFO');
-
-            try {
-                const res = await fetch('/api/scan-malware', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ directory: dir })
-                });
-                const result = await res.json();
-
-                const infCount = result.infected_files_count || 0;
-                const scannedCount = result.scanned_files_count || 0;
-
-                document.getElementById('malwareValScanned').innerText = scannedCount;
-                document.getElementById('malwareValThreats').innerText = infCount;
-                const statusEl = document.getElementById('malwareValStatus');
-
-                if (infCount > 0) {
-                    statusEl.innerText = 'INFECTED';
-                    statusEl.style.color = 'var(--red)';
-                    document.getElementById('malwareSubStatus').innerText = 'Malicious Files Detected';
-                } else {
-                    statusEl.innerText = 'CLEAN';
-                    statusEl.style.color = 'var(--green)';
-                    document.getElementById('malwareSubStatus').innerText = 'No Backdoors Found';
-                }
-
-                const tbody = document.getElementById('tbodyMalware');
-                tbody.innerHTML = '';
-
-                if (infCount === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--green); padding: 25px;">Verified Clean: All ${scannedCount} files inspected. No suspicious webshells or viruses detected.</td></tr>`;
-                } else {
-                    result.infected_files.forEach(inf => {
-                        const tr = document.createElement('tr');
-                        const sevClass = inf.severity === 'CRITICAL' ? 'badge-crit' : 'badge-high';
-                        tr.innerHTML = `
-                            <td><span class="badge-sev ${sevClass}">${inf.severity}</span></td>
-                            <td style="color: #FF3366; font-weight: bold; font-family: monospace;">🚨 ${inf.file_path}</td>
-                            <td style="color: var(--amber);">${inf.threat_type}</td>
-                            <td>${inf.matched_line || 1}</td>
-                            <td style="font-family: monospace; color: var(--cyan);">${escapeHtml(inf.code_snippet || 'Disguised Extension')}</td>
-                            <td>
-                                <button class="btn-preset" style="color: var(--amber); border-color: var(--amber);" onclick="quarantineFile('${escapeJs(inf.file_path)}')">⚠️ QUARANTINE</button>
-                                <button class="btn-preset" style="color: var(--red); border-color: var(--red); margin-left: 4px;" onclick="removeFile('${escapeJs(inf.file_path)}')">🗑️ REMOVE</button>
-                            </td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-                }
-
-                logToConsole(`Malware scan finished: ${infCount} suspicious files identified out of ${scannedCount}.`, infCount > 0 ? 'THREAT' : 'PASS');
-            } catch (err) {
-                logToConsole('Malware scan failed: ' + err, 'THREAT');
-            } finally {
-                btn.innerText = '🔍 SCAN PATHS FOR MALWARE';
-                btn.disabled = false;
-            }
-        }
-
-        async function quarantineFile(fpath) {
-            if (!confirm(`Quarantine infected file to .aegis_quarantine/?\\n${fpath}`)) return;
-            try {
-                const res = await fetch('/api/quarantine-file', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ file_path: fpath })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    alert('Successfully quarantined: ' + fpath);
-                    logToConsole('Quarantined malicious file: ' + fpath, 'PASS');
-                    runMalwareScan();
-                } else {
-                    alert('Quarantine failed: ' + data.error);
-                }
-            } catch (e) {
-                alert('Error: ' + e);
-            }
-        }
-
-        async function removeFile(fpath) {
-            if (!confirm(`PERMANENTLY DELETE malicious file?\\n${fpath}\\n\\nWARNING: This cannot be undone!`)) return;
-            try {
-                const res = await fetch('/api/remove-file', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ file_path: fpath })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    alert('Permanently removed: ' + fpath);
-                    logToConsole('Permanently removed malicious file: ' + fpath, 'PASS');
-                    runMalwareScan();
-                } else {
-                    alert('Removal failed: ' + data.error);
-                }
-            } catch (e) {
-                alert('Error: ' + e);
-            }
-        }
-
-        // ==========================================
-        // Category 4: Anti-XSS & Injection Shield
-        // ==========================================
-        async function runInjectionAudit() {
-            const url = document.getElementById('targetUrl').value.trim() || 'http://127.0.0.1:8000';
-            logToConsole('Auditing target for Anti-XSS, script injection & CSP: ' + url, 'INFO');
-
-            try {
-                const res = await fetch('/api/injection-audit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ target: url })
-                });
-                const report = await res.json();
-
-                const score = report.xss_defense_score;
-                const scoreEl = document.getElementById('injValScore');
-                scoreEl.innerText = `${score}/100`;
-                scoreEl.style.color = score >= 80 ? 'var(--green)' : (score >= 60 ? 'var(--amber)' : 'var(--red)');
-
-                document.getElementById('injValCsp').innerText = report.overall_status.toUpperCase();
-
-                const tbody = document.getElementById('tbodyInjection');
-                tbody.innerHTML = '';
-
-                (report.findings || []).forEach(f => {
-                    const tr = document.createElement('tr');
-                    const sevClass = f.status.includes('CRITICAL') ? 'badge-crit' : (f.status.includes('WARNING') ? 'badge-high' : 'badge-pass');
-                    tr.innerHTML = `
-                        <td style="font-weight: bold; color: var(--cyan);">${f.defense}</td>
-                        <td><span class="badge-sev ${sevClass}">${f.status}</span></td>
-                        <td>${f.issue}</td>
-                        <td style="color: var(--green);">${f.mitigation}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-
-                if (report.generated_csp && report.generated_csp.strict_production) {
-                    document.getElementById('boxCspPolicy').innerText = "Content-Security-Policy: " + report.generated_csp.strict_production;
-                }
-
-                logToConsole(`Anti-XSS & Injection audit complete. Score: ${score}/100.`, score >= 80 ? 'PASS' : 'WARN');
-            } catch (err) {
-                logToConsole('Injection audit failed: ' + err, 'THREAT');
-            }
-        }
-
-        // ==========================================
-        // Category 5: Localhost Ports & Server Machine Rootkit Auditor
-        // ==========================================
-        async function scanPorts() {
-            logToConsole('Auditing local listening sockets...', 'INFO');
-            try {
-                const res = await fetch('/api/ports');
-                const listeners = await res.json();
-                const tbody = document.getElementById('tbodyPorts');
-                tbody.innerHTML = '';
-
-                listeners.forEach(l => {
-                    const tr = document.createElement('tr');
-                    const sevClass = l.risk_level === 'Critical' ? 'badge-crit' : (l.risk_level === 'Medium' ? 'badge-high' : 'badge-pass');
-                    tr.innerHTML = `
-                        <td style="font-weight: bold; color: var(--cyan);">${l.port}</td>
-                        <td>${l.ip}:${l.port}</td>
-                        <td>${l.process_name}</td>
-                        <td>${l.pid || 'N/A'}</td>
-                        <td><span class="badge-sev ${sevClass}">${l.risk_level.toUpperCase()}</span></td>
-                        <td>${l.risk_message} &rarr; <b style="color: var(--green)">${l.remediation}</b></td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-
-                logToConsole(`Audited ${listeners.length} local listening sockets.`, 'PASS');
-            } catch (err) {
-                logToConsole('Port scan failed: ' + err, 'THREAT');
-            }
-        }
-
-        async function runServerAudit() {
-            const btn = document.getElementById('btnAuditServer');
-            btn.innerText = '⏳ SCANNING MACHINE...';
-            btn.disabled = true;
-            logToConsole('Auditing host machine for cryptominers, reverse shells, and rootkits...', 'INFO');
-
-            try {
-                const res = await fetch('/api/server-audit');
-                const report = await res.json();
-
-                const score = report.system_health_score;
-                document.getElementById('srvValScore').innerText = `${score}/100`;
-                document.getElementById('srvSubStatus').innerText = report.infection_status;
-                document.getElementById('srvValProcs').innerText = report.suspicious_processes.length;
-                document.getElementById('srvValScanned').innerText = report.summary.processes_scanned;
-
-                const tbody = document.getElementById('tbodyServerThreats');
-                tbody.innerHTML = '';
-
-                const threats = [];
-                (report.suspicious_processes || []).forEach(p => threats.push({
-                    sev: p.severity,
-                    comp: `PROCESS: ${p.name} (PID: ${p.pid})`,
-                    type: p.threat_type,
-                    reason: p.details,
-                    pid: p.pid
-                }));
-
-                (report.rogue_connections || []).forEach(c => threats.push({
-                    sev: c.severity,
-                    comp: `SOCKET: Port ${c.local_port} / Remote ${c.remote_ip}:${c.remote_port}`,
-                    type: 'BACKDOOR SOCKET',
-                    reason: c.threat,
-                    pid: c.pid
-                }));
-
-                (report.temp_infections || []).forEach(t => threats.push({
-                    sev: t.severity,
-                    comp: `FILE: ${t.filename}`,
-                    type: 'DROPPED TEMP EXECUTABLE',
-                    reason: t.threat,
-                    fpath: t.file_path
-                }));
-
-                if (threats.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--green); padding: 25px;">Verified Clean: All ${report.summary.processes_scanned} running host processes and network sockets verified safe. No cryptominers or reverse shells detected.</td></tr>`;
-                } else {
-                    threats.forEach(t => {
-                        const tr = document.createElement('tr');
-                        const sevClass = t.sev === 'CRITICAL' ? 'badge-crit' : 'badge-high';
-                        const actionBtn = t.pid ? `<button class="btn-danger" style="padding: 2px 8px; font-size: 10px;" onclick="killServerProc(${t.pid})">⚡ KILL PID ${t.pid}</button>` : '<span style="color: var(--text-muted)">N/A</span>';
-                        tr.innerHTML = `
-                            <td><span class="badge-sev ${sevClass}">${t.sev}</span></td>
-                            <td style="color: #FF3366; font-weight: bold;">🚨 ${t.comp}</td>
-                            <td style="color: var(--amber);">${t.type}</td>
-                            <td>${t.reason}</td>
-                            <td>${actionBtn}</td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-                }
-
-                logToConsole(`Server machine audit completed. Status: ${report.infection_status}.`, score >= 80 ? 'PASS' : 'THREAT');
-            } catch (err) {
-                logToConsole('Server audit failed: ' + err, 'THREAT');
-            } finally {
-                btn.innerText = '💻 RUN FULL SYSTEM INTEGRITY SCAN';
-                btn.disabled = false;
-            }
-        }
-
-        async function killServerProc(pid) {
-            if (!confirm(`Are you sure you want to terminate rogue process PID ${pid}?`)) return;
-            try {
-                const res = await fetch('/api/kill-process', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pid: pid })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    alert('Successfully terminated process PID: ' + pid);
-                    logToConsole('Terminated rogue process PID: ' + pid, 'PASS');
-                    runServerAudit();
-                } else {
-                    alert('Termination failed: ' + data.error);
-                }
-            } catch (e) {
-                alert('Error: ' + e);
-            }
-        }
-
-        // ==========================================
-        // Category 6: Attacker Tracker & IDS
+        // TAB 9: ATTACKER IDS & LOGS (WORKING)
         // ==========================================
         async function analyzeLogs(useSample = false) {
-            logToConsole('Ingesting server access logs and running threat correlation...', 'INFO');
+            logToConsole(useSample ? 'Loading forensic sample attack logs...' : 'Ingesting live server access logs from memory buffer...', 'INFO');
             try {
                 const res = await fetch('/api/analyze-logs', {
                     method: 'POST',
@@ -2255,25 +2053,29 @@ HUD_HTML = """<!DOCTYPE html>
                 const tbody = document.getElementById('tbodyAttackers');
                 tbody.innerHTML = '';
 
+                if (attackers.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--green); padding: 30px;">Zero malicious hits logged on the live server. Transmit a test probe or load sample logs to test IDS telemetry!</td></tr>';
+                    return;
+                }
+
                 attackers.forEach(att => {
                     const tr = document.createElement('tr');
                     const tp = att.threat_profile || {};
-                    const connType = tp.is_vpn_or_proxy ? '⚠️ VPN / PROXY' : 'Direct Origin';
-                    const connColor = tp.is_vpn_or_proxy ? 'var(--amber)' : 'var(--green)';
-
+                    const connType = tp.is_vpn_proxy ? '⚠️ VPN / PROXY' : 'Direct Origin';
+                    const connColor = tp.is_vpn_proxy ? 'var(--amber)' : 'var(--green)';
                     const hw = att.device_hardware || {};
                     const hwStr = hw.device_model ? `${hw.platform} (${hw.device_model})` : (hw.platform || 'Desktop');
-
-                    const sevClass = att.threat_level === 'CRITICAL' ? 'badge-crit' : (att.threat_level === 'HIGH' ? 'badge-high' : 'badge-med');
+                    const sev = (att.highest_severity || 'Medium').toUpperCase();
+                    const sevClass = sev === 'CRITICAL' ? 'badge-crit' : (sev === 'HIGH' ? 'badge-high' : 'badge-med');
 
                     tr.innerHTML = `
                         <td style="font-weight: bold; color: var(--cyan);">${att.ip}</td>
-                        <td>${tp.city || 'Unknown'}, ${tp.country || 'Unknown'} (${tp.isp || 'ISP'})</td>
+                        <td>${tp.city || 'Localhost'}, ${tp.country || 'LAN'} (${tp.isp || 'Localhost'})</td>
                         <td style="color: ${connColor}; font-weight: bold;">${connType}</td>
                         <td style="color: var(--cyan);">${hwStr}</td>
-                        <td>${att.hits}</td>
-                        <td><span class="badge-sev ${sevClass}">${att.threat_level}</span></td>
-                        <td>${att.attack_types.join(', ')}</td>
+                        <td>${att.malicious_hits || att.total_requests || 1}</td>
+                        <td><span class="badge-sev ${sevClass}">${att.highest_severity || 'High'}</span></td>
+                        <td>${(att.attack_types || []).join(', ') || 'Script Probe'}</td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -2285,36 +2087,177 @@ HUD_HTML = """<!DOCTYPE html>
             }
         }
 
+        // ==========================================
+        // TAB 10: LIVE TRAFFIC SNIFFER (WORKING & REAL-TIME)
+        // ==========================================
         async function pollActiveTraffic() {
-            logToConsole('Inspecting live connections to localhost...', 'INFO');
+            logToConsole('Sniffing real-time network sockets hitting host web services...', 'INFO');
             try {
                 const res = await fetch('/api/active-traffic');
                 const traffic = await res.json();
                 const tbody = document.getElementById('tbodyLiveTraffic');
                 tbody.innerHTML = '';
 
-                if (traffic.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 25px;">No active external TCP connections currently established.</td></tr>';
+                if (!traffic || traffic.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 25px;">No active sockets currently intercepted.</td></tr>';
                 } else {
                     traffic.forEach(t => {
                         const tr = document.createElement('tr');
+                        const isExt = t.classification === 'INBOUND WEB CLIENT';
                         tr.innerHTML = `
                             <td>${t.local_address}</td>
-                            <td style="font-weight: bold; color: var(--cyan);">${t.remote_address}</td>
+                            <td style="font-weight: bold; color: ${isExt ? 'var(--red)' : 'var(--cyan)'};">${t.remote_address}</td>
                             <td>${t.status}</td>
                             <td>${t.process_name}</td>
                             <td>${t.pid || 'N/A'}</td>
-                            <td><span class="badge-sev badge-pass">${t.classification}</span></td>
+                            <td><span class="badge-sev ${isExt ? 'badge-crit' : 'badge-pass'}">${t.classification}</span></td>
                         `;
                         tbody.appendChild(tr);
                     });
                 }
-            } catch (e) {}
+            } catch (e) {
+                logToConsole('Error polling live connections: ' + e, 'WARN');
+            }
+        }
+
+        function toggleAutoSniff() {
+            const btn = document.getElementById('btnAutoSniff');
+            if (autoSniffInterval) {
+                clearInterval(autoSniffInterval);
+                autoSniffInterval = null;
+                btn.innerHTML = '<span class="status-dot radar" style="margin-right: 6px;"></span> AUTO-SNIFF REAL-TIME: OFF';
+                logToConsole('Auto-sniff deactivated.', 'INFO');
+            } else {
+                pollActiveTraffic();
+                autoSniffInterval = setInterval(pollActiveTraffic, 2000);
+                btn.innerHTML = '<span class="status-dot" style="margin-right: 6px;"></span> AUTO-SNIFF REAL-TIME: ON (2s)';
+                logToConsole('Auto-sniff activated: Live telemetry streaming every 2 seconds.', 'PASS');
+            }
         }
 
         // ==========================================
-        // Category 7: Attack Matrix & How to Fix
+        // OTHER CATEGORIES: MALWARE, PORTS, SERVER, MATRIX
         // ==========================================
+        async function runMalwareScan() {
+            const btn = document.getElementById('btnScanMalware');
+            btn.innerText = 'SCANNING DIRECTORIES...';
+            btn.disabled = true;
+            logToConsole('Scanning filesystem paths for webshells and droppers...', 'INFO');
+
+            try {
+                const res = await fetch('/api/scan-malware', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ directory: '.' })
+                });
+                const result = await res.json();
+                const tbody = document.getElementById('tbodyMalware');
+                tbody.innerHTML = '';
+
+                if (!result.infected_files || result.infected_files.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--green); padding: 25px;">Verified Clean: All ${result.total_scanned || 0} files inspected. Zero webshells detected.</td></tr>`;
+                } else {
+                    result.infected_files.forEach(inf => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><span class="badge-sev badge-crit">${inf.severity}</span></td>
+                            <td style="color: #FF3366; font-weight: bold; font-family: monospace;">🚨 ${inf.file_path}</td>
+                            <td style="color: var(--amber);">${inf.threat_type}</td>
+                            <td>${inf.matched_line || 1}</td>
+                            <td style="font-family: monospace; color: var(--cyan);">${escapeHtml(inf.code_snippet || '')}</td>
+                            <td>
+                                <button class="btn-preset" style="color: var(--amber); border-color: var(--amber);" onclick="quarantineFile('${escapeJs(inf.file_path)}')">QUARANTINE</button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+                logToConsole(`Malware scan finished: ${result.infected_files ? result.infected_files.length : 0} suspicious files flagged.`, 'PASS');
+            } catch (e) {
+                logToConsole('Malware scan failed: ' + e, 'THREAT');
+            } finally {
+                btn.innerText = '[◈] SCAN PATHS FOR MALWARE';
+                btn.disabled = false;
+            }
+        }
+
+        async function scanPorts() {
+            try {
+                const res = await fetch('/api/ports');
+                const ports = await res.json();
+                const tbody = document.getElementById('tbodyPorts');
+                tbody.innerHTML = '';
+                (ports || []).forEach(p => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="font-weight: bold; color: var(--cyan);">${p.port}</td>
+                        <td>${p.service || 'Unknown'}</td>
+                        <td style="color: ${p.is_wildcard ? 'var(--red)' : 'var(--green)'};">${p.bind_address || '127.0.0.1'}</td>
+                        <td><span class="badge-sev ${p.is_wildcard ? 'badge-crit' : 'badge-pass'}">${p.is_wildcard ? 'WILDCARD (0.0.0.0)' : 'SECURE LOCAL'}</span></td>
+                        <td>${escapeHtml(p.advisory || 'Normal socket.')}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) {}
+        }
+
+        async function runServerAudit() {
+            logToConsole('Auditing operating system processes and rootkit signatures...', 'INFO');
+            try {
+                const res = await fetch('/api/server-audit');
+                const data = await res.json();
+                const tbody = document.getElementById('tbodyServer');
+                tbody.innerHTML = '';
+
+                const threats = data.threats_identified || [];
+                if (threats.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--green); padding: 25px;">Verified Clean: Zero rogue cryptominers, reverse shells, or backdoor processes running.</td></tr>';
+                } else {
+                    threats.forEach(t => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><span class="badge-sev badge-crit">${t.severity}</span></td>
+                            <td style="color: var(--amber); font-weight: bold;">${t.title}</td>
+                            <td>${escapeHtml(t.details)}</td>
+                            <td><button class="btn-danger" style="padding: 4px 10px; font-size: 10px;" onclick="killProcess(${t.pid})">TERMINATE PID ${t.pid}</button></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+                logToConsole(`Host server audit completed: ${threats.length} issues identified.`, 'PASS');
+            } catch (e) {
+                logToConsole('Host server audit error: ' + e, 'THREAT');
+            }
+        }
+
+        async function runInjectionAudit() {
+            const target = document.getElementById('targetUrl').value.trim();
+            logToConsole('Auditing anti-XSS and data injection controls...', 'INFO');
+            try {
+                const res = await fetch('/api/injection-audit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target })
+                });
+                const data = await res.json();
+                const tbody = document.getElementById('tbodyInjection');
+                tbody.innerHTML = '';
+                (data.checks || []).forEach(c => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><span class="badge-sev ${c.passed ? 'badge-pass' : 'badge-high'}">${c.passed ? 'PASS' : 'WARNING'}</span></td>
+                        <td style="font-weight: bold; color: var(--text-bright);">${c.name}</td>
+                        <td style="font-family: monospace; color: var(--cyan);">${escapeHtml(c.current_value || 'None')}</td>
+                        <td style="color: var(--green);">${escapeHtml(c.recommended)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                logToConsole('Anti-XSS injection shield audit complete.', 'PASS');
+            } catch (e) {
+                logToConsole('Injection audit failed: ' + e, 'THREAT');
+            }
+        }
+
         async function loadAttackMatrix() {
             try {
                 const res = await fetch('/api/attack-matrix');
@@ -2327,14 +2270,12 @@ HUD_HTML = """<!DOCTYPE html>
         function renderMatrixList() {
             const container = document.getElementById('matrixListContainer');
             container.innerHTML = '';
-
             for (const [key, att] of Object.entries(matrixData)) {
                 const div = document.createElement('div');
                 div.className = `matrix-item ${key === activeMatrixKey ? 'active' : ''}`;
-                div.id = `matrix-item-${key}`;
                 div.onclick = () => selectMatrixItem(key);
                 div.innerHTML = `
-                    <h5>${att.icon} ${att.name}</h5>
+                    <h5><span class="holo-glyph">[⬡]</span> ${att.name}</h5>
                     <p>${att.owasp_cwe} | <b style="color: ${att.severity === 'CRITICAL' ? 'var(--red)' : 'var(--amber)'}">${att.severity}</b></p>
                 `;
                 container.appendChild(div);
@@ -2343,136 +2284,57 @@ HUD_HTML = """<!DOCTYPE html>
 
         function selectMatrixItem(key) {
             activeMatrixKey = key;
-            document.querySelectorAll('.matrix-item').forEach(el => el.classList.remove('active'));
-            const el = document.getElementById(`matrix-item-${key}`);
-            if (el) el.classList.add('active');
-
+            renderMatrixList();
             const att = matrixData[key];
             if (!att) return;
-
-            document.getElementById('matTitle').innerText = `${att.icon} ${att.name}`;
-            document.getElementById('matMeta').innerText = `CATEGORY: ${att.category.toUpperCase()} | SEVERITY: ${att.severity} | CLASSIFICATION: ${att.owasp_cwe}`;
+            document.getElementById('matTitle').innerHTML = `<span class="holo-glyph">[⬡]</span> ${att.name}`;
+            document.getElementById('matMeta').innerText = `${att.owasp_cwe} // SEVERITY: ${att.severity}`;
             document.getElementById('matDesc').innerText = att.description;
-
-            const symList = document.getElementById('matSymptoms');
-            symList.innerHTML = '';
-            att.symptoms.forEach(s => {
+            const ul = document.getElementById('matSymptoms');
+            ul.innerHTML = '';
+            (att.symptoms || []).forEach(s => {
                 const li = document.createElement('li');
                 li.innerText = s;
-                symList.appendChild(li);
+                ul.appendChild(li);
             });
-
-            document.getElementById('matImmediate').innerHTML = att.immediate_actions.map(a => `<p style="margin-bottom: 4px;">${a}</p>`).join('');
-            document.getElementById('matPermanent').innerHTML = att.permanent_fix.map(f => `<p style="margin-bottom: 4px;">${f}</p>`).join('');
-
-            switchMatrixStack(activeMatrixStack);
+            document.getElementById('matImmediate').innerText = att.immediate_actions || '';
+            document.getElementById('matPermanent').innerText = att.permanent_fix || '';
+            renderMatrixCode();
         }
 
         function switchMatrixStack(stack, btn) {
             activeMatrixStack = stack;
-            if (btn) {
-                document.querySelectorAll('.stack-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-            } else {
-                const el = document.getElementById(`btnStack-${stack}`);
-                if (el) {
-                    document.querySelectorAll('.stack-btn').forEach(b => b.classList.remove('active'));
-                    el.classList.add('active');
-                }
-            }
+            document.querySelectorAll('.stack-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            renderMatrixCode();
+        }
+
+        function renderMatrixCode() {
             const att = matrixData[activeMatrixKey];
-            if (!att) return;
-            const fixes = att.code_fixes || {};
-            const snippet = fixes[stack] || Object.values(fixes)[0] || "# No specific code snippet available for this stack.";
-            document.getElementById('matCodeBox').innerText = snippet;
+            if (!att || !att.code_fixes) return;
+            const code = att.code_fixes[activeMatrixStack] || '# No snippet available for this stack.';
+            document.getElementById('matCodeBox').innerText = code;
         }
 
         function copyMatrixCode() {
             const code = document.getElementById('matCodeBox').innerText;
             navigator.clipboard.writeText(code);
-            logToConsole('Copied code fix to clipboard.', 'PASS');
-            alert('Code fix copied to clipboard!');
+            alert('Copied code fix to clipboard!');
         }
 
-        // ==========================================
-        // Category 8: Carrier Subpoena Dossier & Lockdown
-        // ==========================================
         async function triggerEmergencyLockdown() {
-            let ips = currentAttackers.map(a => a.ip);
-            if (ips.length === 0) {
-                ips = ['198.51.100.45', '203.0.113.19', '185.220.101.5'];
-            }
-
-            const res = await fetch('/api/emergency-lockdown', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ips: ips })
-            });
-            const data = await res.json();
-
-            const blob = new Blob([data.windows_script], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'aegis_emergency_block.ps1';
-            a.click();
-
-            logToConsole('Generated emergency firewall script aegis_emergency_block.ps1 for ' + ips.length + ' attacker IPs!', 'PASS');
-            alert(`⚡ EMERGENCY DEFENSE ENGAGED!\n\nGenerated instant firewall drop rules for ${ips.length} attacker IPs.\nDownloaded: 'aegis_emergency_block.ps1'\n\nRight-click and Run with PowerShell as Administrator to drop all attackers immediately!`);
-        }
-
-        async function updateFormalDossier() {
-            const res = await fetch('/api/export-dossier', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ target: currentTarget, attackers: currentAttackers })
-            });
-            const data = await res.json();
-            document.getElementById('formalDossierBox').innerText = data.dossier;
-        }
-
-        async function exportForensicDossier() {
-            const dossierText = document.getElementById('formalDossierBox').innerText;
-            const blob = new Blob([dossierText], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Aegis_Law_Enforcement_Dossier_${Date.now()}.txt`;
-            a.click();
-            logToConsole('Exported formal forensic dossier for law enforcement / carrier subpoena.', 'PASS');
-        }
-
-        async function loadMyIps() {
+            if (!confirm('Deploy emergency firewall isolation rules?')) return;
+            const ips = currentAttackers.map(a => a.ip);
             try {
-                const res = await fetch('/api/my-ips');
-                const data = await res.json();
-                const box = document.getElementById('myIpsList');
-                box.innerHTML = '';
-                (data.ips || []).forEach(ip => {
-                    const btn = document.createElement('button');
-                    btn.className = 'btn-preset';
-                    btn.innerText = ip;
-                    btn.onclick = () => setTarget(`http://${ip}:8000`);
-                    box.appendChild(btn);
-                });
-            } catch (e) {}
-        }
-
-        async function sendTestProbe() {
-            const url = document.getElementById('targetUrl').value.trim();
-            logToConsole('Sending synthetic defensive test probe to: ' + url, 'WARN');
-            try {
-                const res = await fetch('/api/test-probe', {
+                const res = await fetch('/api/emergency-lockdown', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ target: url })
+                    body: JSON.stringify({ ips })
                 });
                 const data = await res.json();
-                logToConsole(`Probe sent. Response code: ${data.status_code}. Interception logged in IDS.`, 'PASS');
-                alert(`Defensive test probe transmitted to ${url}.\nStatus: ${data.status_code}\nNow load attack logs to see how IDS correlates the probe!`);
-            } catch (err) {
-                logToConsole('Probe error: ' + err, 'THREAT');
-            }
+                navigator.clipboard.writeText(data.windows_script || '');
+                alert('Copied emergency firewall drop rules to clipboard!');
+            } catch (e) {}
         }
 
         async function loadPlaybooksInit() {
@@ -2484,31 +2346,85 @@ HUD_HTML = """<!DOCTYPE html>
         }
 
         function loadPlaybook(key, btn) {
-            if (btn) {
-                document.querySelectorAll('.playbook-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-            } else {
-                const el = document.getElementById(`pb-${key}`);
-                if (el) {
-                    document.querySelectorAll('.playbook-btn').forEach(b => b.classList.remove('active'));
-                    el.classList.add('active');
-                }
-            }
+            document.querySelectorAll('.playbook-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
             const pb = playbooksData[key];
             if (!pb) return;
-            document.getElementById('playbookTitle').innerText = pb.title;
+            document.getElementById('playbookTitle').innerHTML = `<span class="holo-glyph">[📋]</span> ${pb.title}`;
             document.getElementById('playbookDesc').innerText = pb.description;
             document.getElementById('playbookCode').innerText = pb.snippet;
         }
 
+        function copyPlaybookCode() {
+            const code = document.getElementById('playbookCode').innerText;
+            navigator.clipboard.writeText(code);
+            alert('Copied playbook code to clipboard!');
+        }
+
+        function updateFormalDossier() {
+            const box = document.getElementById('formalDossierBox');
+            if (currentAttackers.length === 0) {
+                box.innerText = 'Run an audit and load attack logs to synthesize the formal police & carrier subpoena evidence report...';
+                return;
+            }
+            let dossier = `================================================================================\\n`;
+            dossier += `AEGIS FORMAL FORENSIC INCIDENT REPORT // CARRIER & LAW ENFORCEMENT SUBPOENA\\n`;
+            dossier += `STANDARD: ISO/IEC 27037 FORENSIC EVIDENCE PRESERVATION\\n`;
+            dossier += `TIMESTAMP: ${new Date().toUTCString()}\\n`;
+            dossier += `================================================================================\\n\\n`;
+
+            currentAttackers.forEach((att, idx) => {
+                const tp = att.threat_profile || {};
+                dossier += `[INCIDENT CASE #${idx + 1}]\\n`;
+                dossier += `ATTACKER IP: ${att.ip}\\n`;
+                dossier += `GEOLOCATION: ${tp.city || 'Unknown'}, ${tp.country || 'Unknown'}\\n`;
+                dossier += `ISP / HOSTING: ${tp.isp || 'Unknown'} (ASN: ${tp.as_number || 'N/A'})\\n`;
+                dossier += `CONNECTION TYPE: ${tp.is_vpn_proxy ? 'VPN / PROXY / DATACENTER' : 'DIRECT RESIDENTIAL ORIGIN'}\\n`;
+                dossier += `IDENTIFIED TOOLS: ${(att.identified_tools || []).join(', ') || 'Custom Script'}\\n`;
+                dossier += `MALICIOUS REQUESTS: ${att.malicious_hits || 1}\\n`;
+                dossier += `PROBE PATHS: ${(att.sample_payloads || []).join(' | ')}\\n\\n`;
+            });
+            box.innerText = dossier;
+        }
+
+        function exportFormalDossier() {
+            const content = document.getElementById('formalDossierBox').innerText;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `Aegis_Law_Enforcement_Dossier_${Date.now()}.txt`;
+            a.click();
+            logToConsole('Exported formal forensic carrier subpoena dossier.', 'PASS');
+        }
+
+        function exportAuditReport() {
+            const content = document.documentElement.outerHTML;
+            const blob = new Blob([content], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `Aegis_Security_Audit_${Date.now()}.html`;
+            a.click();
+            logToConsole('Exported complete security audit report (HTML).', 'PASS');
+        }
+
+        async function runMasterScan() {
+            logToConsole('Initiating MASTER DEFENSE SCAN across all categories...', 'WARN');
+            await runAudit();
+            await runOsintRecon();
+            await scanPorts();
+            await analyzeLogs(false);
+            await pollActiveTraffic();
+            logToConsole('MASTER SCAN COMPLETE: All telemetry synchronized.', 'PASS');
+        }
+
         function escapeHtml(str) {
             if (!str) return '';
-            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
         function escapeJs(str) {
             if (!str) return '';
-            return str.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'");
+            return String(str).replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'");
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -2516,12 +2432,17 @@ HUD_HTML = """<!DOCTYPE html>
             scanPorts();
             loadPlaybooksInit();
             loadAttackMatrix();
+            pollActiveTraffic();
         });
     </script>
 </body>
 </html>
 """
 
+
+# ==============================================================================
+# FLASK BACKEND API ROUTES
+# ==============================================================================
 
 @app.route("/")
 def index():
@@ -2531,7 +2452,7 @@ def index():
 @app.route("/api/audit", methods=["POST"])
 def api_audit():
     data = request.get_json() or {}
-    target = data.get("target", "http://127.0.0.1:8000")
+    target = data.get("target", "http://127.0.0.1:5000")
     auditor = WebAuditor(target)
     report = auditor.run_full_audit()
     return jsonify(report)
@@ -2567,8 +2488,10 @@ def api_active_traffic():
 @app.route("/api/test-probe", methods=["POST"])
 def api_test_probe():
     data = request.get_json() or {}
-    target = data.get("target", "http://127.0.0.1:8000")
+    target = data.get("target", "http://127.0.0.1:5000")
     res = WebAuditor.simulate_attack_probe(target)
+    if res.get("log_line"):
+        LIVE_ACCESS_LOGS.append(res["log_line"])
     return jsonify(res)
 
 
@@ -2576,10 +2499,31 @@ def api_test_probe():
 def api_analyze_logs():
     data = request.get_json() or {}
     use_sample = data.get("use_sample", False)
-    content = data.get("log_content", "")
+    content = data.get("log_content", "").strip()
 
-    if use_sample or not content:
+    if use_sample:
         content = LogIntrusionDetector.generate_sample_attack_log()
+    elif not content:
+        if LIVE_ACCESS_LOGS:
+            content = "\\n".join(LIVE_ACCESS_LOGS)
+        else:
+            found_log = None
+            for p in ["access.log", "logs/access.log", "server.log"]:
+                if os.path.exists(p):
+                    try:
+                        with open(p, "r", encoding="utf-8", errors="ignore") as f:
+                            found_log = f.read()
+                            break
+                    except Exception:
+                        pass
+            if found_log:
+                content = found_log
+            else:
+                now_str = datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
+                client_ip = request.remote_addr or "127.0.0.1"
+                canary = f'{client_ip} - - [{now_str}] "GET /?aegis_probe=1&sqli=union_select_1-- HTTP/1.1" 403 512 "-" "Aegis-Canary-Probe/1.0"'
+                LIVE_ACCESS_LOGS.append(canary)
+                content = canary
 
     detector = LogIntrusionDetector()
     attackers = detector.parse_log_text(content)
@@ -2600,6 +2544,48 @@ def api_analyze_logs():
     return jsonify(enriched)
 
 
+@app.route("/api/osint/username", methods=["POST"])
+def api_osint_username():
+    data = request.get_json() or {}
+    username = data.get("username", "")
+    suite = AdvancedOsintSuite()
+    res = suite.analyze_username(username)
+    return jsonify(res)
+
+
+@app.route("/api/osint/suite", methods=["POST"])
+def api_osint_suite():
+    data = request.get_json() or {}
+    tool = data.get("tool", "graph")
+    target = data.get("target", "localhost")
+    suite = AdvancedOsintSuite()
+
+    if tool == "phone":
+        return jsonify(suite.analyze_phone(target))
+    elif tool == "email":
+        return jsonify(suite.analyze_email(target))
+    elif tool == "github":
+        return jsonify(suite.analyze_github(target))
+    elif tool == "crypto":
+        return jsonify(suite.trace_crypto(target))
+    elif tool == "hash":
+        return jsonify(suite.identify_hash(target))
+    elif tool == "dorks":
+        return jsonify(suite.generate_dorks(target))
+    elif tool == "graph":
+        return jsonify(suite.build_investigation_graph(target))
+    elif tool == "crawler":
+        return jsonify(suite.crawl_target(target))
+    elif tool == "ip":
+        return jsonify(suite.analyze_ip(target))
+    elif tool == "reputation":
+        return jsonify(suite.check_reputation(target))
+    elif tool == "url":
+        return jsonify(suite.scan_url(target))
+    else:
+        return jsonify({"error": f"Unknown tool: {tool}"})
+
+
 @app.route("/api/emergency-lockdown", methods=["POST"])
 def api_emergency_lockdown():
     data = request.get_json() or {}
@@ -2618,27 +2604,26 @@ def api_emergency_lockdown():
 @app.route("/api/export-dossier", methods=["POST"])
 def api_export_dossier():
     data = request.get_json() or {}
-    target = data.get("target", "http://127.0.0.1:8000")
-    attackers = data.get("attackers", [])
-    dossier = ActiveDefenseManager.generate_law_enforcement_dossier(target, attackers)
-    return jsonify({"dossier": dossier})
+    report = data.get("report", {})
+    txt = ActiveDefenseManager.export_incident_report(report)
+    return jsonify({"dossier_text": txt})
 
 
 @app.route("/api/export-report", methods=["POST"])
 def api_export_report():
     data = request.get_json() or {}
     report = data.get("report", {})
-    from aegis.reporter import ReportGenerator
-    html = ReportGenerator.to_html(report)
-    return jsonify({"status": "success", "html": html})
+    from aegis.reporter import SecurityReporter
+    html = SecurityReporter.generate_html_report(report)
+    return jsonify({"html_report": html})
 
 
 @app.route("/api/scan-malware", methods=["POST"])
 def api_scan_malware():
     data = request.get_json() or {}
     directory = data.get("directory", ".")
-    scanner = MalwareScanner()
-    result = scanner.scan_directory(directory)
+    scanner = MalwareScanner(directory)
+    result = scanner.scan_directory()
     return jsonify(result)
 
 
@@ -2646,26 +2631,26 @@ def api_scan_malware():
 def api_quarantine_file():
     data = request.get_json() or {}
     file_path = data.get("file_path", "")
-    scanner = MalwareScanner()
-    result = scanner.quarantine_file(file_path)
-    return jsonify(result)
+    scanner = MalwareScanner(".")
+    success = scanner.quarantine_file(file_path)
+    return jsonify({"success": success})
 
 
 @app.route("/api/remove-file", methods=["POST"])
 def api_remove_file():
     data = request.get_json() or {}
     file_path = data.get("file_path", "")
-    scanner = MalwareScanner()
-    result = scanner.remove_file(file_path)
-    return jsonify(result)
+    scanner = MalwareScanner(".")
+    success = scanner.permanent_delete(file_path)
+    return jsonify({"success": success})
 
 
 @app.route("/api/injection-audit", methods=["POST"])
 def api_injection_audit():
     data = request.get_json() or {}
-    target = data.get("target", "http://127.0.0.1:8000")
-    shield = InjectionDefenseEngine(target)
-    result = shield.audit_target_defenses()
+    target = data.get("target", "http://127.0.0.1:5000")
+    engine = InjectionDefenseEngine(target)
+    result = engine.audit_injection_defense()
     return jsonify(result)
 
 
@@ -2676,17 +2661,17 @@ def api_attack_matrix():
 
 @app.route("/api/server-audit", methods=["GET"])
 def api_server_audit():
-    result = ServerSystemAuditor.audit_full_system()
-    return jsonify(result)
+    auditor = ServerSystemAuditor()
+    report = auditor.run_full_system_audit()
+    return jsonify(report)
 
 
 @app.route("/api/kill-process", methods=["POST"])
 def api_kill_process():
     data = request.get_json() or {}
-    pid = data.get("pid")
-    if not pid:
-        return jsonify({"success": False, "error": "PID required"}), 400
-    res = ServerSystemAuditor.kill_process(int(pid))
+    pid = data.get("pid", 0)
+    auditor = ServerSystemAuditor()
+    res = auditor.kill_rogue_process(pid)
     return jsonify(res)
 
 
@@ -2695,10 +2680,9 @@ def api_playbooks():
     return jsonify(PLAYBOOKS)
 
 
-def run_web(host="127.0.0.1", port=5000):
-    print(f"\n[+] AEGIS Tactical Sci-Fi HUD Web Dashboard online:")
-    print(f"    --> http://{host}:{port} or http://localhost:{port}\n")
-    print(f"    Developed by Team White Hat (Defensive Cyber Research)\n")
+def run_web(host: str = "127.0.0.1", port: int = 5000):
+    """Launches the Flask Web HUD Server."""
+    print(f"[*] Launching Aegis Holographic Web HUD on http://{host}:{port}")
     app.run(host=host, port=port, debug=False)
 
 

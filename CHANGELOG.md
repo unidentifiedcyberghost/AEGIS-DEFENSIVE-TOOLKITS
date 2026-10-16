@@ -6,6 +6,51 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [2.5.0] - 2026-10-16
+
+### 🔮 Minimal Holographical Sci-Fi HUD Transformation & 20-in-1 Cyber OSINT Suite
+Major release transforming the Web HUD into a minimal, high-tech holographic cyber defense war room (removing clunky emojis and implementing glowing vector HUD glyphs), adding full spectrum OSINT capabilities with a 35+ platform Username Search, live host adapter auto-detection, functional defensive canary probing, and real-time network connection sniffing.
+
+### 🌟 New Features & Architectural Upgrades
+- **🔮 Minimal Holographical HUD Design System:**
+  - Removed clunky phone emojis across all banners, buttons, tabs, tables, and metric cards.
+  - Deployed sleek, glowing minimal holographic cyber glyphs (`[⬡]`, `[◈]`, `[⌖]`, `[⌥]`, `[⧉]`, `[⚡]`, `[☵]`, `[⌘]`, `[⬢]`, `[▲]`, `[◎]`, `[⚔]`, `[📋]`, `[📜]`, `[🖥]`).
+  - Added CRT holographic scanline background overlay, 60fps rotating cyber radar canvas, glowing cyan/emerald border effects (`box-shadow: 0 0 14px rgba(0, 240, 255, 0.35)`), and high-contrast typography (`Space Grotesk`, `JetBrains Mono`).
+- **🎯 Real-Time Host Network Interface Detection & Live Canary Probing:**
+  - **Functional `[REFRESH IPs]`:** Fixed data parsing in `loadMyIps()`. Backed by `psutil.net_if_addrs()`, Aegis dynamically identifies physical Wi-Fi, Ethernet, VPN tunnels (WireGuard, OpenVPN, Cloudflare WARP), and Loopback adapters, displaying interactive clickable chips to instantly set target URLs.
+  - **Functional `[TEST ATTACK PROBE ON MY IP]`:** Directly integrated `WebAuditor.simulate_attack_probe()`. Dispatches a safe, non-destructive defensive canary probe testing WAF/IDS rules, logs latency, HTTP response headers, and registers the probe immediately in the live IDS log buffer.
+- **🚨 Real-Time Live Access Logging & Intrusion Detection (Not Just Simulation):**
+  - Implemented real-time in-memory request logger in Flask (`LIVE_ACCESS_LOGS`) capturing all real inbound localhost requests.
+  - **Functional `[INGEST LIVE SERVER LOGS & IDS TELEMETRY]`:** Directly reads active server request history from memory and local access logs (`access.log`, `logs/access.log`), running heuristic pattern detection to uncover SQLi, XSS, Path Traversal, and brute-force probing with zero dependency on simulation.
+  - Added secondary option for forensic sample corpus testing.
+- **📡 Real-Time Live Traffic Sniffer & Connection Monitor:**
+  - **Functional `[REFRESH LIVE CONNECTIONS]`:** Leverages `psutil.net_connections(kind="inet")` to sniff and display real-time active TCP/UDP sockets, client IPs, listening web servers, process names, PIDs, and security classifications.
+  - **Auto-Sniff Radar Toggle:** Added a 2-second real-time live sniffing mode with an animated holographic pulsing radar indicator.
+- **🕵️ 20-in-1 Cyber OSINT & Investigation Suite (`aegis/osint_suite.py`):**
+  - Created a dedicated 20-tool intelligence suite:
+    1. **Username OSINT Search & Correlator:** Parallel multi-threaded scanner querying 35+ social networks, developer hubs, and forums (GitHub, Reddit, Twitter/X, Instagram, TikTok, Telegram, Steam, Twitch, Pinterest, Medium, HackerNews, GitLab, Keybase, Mastodon, Linktree, Dev.to, About.me, etc.) with response times, profile presence signals, confidence ratings, and automated Google Dorks for pastebin/forum leaks.
+    2. **Investigation Graph:** Dynamic entity-relationship node-link graph correlating targets, IPs, ASNs, social accounts, emails, and threat hubs.
+    3. **Phone Number Analyzer:** E.164 normalization, international country code, carrier heuristics, line type parsing, and VoIP fraud warning (highlighted in red for high-risk burner VoIP numbers).
+    4. **Dorks Generator:** Custom Google Dork queries for exposed credentials, databases, confidential PDFs, and admin portals.
+    5. **Email Analyzer:** Deliverability, MX DNS resolution, disposable temporary burner domain detection (mailinator, 10minutemail, etc.), and breach lookup pivot links (HaveIBeenPwned, IntelX, DeHashed, BreachDirectory).
+    6. **Domain Analyzer:** Multi-record DNS resolution, CRT.SH Certificate Transparency subdomains, and WHOIS.
+    7. **Web Crawler:** Automatic extraction of links, emails, phone numbers, and social handles from target websites.
+    8. **IP Analyzer & Attacker Real Origin Investigator:** Public Geolocation, ASN, Datacenter vs Residential classification, VPN/Proxy/Tor exit detection, and formal Law Enforcement / Carrier Subpoena advisory under 18 U.S.C. § 2703(f).
+    9. **Leak Check:** Direct pivot queries to paste sites and breach aggregators.
+    10. **Onion Finder:** Tor darknet search query generator (Ahmia, TorTaxi).
+    11. **Reverse Image Lookup:** Image search pivots to Google Lens, TinEye, Yandex, Bing.
+    12. **Telegram OSINT:** Handle resolver and chat message Google Dorks.
+    13. **Hash Analyzer:** Identification of MD5, SHA-1, SHA-256, SHA-512, NTLM, bcrypt, and Argon2 with crack database links (CrackStation, HashToolkit).
+    14. **Port Scanner:** High-speed socket port scanner with service banner detection.
+    15. **Metadata Extractor:** EXIF GPS, camera model, and timestamp extraction.
+    16. **Paste Search:** Dorking across Pastebin, Ghostbin, JustPaste.it, and ControlC.
+    17. **GitHub OSINT:** Public GitHub API integration extracting user bio, avatar, company, public repos, followers, and exposed commit emails.
+    18. **Reputation Checker:** Threat intelligence pivots (AbuseIPDB, VirusTotal, AlienVault OTX, URLhaus).
+    19. **URL Scanner:** Phishing heuristics, suspicious TLDs, and deceptive brand keywords.
+    20. **Crypto Tracer:** Cryptocurrency address format validation for Bitcoin (Legacy/SegWit/Bech32), Ethereum (ERC-20), Litecoin, Dogecoin, Solana, and Monero with live block explorer links.
+
+---
+
 ## [2.2.1] - 2026-10-16
 
 ### 🎨 Symmetrical Centered Layout, Border Isolation & Cross-Architecture Synchronization

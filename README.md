@@ -12,19 +12,20 @@
 
 ## 📑 Table of Contents
 1. [Mission & Purpose](#-mission--purpose)
-2. [Categorized Architecture (Cat 1 to Cat 8)](#-categorized-architecture)
-3. [How to Run the Application](#-how-to-run-the-application)
+2. [Categorized Architecture & Holographic HUD](#-categorized-architecture)
+3. [20-in-1 Cyber OSINT & Investigation Suite](#-20-in-1-cyber-osint--investigation-suite)
+4. [How to Run the Application](#-how-to-run-the-application)
    - [Desktop PyQt6 GUI Interface (`gui.py`)](#1-running-the-desktop-gui-interface-recommended)
    - [Interactive Web Tactical HUD (`web.py`)](#2-running-the-localhost-web-hud)
    - [Headless Command-Line Interface (`main.py`)](#3-running-via-command-line-cli)
-4. [Target Connectivity & Connection Diagnostics](#-target-connectivity--connection-diagnostics)
-5. [Infected Path & Malware Scanner (With Bright Red Highlighting)](#-infected-path--malware-scanner)
-6. [Host Server Machine Rootkit & Process Auditor](#-host-server-machine-rootkit--process-auditor)
-7. [Comprehensive Attack Matrix & Fix Runbook](#-comprehensive-attack-matrix--fix-runbook)
-8. [Cyber OSINT & Attack Surface Engine](#-cyber-osint--attack-surface-engine)
+5. [Target Connectivity & Connection Diagnostics](#-target-connectivity--connection-diagnostics)
+6. [Infected Path & Malware Scanner](#-infected-path--malware-scanner)
+7. [Host Server Machine Rootkit & Process Auditor](#-host-server-machine-rootkit--process-auditor)
+8. [Comprehensive Attack Matrix & Fix Runbook](#-comprehensive-attack-matrix--fix-runbook)
 9. [Attacker Tracking, VPN/Proxy Detection & Carrier Subpoena Protocol](#-attacker-tracking-vpnproxy-detection--carrier-subpoena-protocol)
-10. [Developers & Contributors (Team White Hat)](#-developers--contributors-team-white-hat)
-11. [License](#-license)
+10. [Real-Time Version-by-Version Changelog](#-real-time-version-by-version-changelog)
+11. [Developers & Contributors (Team White Hat)](#-developers--contributors-team-white-hat)
+12. [License & Ethics](#-license--ethics)
 
 ---
 
@@ -191,6 +192,101 @@ Located in **Category 6 & Category 8**:
 * **Law Enforcement & Carrier Subpoena Protocol (Category 8):**
   Because public internet packets do not carry physical device IMEI numbers, SIM card ICCIDs, or GPS coordinates directly over IP headers, Aegis generates a formal legal dossier conforming to **ISO/IEC 27037** and **18 U.S.C. § 2703 / Budapest Convention on Cybercrime**.
   This gives cybercrime police and legal authorities the exact UTC timestamp, source IP, source port, and hardware fingerprint needed to issue emergency preservation letters to mobile telecommunications carriers to legally unmask the suspect's registered SIM card and GPS tower locations.
+
+---
+
+## 🕵️ 20-in-1 Cyber OSINT & Investigation Suite
+
+Aegis features a master intelligence engine in `aegis/osint_suite.py` providing 20 dedicated forensic investigation tools on one unified screen:
+
+1. **Username OSINT Search & Correlator:** Parallel multi-threaded scanner checking handles across 35+ top social networks, forums, and developer platforms (GitHub, Reddit, Twitter/X, Instagram, TikTok, Telegram, Steam, Twitch, Pinterest, Medium, HackerNews, GitLab, Keybase, Mastodon, Linktree, Dev.to, About.me, etc.) with latency, profile links, confidence rating, and automated Google Dorks for paste/forum leaks.
+2. **Investigation Graph:** Dynamic entity-relationship node-link graph correlating Target -> IPs -> ASNs -> Social Accounts -> Emails -> Threat Hubs.
+3. **Phone Number Analyzer:** E.164 normalization, international country code, carrier heuristics, line type parsing, and VoIP fraud warning (highlighted in red for high-risk burner VoIP numbers).
+4. **Dorks Generator:** High-powered Google Dork generator with 20+ specialized queries for passwords, SQL dumps, confidential PDFs, and exposed admin panels.
+5. **Email Analyzer:** Deliverability, MX DNS resolution, disposable temporary burner domain detection (mailinator, 10minutemail, etc.), and breach lookup pivot links (HaveIBeenPwned, IntelX, DeHashed, BreachDirectory).
+6. **Domain Analyzer:** Multi-record DNS resolution, CRT.SH Certificate Transparency subdomains, and WHOIS.
+7. **Web Crawler:** Automatic extraction of links, emails, phone numbers, and social handles from target websites.
+8. **IP Analyzer & Attacker Real Origin Investigator:** Public Geolocation, ASN, Datacenter vs Residential classification, VPN/Proxy/Tor exit detection, and formal Law Enforcement / Carrier Subpoena advisory under 18 U.S.C. § 2703(f).
+9. **Leak Check:** Direct pivot queries to paste sites and breach aggregators.
+10. **Onion Finder:** Tor darknet search query generator (Ahmia, TorTaxi).
+11. **Reverse Image Lookup:** Image search pivots to Google Lens, TinEye, Yandex, Bing.
+12. **Telegram OSINT:** Handle resolver and chat message Google Dorks.
+13. **Hash Analyzer:** Identification of MD5, SHA-1, SHA-256, SHA-512, NTLM, bcrypt, and Argon2 with crack database links (CrackStation, HashToolkit).
+14. **Port Scanner:** High-speed socket port scanner with service banner detection.
+15. **Metadata Extractor:** EXIF GPS, camera model, and timestamp extraction.
+16. **Paste Search:** Dorking across Pastebin, Ghostbin, JustPaste.it, and ControlC.
+17. **GitHub OSINT:** Public GitHub API integration extracting user bio, avatar, company, public repos, followers, and exposed commit emails.
+18. **Reputation Checker:** Threat intelligence pivots (AbuseIPDB, VirusTotal, AlienVault OTX, URLhaus).
+19. **URL Scanner:** Phishing heuristics, suspicious TLDs, and deceptive brand keywords.
+20. **Crypto Tracer:** Cryptocurrency address format validation for Bitcoin (Legacy/SegWit/Bech32), Ethereum (ERC-20), Litecoin, Dogecoin, Solana, and Monero with live block explorer links.
+
+---
+
+## 📜 Real-Time Version-by-Version Changelog
+
+All notable changes, architectural implementations, enhancements, security patches, and version releases are documented chronologically:
+
+### 🌟 [2.5.0] - 2026-10-16
+#### 🔮 Minimal Holographical Sci-Fi HUD Transformation & 20-in-1 Cyber OSINT Suite
+* **Minimal Holographical HUD Design System:** Removed clunky phone emojis across all banners, buttons, tabs, tables, and metric cards. Replaced with minimal, glowing holographic cyber vector glyphs (`[⬡]`, `[◈]`, `[⌖]`, `[⌥]`, `[⧉]`, `[⚡]`, `[☵]`, `[⌘]`, `[⬢]`, `[▲]`, `[◎]`, `[⚔]`, `[📋]`, `[📜]`, `[🖥]`). Added CRT holographic scanlines, rotating cyber radar sweep canvas, glowing borders (`box-shadow: 0 0 14px rgba(0, 240, 255, 0.35)`), and high-contrast typography (`Space Grotesk`, `JetBrains Mono`).
+* **Real-Time Host Interface Detection & Live Canary Probing:**
+  * **Functional `[REFRESH IPs]`:** Fixed data parsing in `loadMyIps()`. Backed by `psutil.net_if_addrs()`, Aegis dynamically identifies physical Wi-Fi, Ethernet, VPN tunnels (WireGuard, OpenVPN, Cloudflare WARP), and Loopback adapters, displaying interactive clickable chips to instantly set target URLs.
+  * **Functional `[TEST ATTACK PROBE ON MY IP]`:** Directly integrated `WebAuditor.simulate_attack_probe()`. Dispatches a safe, non-destructive defensive canary probe testing WAF/IDS rules, logs latency, HTTP response headers, and registers the probe immediately in the live IDS log buffer.
+* **Real-Time Live Access Logging & Intrusion Detection (Not Just Simulation):**
+  * Implemented real-time in-memory request logger in Flask (`LIVE_ACCESS_LOGS`) capturing all real inbound localhost requests.
+  * **Functional `[INGEST LIVE SERVER LOGS & IDS TELEMETRY]`:** Directly reads active server request history from memory and local access logs (`access.log`, `logs/access.log`), running heuristic pattern detection to uncover SQLi, XSS, Path Traversal, and brute-force probing with zero dependency on simulation.
+* **Real-Time Live Traffic Sniffer & Connection Monitor:**
+  * **Functional `[REFRESH LIVE CONNECTIONS]`:** Leverages `psutil.net_connections(kind="inet")` to sniff and display real-time active TCP/UDP sockets, client IPs, listening web servers, process names, PIDs, and security classifications.
+  * **Auto-Sniff Radar Toggle:** Added a 2-second real-time live sniffing mode with an animated holographic pulsing radar indicator.
+* **20-in-1 Cyber OSINT & Investigation Suite (`aegis/osint_suite.py`):**
+  * Created a dedicated 20-tool intelligence suite featuring Username OSINT Search & Correlator across 35+ networks, Investigation Graph, Phone, Email, Domain, Darknet, Hashes, Crypto, and Metadata.
+
+---
+
+### [2.2.1] - 2026-10-16
+#### 🎨 Symmetrical Centered Layout, Border Isolation & Cross-Architecture Synchronization
+* **Symmetrical Centered Functional Toolbars:** Master defense toolbars (`.target-bar-actions`, `.presets`, `.host-interfaces-bar`, and `.hud-tabs`) updated with centered flex alignment. Added strict border isolation (`margin: 3px 6px !important;`) ensuring zero button border overlap and clean hitboxes across all display resolutions.
+* **Category Banners:** Added `.category-header-banner-actions` containers across all tabs to center action buttons directly inside each category banner.
+* **Attack Matrix & Playbooks Active Highlighting:** Added interactive active-state highlighting for Attack Matrix stack selection (`.stack-btn.active`) and Server Hardening Playbooks (`.playbook-btn.active`).
+* **Go Core Engine 2.2 (`aegis-go`):** Added `-ip` command flag to synthesize Linux `iptables`, Ubuntu `ufw`, and Windows `netsh` firewall drop directives. Added `-route` command flag for instant network route telemetry. Recompiled high-speed binary `aegis-go/aegis-core.exe`.
+* **Rust Engine 2.2 (`aegis-rust`):** Added `--iptables` and `--routes` commands to Rust CLI with structured JSON telemetry.
+* **Warning Fixes:** Standardized schema keys between `findings_summary` and `summary` in `aegis/auditor.py` to ensure OWASP table findings always populate seamlessly. Globally suppressed `InsecureRequestWarning` across all HTTP client modules.
+
+---
+
+### [2.2.0] - 2026-10-16
+#### 🛡️ Full Categorized Architecture & Cyber Defense War Room Release
+* Restructured platform into 8 clearly defined, intuitive categories across both PyQt6 Desktop GUI and Localhost Web HUD:
+  * **[CAT 1] Vulnerability Auditor & Compliance:** Automated OWASP header auditing, insecure cookie inspections, and credential leak checks (`.env`, `.git`).
+  * **[CAT 2] Cyber OSINT & Attack Surface Intelligence:** Passive multi-record DNS resolution (A, AAAA, MX, NS, PTR, TXT), CRT.SH Subdomain Enumeration, SSL/TLS cryptanalysis, BGP/ASN, and RFC 9116 `security.txt` verification.
+  * **[CAT 3] Malware, Web Shell & Infected Path Scanner:** Real-time scanner identifying backdoors, PHP `eval(base64_decode())` shells, and JS cryptominers with bright red path highlighting and 1-click Quarantine / Delete actions.
+  * **[CAT 4] Anti-XSS & Data Injection Shield:** Strict CSP policy generator, context-aware input sanitization templates, and ModSecurity WAF blocking rules.
+  * **[CAT 5] Localhost Ports & Host Server Rootkit Auditor:** Sockets inspector and OS process scanner for cryptominers, reverse shells, backdoor ports, and dropped temp files with process kill.
+  * **[CAT 6] Attacker Tracker & Log IDS:** Access log parser identifying probing attacks, profiling attacker IPs, detecting VPN/Proxy/Tor, and fingerprinting mobile hardware models.
+  * **[CAT 7] Cyber Attack Matrix & Remediation Dashboard:** Catalog of 10 major attack vectors, symptoms, immediate emergency actions, permanent fixes, and ready-to-deploy multi-framework code snippets.
+  * **[CAT 8] Carrier Subpoena Evidence Dossier:** Formal forensic evidence report formatted for police cybercrime units and carrier subpoenas (SIM/IMEI/GPS coordinates).
+
+---
+
+### [1.0.1] - 2026-10-16
+#### 🌐 Added Localhost Web Browser Tactical HUD & NPM Launcher
+* Added `package.json` with `npm run dev`, `npm start`, and `npm run gui` shortcuts.
+* Added `aegis/web_app.py` providing an interactive Tactical Sci-Fi CIA HUD web dashboard on `http://127.0.0.1:5000`.
+* Integrated REST API endpoints (`/api/audit`, `/api/ports`, `/api/analyze-logs`, `/api/playbooks`).
+* Added `--web`, `--port`, and `--host` CLI flags to `main.py`.
+
+---
+
+### [1.0.0] - 2026-10-16
+#### 🚀 Initial Public Release & Multi-Engine Architecture
+* Initial release of the **Aegis Defensive Localhost & Web Security Audit Suite** for **Windows, Linux, and macOS**.
+* Multi-Engine Core: Python Core (`aegis/`), Go Micro-Engine (`aegis-go/`), and Rust Crate (`aegis-rust/`).
+* PyQt6 Tactical Sci-Fi CIA HUD Interface (`aegis/gui/`).
+* OWASP Web & Localhost Security Auditor (`aegis/auditor.py`).
+* Listening Socket & Network Interface Auditor (`aegis/port_auditor.py`).
+* Attacker Telemetry & Intrusion Detection System (`aegis/log_ids.py`, `aegis/threat_intel.py`).
+* Multi-Platform Firewall Rule Generator (PowerShell, UFW, iptables, Nginx, Apache).
+* OWASP Hardening Playbooks (`aegis/playbook.py`).
 
 ---
 
