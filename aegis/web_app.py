@@ -27,6 +27,8 @@ from aegis.server_auditor import ServerSystemAuditor
 from aegis.attack_matrix import ATTACK_MATRIX
 from aegis.playbook import PLAYBOOKS
 from aegis.osint_suite import AdvancedOsintSuite
+from aegis.crypto_tracer import CryptoTraceEngine
+from aegis.spiderfoot_recon import SpiderFootReconEngine
 
 app = Flask(__name__)
 
@@ -887,10 +889,12 @@ HUD_HTML = """<!DOCTYPE html>
             <button class="hud-tab-btn active" data-category="cat1" onclick="switchTab('tab-findings', this)">[⬡] OWASP AUDIT</button>
             <button class="hud-tab-btn" data-category="osint_user" onclick="switchTab('tab-username-osint', this)">[◈] USERNAME OSINT HUNT</button>
             <button class="hud-tab-btn" data-category="osint_suite" onclick="switchTab('tab-osint-suite', this)">[⌖] 20-IN-1 OSINT SUITE</button>
+            <button class="hud-tab-btn" data-category="cryptotrace" onclick="switchTab('tab-cryptotrace', this)">[☵] CRYPTOTRACE AML</button>
+            <button class="hud-tab-btn" data-category="spiderfoot" onclick="switchTab('tab-spiderfoot', this)">[⌘] SPIDERFOOT RECON</button>
             <button class="hud-tab-btn" data-category="cat2" onclick="switchTab('tab-osint', this)">[⧉] CYBER OSINT &amp; IP TABLES</button>
             <button class="hud-tab-btn" data-category="cat3" onclick="switchTab('tab-malware', this)">[⌥] MALWARE SCANNER</button>
-            <button class="hud-tab-btn" data-category="cat4" onclick="switchTab('tab-injection', this)">[☵] ANTI-XSS &amp; INJECTION</button>
-            <button class="hud-tab-btn" data-category="cat5" onclick="switchTab('tab-ports', this)">[⌘] LOCALHOST &amp; PORTS</button>
+            <button class="hud-tab-btn" data-category="cat4" onclick="switchTab('tab-injection', this)">[⚡] ANTI-XSS &amp; INJECTION</button>
+            <button class="hud-tab-btn" data-category="cat5" onclick="switchTab('tab-ports', this)">[⚓] LOCALHOST &amp; PORTS</button>
             <button class="hud-tab-btn" data-category="cat5" onclick="switchTab('tab-server', this)">[⬢] SERVER ROOTKIT AUDITOR</button>
             <button class="hud-tab-btn" data-category="cat6" onclick="switchTab('tab-attackers', this)">[▲] ATTACKER IDS &amp; LOGS</button>
             <button class="hud-tab-btn" data-category="cat6" onclick="switchTab('tab-live-traffic', this)">[◎] LIVE TRAFFIC SNIFFER</button>
@@ -954,11 +958,12 @@ HUD_HTML = """<!DOCTYPE html>
                     <button class="btn-master" id="btnHuntUser" onclick="huntUsername()"><span class="holo-glyph">[◈]</span> HUNT USERNAME ACROSS ALL SERVICES</button>
                 </div>
                 <div class="presets" style="padding-top: 4px;">
-                    <span style="font-size: 10px; color: var(--text-muted);">Quick Presets:</span>
-                    <button class="btn-preset" onclick="setUsernameAndHunt('cyberghost')">cyberghost</button>
-                    <button class="btn-preset" onclick="setUsernameAndHunt('fraudster99')">fraudster99</button>
-                    <button class="btn-preset" onclick="setUsernameAndHunt('shadow_operative')">shadow_operative</button>
-                    <button class="btn-preset" onclick="setUsernameAndHunt('octocat')">octocat (Benchmark)</button>
+                    <span style="font-size: 10px; color: var(--cyan); font-weight: bold;"><span class="holo-glyph">[⚡]</span> OSINT PIVOT SUITE:</span>
+                    <button class="btn-preset" onclick="pivotEmailPermutations()"><span class="holo-glyph">[⬡]</span> EMAIL PERMUTATION ENGINE</button>
+                    <button class="btn-preset" onclick="pivotGithubDeepSearch()"><span class="holo-glyph">[◈]</span> GITHUB DEEP PROFILER</button>
+                    <button class="btn-preset" onclick="pivotWaybackLookup()"><span class="holo-glyph">[⌖]</span> WAYBACK ARCHIVE SEARCH</button>
+                    <button class="btn-preset" onclick="pivotAhmiaDarknet()"><span class="holo-glyph">[⌥]</span> TOR DARKNET LEAKS</button>
+                    <button class="btn-preset" onclick="pivotPgpKeyring()"><span class="holo-glyph">[⧉]</span> PGP KEYRING SEARCH</button>
                 </div>
             </div>
 
@@ -1099,6 +1104,203 @@ HUD_HTML = """<!DOCTYPE html>
                 <div id="suiteToolOutput">
                     <pre style="height: 320px;">Select a tool from the grid above and click 'EXECUTE OSINT TOOL' to view structured intelligence output.</pre>
                 </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB: CRYPTOTRACE ON-CHAIN AML & FLOW TRACER -->
+        <!-- ========================================== -->
+        <div id="tab-cryptotrace" class="tab-pane">
+            <div class="category-header-banner">
+                <div>
+                    <h2><span class="holo-glyph">[☵]</span> CRYPTOTRACE // ON-CHAIN FLOW TRACER &amp; AML INVESTIGATOR</h2>
+                    <p>Traces cryptocurrency flows across blockchains (Bitcoin, Ethereum, USDT ERC-20/TRC-20, Solana). Links scam wallets, pig-butchering syndicates, and ransomware to exchanges, mixers, and cash-out points for bank compliance and law enforcement subpoena action.</p>
+                </div>
+                <div class="category-header-banner-actions">
+                    <button class="btn-primary" id="btnCryptoTrace" onclick="traceCryptoWallet()"><span class="holo-glyph">[☵]</span> TRACE ON-CHAIN FLOW</button>
+                    <button class="btn-action" id="btnCryptoSubpoena" onclick="exportCryptoDossier()"><span class="holo-glyph">[📜]</span> DRAFT AML SUBPOENA</button>
+                </div>
+            </div>
+
+            <!-- Target Wallet Input Bar -->
+            <div class="target-bar" style="margin-bottom: 14px;">
+                <div class="target-bar-top">
+                    <span style="color: var(--cyan); font-size: 11px; font-weight: bold;"><span class="holo-glyph">[⌖]</span> SUSPECT WALLET ADDRESS:</span>
+                    <div class="target-input-group">
+                        <input type="text" id="cryptoAddressInput" class="target-input" value="0x098b716b8aaf21512996dc57eb0615e2383e2f96" placeholder="Enter BTC (1..., 3..., bc1...), ETH (0x...), USDT, or SOL wallet address...">
+                    </div>
+                    <button class="btn-master" onclick="traceCryptoWallet()"><span class="holo-glyph">[◈]</span> RUN FORENSIC ON-CHAIN TRACE</button>
+                </div>
+                <div class="presets" style="padding-top: 4px;">
+                    <span style="font-size: 10px; color: var(--text-muted);">Investigative Presets:</span>
+                    <button class="btn-preset" onclick="setCryptoAddressAndTrace('0x098b716b8aaf21512996dc57eb0615e2383e2f96')">Lazarus / Ronin Heist (ETH)</button>
+                    <button class="btn-preset" onclick="setCryptoAddressAndTrace('1ScamVictimPool7777777777777777777')">Pig-Butchering Pool (BTC)</button>
+                    <button class="btn-preset" onclick="setCryptoAddressAndTrace('13AM4VW2dhxYgXeQepoHkHSQuy6NgaEb94')">WannaCry Ransomware (BTC)</button>
+                    <button class="btn-preset" onclick="setCryptoAddressAndTrace('0xd90e2f925da726b50c4ed8d0fb90ad053324f31b')">Tornado Cash Router (ETH)</button>
+                    <button class="btn-preset" onclick="setCryptoAddressAndTrace('34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo')">Binance Cold Vault (BTC)</button>
+                    <button class="btn-preset" onclick="setCryptoAddressAndTrace('0xd8da6bf26964af9d7eed9e03e53415d37aa96045')">vitalik.eth (Clean Benchmark)</button>
+                </div>
+            </div>
+
+            <!-- Crypto Metrics Grid -->
+            <div class="metrics-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 14px;">
+                <div class="metric-card">
+                    <div class="metric-title">AML RISK SCORE</div>
+                    <div class="metric-value" id="valCryptoRisk" style="color: var(--cyan);">--</div>
+                    <div class="metric-sub" id="valCryptoRiskLabel">Awaiting Trace</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">DETECTED BLOCKCHAIN</div>
+                    <div class="metric-value" id="valCryptoChain" style="color: var(--neon-blue); font-size: 18px;">STANDBY</div>
+                    <div class="metric-sub" id="valCryptoFormat">Format &amp; Standard</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">ON-CHAIN BALANCE / TXS</div>
+                    <div class="metric-value" id="valCryptoBalance" style="color: var(--green); font-size: 18px;">0.00</div>
+                    <div class="metric-sub" id="valCryptoTxCount">0 Transactions</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">ATTRIBUTION ENTITY</div>
+                    <div class="metric-value" id="valCryptoEntity" style="color: var(--amber); font-size: 15px;">Unattributed</div>
+                    <div class="metric-sub" id="valCryptoCategory">Scam / Mixer / Exchange</div>
+                </div>
+            </div>
+
+            <!-- Attribution Banner & Off-Ramp Identification -->
+            <div id="cryptoAttributionBox" class="table-container" style="padding: 16px; margin-bottom: 14px; display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <div style="font-size: 10px; color: var(--text-muted); font-weight: bold; letter-spacing: 1px;">ON-CHAIN ENTITY IDENTIFIED:</div>
+                        <h3 id="cryptoEntityTitle" style="color: var(--cyan); font-size: 16px; margin-top: 3px;">--</h3>
+                        <p id="cryptoEntityDesc" style="color: var(--text-main); font-size: 12px; margin-top: 4px;">--</p>
+                    </div>
+                    <div id="cryptoSanctionBadgeContainer"></div>
+                </div>
+                <div id="cryptoAlertNotice" style="margin-top: 10px; padding: 10px 14px; background: rgba(255, 51, 102, 0.12); border-left: 3px solid var(--red); color: var(--red); font-size: 11.5px; border-radius: 4px; display: none;"></div>
+                <div id="cryptoExplorerLinks" style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;"></div>
+            </div>
+
+            <!-- Transaction Flow Table -->
+            <div class="table-container">
+                <div style="padding: 12px 16px; background: #080D1A; border-bottom: 1px solid var(--border-dim); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--cyan); font-weight: bold; font-size: 11px;"><span class="holo-glyph">[⬡]</span> ON-CHAIN MONEY TRAIL &amp; OFF-RAMP ATTRIBUTION TIMELINE</span>
+                    <span id="cryptoHopBadge" class="badge-sev badge-med">0 HOPS RECORDED</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 70px;">HOP</th>
+                            <th style="width: 90px;">DIRECTION</th>
+                            <th style="width: 170px;">TX HASH / IDENTIFIER</th>
+                            <th>COUNTERPARTY ENTITY &amp; WALLET</th>
+                            <th style="width: 140px;">AMOUNT / ASSET</th>
+                            <th style="width: 130px;">AML FLAG / STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyCryptoFlow">
+                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">Ready. Enter a cryptocurrency wallet address or pick a preset, then click 'TRACE ON-CHAIN FLOW'.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Subpoena Dossier Viewer -->
+            <div id="cryptoSubpoenaDossierBox" class="table-container" style="padding: 16px; display: none; margin-top: 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="color: var(--cyan); font-size: 13px;"><span class="holo-glyph">[📜]</span> FORMAL AML SUBPOENA &amp; LAW ENFORCEMENT SEIZURE DOSSIER</h3>
+                    <div>
+                        <button class="btn-preset" onclick="copyCryptoDossier()"><span class="holo-glyph">[⧉]</span> COPY DOSSIER TEXT</button>
+                        <button class="btn-action" onclick="downloadCryptoDossierFile()"><span class="holo-glyph">[⚡]</span> DOWNLOAD .TXT DOSSIER</button>
+                    </div>
+                </div>
+                <pre id="cryptoSubpoenaText" style="height: 280px; overflow-y: auto; background: #050914; border: 1px solid var(--border-dim); padding: 12px; font-size: 11px; color: var(--text-main); line-height: 1.5;"></pre>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB: SPIDERFOOT AUTOMATED SCAM INFRA RECON -->
+        <!-- ========================================== -->
+        <div id="tab-spiderfoot" class="tab-pane">
+            <div class="category-header-banner">
+                <div>
+                    <h2><span class="holo-glyph">[⌘]</span> SPIDERFOOT // AUTOMATED SCAM INFRASTRUCTURE RECONNAISSANCE ENGINE</h2>
+                    <p>Automates comprehensive multi-module data collection across 200+ recon sources: DNS, Certificate Transparency subdomains, WHOIS, SSL/TLS, cloud storage buckets, dark web/paste leaks, email spoofing (SPF/DMARC), and threat reputation feeds.</p>
+                </div>
+                <div class="category-header-banner-actions">
+                    <button class="btn-primary" id="btnSpiderFootRun" onclick="runSpiderFootRecon()"><span class="holo-glyph">[⌘]</span> LAUNCH SPIDERFOOT RECON</button>
+                    <button class="btn-action" onclick="exportSpiderFootReport()"><span class="holo-glyph">[⧉]</span> EXPORT INFRA DOSSIER</button>
+                </div>
+            </div>
+
+            <!-- Target Input Bar -->
+            <div class="target-bar" style="margin-bottom: 14px;">
+                <div class="target-bar-top">
+                    <span style="color: var(--cyan); font-size: 11px; font-weight: bold;"><span class="holo-glyph">[⌖]</span> SCAM DOMAIN / IP / EMAIL:</span>
+                    <div class="target-input-group">
+                        <input type="text" id="spiderfootTargetInput" class="target-input" value="localhost" placeholder="Enter scam domain (scam-bank-login.com), IP (185.220.101.5), or email...">
+                    </div>
+                    <button class="btn-master" onclick="runSpiderFootRecon()"><span class="holo-glyph">[◈]</span> RUN MODULAR SWEEP</button>
+                </div>
+                <div class="presets" style="padding-top: 4px;">
+                    <span style="font-size: 10px; color: var(--text-muted);">Quick Targets:</span>
+                    <button class="btn-preset" onclick="setSpiderFootTargetAndRun('localhost')">localhost (Self-Audit)</button>
+                    <button class="btn-preset" onclick="setSpiderFootTargetAndRun('1.1.1.1')">1.1.1.1 (Cloudflare Clean)</button>
+                    <button class="btn-preset" onclick="setSpiderFootTargetAndRun('185.220.101.5')">185.220.101.5 (Known Tor Exit)</button>
+                    <button class="btn-preset" onclick="setSpiderFootTargetAndRun('scam-crypto-wallet.org')">scam-crypto-wallet.org</button>
+                    <button class="btn-preset" onclick="setSpiderFootTargetAndRun('fraudster@darkmail.onion')">fraudster@darkmail.onion</button>
+                </div>
+            </div>
+
+            <!-- SpiderFoot Metrics Grid -->
+            <div class="metrics-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 14px;">
+                <div class="metric-card">
+                    <div class="metric-title">TOTAL OSINT FINDINGS</div>
+                    <div class="metric-value" id="valSfTotal" style="color: var(--cyan);">0</div>
+                    <div class="metric-sub" id="valSfModules">0 Modules Swept</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">HIGH / CRITICAL THREATS</div>
+                    <div class="metric-value" id="valSfCritHigh" style="color: var(--red);">0</div>
+                    <div class="metric-sub">Malicious Signals Identified</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">INFRASTRUCTURE RISK</div>
+                    <div class="metric-value" id="valSfRisk" style="color: var(--green); font-size: 18px;">STANDBY</div>
+                    <div class="metric-sub" id="valSfScanDuration">Scan Latency: 0s</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">TARGET CLASSIFICATION</div>
+                    <div class="metric-value" id="valSfTargetType" style="color: var(--violet); font-size: 16px;">DOMAIN / HOST</div>
+                    <div class="metric-sub">Entity Type Detected</div>
+                </div>
+            </div>
+
+            <!-- Filter Bar for Findings -->
+            <div style="display: flex; gap: 8px; margin-bottom: 10px; align-items: center; flex-wrap: wrap;">
+                <span style="font-size: 10px; color: var(--text-muted); font-weight: bold;">FILTER SEVERITY:</span>
+                <button class="btn-preset active" onclick="filterSpiderFootFindings('ALL', this)">ALL (<span id="countSfAll">0</span>)</button>
+                <button class="btn-preset" onclick="filterSpiderFootFindings('CRITICAL', this)">CRITICAL (<span id="countSfCrit">0</span>)</button>
+                <button class="btn-preset" onclick="filterSpiderFootFindings('HIGH', this)">HIGH (<span id="countSfHigh">0</span>)</button>
+                <button class="btn-preset" onclick="filterSpiderFootFindings('MEDIUM', this)">MEDIUM (<span id="countSfMed">0</span>)</button>
+                <button class="btn-preset" onclick="filterSpiderFootFindings('LOW', this)">LOW (<span id="countSfLow">0</span>)</button>
+                <button class="btn-preset" onclick="filterSpiderFootFindings('INFO', this)">INFO (<span id="countSfInfo">0</span>)</button>
+            </div>
+
+            <!-- SpiderFoot Discovered Findings Table -->
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 100px;">SEVERITY</th>
+                            <th style="width: 140px;">MODULE</th>
+                            <th style="width: 200px;">FINDING TYPE</th>
+                            <th>EVIDENCE / INFRASTRUCTURE DETAIL</th>
+                            <th style="width: 140px;">SOURCE</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodySpiderFoot">
+                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">Enter scam target above and click 'LAUNCH SPIDERFOOT RECON' to execute automated infrastructure sweeps.</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -1828,31 +2030,26 @@ HUD_HTML = """<!DOCTYPE html>
                 document.getElementById('valUserRating').innerText = data.footprint_rating || 'Completed';
                 document.getElementById('valUserCats').innerText = (data.categories_found || []).slice(0, 3).join(', ') || 'None';
 
-                // Render Results Table
+                // Render Results Table - ONLY confirmed real profiles (No unverified or not-found clutter)
                 const tbody = document.getElementById('tbodyUsernameProfiles');
                 tbody.innerHTML = '';
-                (data.results || []).forEach(r => {
-                    const tr = document.createElement('tr');
-                    const isFound = r.status === 'FOUND';
-                    const statusBadge = isFound 
-                        ? '<span class="badge-sev badge-pass"><span class="status-dot"></span> FOUND</span>'
-                        : (r.status === 'RATE_LIMITED' 
-                            ? '<span class="badge-sev badge-high">RESTRICTED</span>' 
-                            : '<span class="badge-sev" style="background: rgba(100,116,139,0.2); color: var(--text-muted);">NOT FOUND</span>');
+                const confirmed = (data.results || []).filter(r => r.status === 'FOUND');
 
-                    const linkDisplay = isFound 
-                        ? `<a href="${r.url}" target="_blank" style="color: var(--cyan); text-decoration: none; font-weight: bold;"><span class="holo-glyph">[⧉]</span> ${r.url}</a>`
-                        : `<span style="color: var(--text-muted);">${r.url}</span>`;
-
-                    tr.innerHTML = `
-                        <td style="font-weight: bold; color: ${isFound ? 'var(--text-bright)' : 'var(--text-muted)'};">${r.name}</td>
-                        <td><span class="holo-tag">${r.category}</span></td>
-                        <td>${statusBadge}</td>
-                        <td style="color: var(--text-muted); font-size: 10px;">${r.response_ms}ms</td>
-                        <td>${linkDisplay}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
+                if (confirmed.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--amber); padding: 30px;"><span class="holo-glyph">[⬡]</span> Zero active public profiles confirmed for '@${escapeHtml(user)}' across ${data.total_searched || 35} indexed services. No unverified or speculative entries displayed.</td></tr>`;
+                } else {
+                    confirmed.forEach(r => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td style="font-weight: bold; color: var(--text-bright);">${escapeHtml(r.name)}</td>
+                            <td><span class="holo-tag">${escapeHtml(r.category)}</span></td>
+                            <td><span class="badge-sev badge-pass"><span class="status-dot"></span> CONFIRMED ACTIVE</span></td>
+                            <td style="color: var(--text-muted); font-size: 10px;">${r.response_ms}ms</td>
+                            <td><a href="${r.url}" target="_blank" style="color: var(--cyan); text-decoration: none; font-weight: bold;"><span class="holo-glyph">[⧉]</span> ${escapeHtml(r.url)}</a></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
 
                 // Render Dorks Table
                 const tbodyDorks = document.getElementById('tbodyUsernameDorks');
@@ -1867,7 +2064,7 @@ HUD_HTML = """<!DOCTYPE html>
                     tbodyDorks.appendChild(tr);
                 });
 
-                logToConsole(`Username Hunt complete for @${user}: Discovered ${data.found_count} confirmed profiles.`, 'PASS');
+                logToConsole(`Username Hunt complete for @${user}: Discovered ${confirmed.length} confirmed profiles.`, 'PASS');
             } catch (err) {
                 logToConsole('Username Hunt failed: ' + err, 'THREAT');
             } finally {
@@ -1876,9 +2073,48 @@ HUD_HTML = """<!DOCTYPE html>
             }
         }
 
-        function setUsernameAndHunt(u) {
-            document.getElementById('usernameInput').value = u;
-            huntUsername();
+        function pivotEmailPermutations() {
+            const user = document.getElementById('usernameInput').value.trim();
+            if (!user) return alert('Enter a username first.');
+            switchTab('tab-osint-suite', document.querySelector('[data-category="osint_suite"]'));
+            selectOsintTool('email');
+            document.getElementById('suiteTargetInput').value = `${user}@gmail.com`;
+            executeSuiteTool();
+            logToConsole(`Pivoting username @${user} into Email Permutations Analyzer.`, 'INFO');
+        }
+
+        function pivotGithubDeepSearch() {
+            const user = document.getElementById('usernameInput').value.trim();
+            if (!user) return alert('Enter a username first.');
+            switchTab('tab-osint-suite', document.querySelector('[data-category="osint_suite"]'));
+            selectOsintTool('github');
+            document.getElementById('suiteTargetInput').value = user;
+            executeSuiteTool();
+            logToConsole(`Pivoting username @${user} into GitHub Deep Profiler.`, 'INFO');
+        }
+
+        function pivotWaybackLookup() {
+            const user = document.getElementById('usernameInput').value.trim();
+            if (!user) return alert('Enter a username first.');
+            const url = `https://web.archive.org/web/*/${encodeURIComponent(user)}`;
+            window.open(url, '_blank');
+            logToConsole(`Wayback Archive lookup opened for: ${user}`, 'PASS');
+        }
+
+        function pivotAhmiaDarknet() {
+            const user = document.getElementById('usernameInput').value.trim();
+            if (!user) return alert('Enter a username first.');
+            const url = `https://ahmia.fi/search/?q=${encodeURIComponent(user)}`;
+            window.open(url, '_blank');
+            logToConsole(`Ahmia Tor darknet leak search initiated for: ${user}`, 'PASS');
+        }
+
+        function pivotPgpKeyring() {
+            const user = document.getElementById('usernameInput').value.trim();
+            if (!user) return alert('Enter a username first.');
+            const url = `http://keyserver.ubuntu.com/pks/lookup?search=${encodeURIComponent(user)}&op=vindex`;
+            window.open(url, '_blank');
+            logToConsole(`PGP Keyring query opened for: ${user}`, 'PASS');
         }
 
         function exportUsernameReport() {
@@ -1927,11 +2163,518 @@ HUD_HTML = """<!DOCTYPE html>
                     body: JSON.stringify({ tool: activeSuiteTool, target })
                 });
                 const data = await res.json();
-                document.getElementById('suiteToolOutput').innerHTML = `<pre style="height: 380px; overflow-y: auto;">${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+                renderSuiteToolOutput(activeSuiteTool, data);
                 logToConsole(`Tool [${activeSuiteTool}] execution successful.`, 'PASS');
             } catch (err) {
                 logToConsole(`Tool execution failed: ${err}`, 'THREAT');
             }
+        }
+
+        function renderSuiteToolOutput(tool, data) {
+            const container = document.getElementById('suiteToolOutput');
+            if (!data || data.error) {
+                container.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--red);"><span class="holo-glyph">[⚠️]</span> ${escapeHtml(data ? data.error : 'Execution failed or returned no response.')}</div>`;
+                return;
+            }
+
+            if (tool === 'graph') {
+                const nodes = data.nodes || [];
+                const links = data.links || [];
+                if (nodes.length <= 1) {
+                    container.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--amber);"><span class="holo-glyph">[⬡]</span> Zero correlated external entities confirmed for target '${escapeHtml(data.target || '')}'. Digital footprint minimal.</div>`;
+                    return;
+                }
+                let html = `<div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">`;
+                nodes.forEach(n => {
+                    html += `<div style="padding: 6px 12px; background: rgba(15,23,42,0.9); border: 1px solid ${n.color || 'var(--border-dim)'}; border-radius: 4px; font-size: 11px;">
+                        <span style="color: ${n.color || 'var(--cyan)'}; font-weight: bold;">[${escapeHtml(n.type || 'NODE')}]</span> ${escapeHtml(n.label)}
+                    </div>`;
+                });
+                html += `</div>`;
+                html += `<table><thead><tr><th>SOURCE ENTITY</th><th>RELATIONSHIP</th><th>CORRELATED TARGET ENTITY</th></tr></thead><tbody>`;
+                links.forEach(l => {
+                    html += `<tr>
+                        <td style="color: var(--cyan); font-weight: bold;">${escapeHtml(l.source)}</td>
+                        <td><span class="holo-tag">${escapeHtml(l.relation)}</span></td>
+                        <td style="color: var(--text-bright);">${escapeHtml(l.target)}</td>
+                    </tr>`;
+                });
+                html += `</tbody></table>`;
+                container.innerHTML = html;
+            } else if (tool === 'phone') {
+                if (!data.formatted_e164) {
+                    container.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--amber);">No valid international phone metadata identified.</div>`;
+                    return;
+                }
+                const isVoip = data.is_voip_risk;
+                container.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px;">
+                        <div class="metric-card"><div class="metric-title">E.164 NUMBER</div><div class="metric-value" style="color: var(--cyan); font-size: 16px;">${escapeHtml(data.formatted_e164)}</div><div class="metric-sub">${escapeHtml(data.country || '')}</div></div>
+                        <div class="metric-card"><div class="metric-title">CARRIER / LINE</div><div class="metric-value" style="color: ${isVoip ? 'var(--red)' : 'var(--green)'}; font-size: 15px;">${isVoip ? 'VOIP / VIRTUAL' : 'CELLULAR / FIXED'}</div><div class="metric-sub">${escapeHtml(data.regulator || 'Standard')}</div></div>
+                        <div class="metric-card"><div class="metric-title">FRAUD RISK</div><div class="metric-value" style="color: ${isVoip ? 'var(--red)' : 'var(--green)'}; font-size: 18px;">${data.fraud_risk_score || 0}/100</div><div class="metric-sub">${isVoip ? 'HIGH SUSPICION' : 'NORMAL'}</div></div>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <a href="${data.whatsapp_link}" target="_blank" class="btn-preset" style="color: var(--green); text-decoration: none;"><span class="holo-glyph">[⧉]</span> OPEN IN WHATSAPP</a>
+                        <a href="${data.telegram_link}" target="_blank" class="btn-preset" style="color: var(--neon-blue); text-decoration: none;"><span class="holo-glyph">[⧉]</span> OPEN IN TELEGRAM</a>
+                    </div>
+                `;
+            } else if (tool === 'email') {
+                const mx = data.mx_records || [];
+                const isBurner = data.is_disposable;
+                container.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px;">
+                        <div class="metric-card"><div class="metric-title">TARGET EMAIL</div><div class="metric-value" style="color: var(--cyan); font-size: 15px;">${escapeHtml(data.email)}</div><div class="metric-sub">${escapeHtml(data.domain)}</div></div>
+                        <div class="metric-card"><div class="metric-title">PROVIDER INFRASTRUCTURE</div><div class="metric-value" style="color: var(--text-bright); font-size: 14px;">${escapeHtml(data.provider || 'Custom MX')}</div><div class="metric-sub">${mx.length} MX Records Found</div></div>
+                        <div class="metric-card"><div class="metric-title">DISPOSABLE BURNER</div><div class="metric-value" style="color: ${isBurner ? 'var(--red)' : 'var(--green)'}; font-size: 16px;">${isBurner ? '⚠️ DISPOSABLE' : 'VERIFIED PERMANENT'}</div><div class="metric-sub">Fraud Risk: ${data.fraud_risk_score || 5}/100</div></div>
+                    </div>
+                    ${mx.length > 0 ? `<div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; font-weight: bold;">CONFIRMED MX EXCHANGES:</div><div style="font-family: monospace; font-size: 11px; color: var(--cyan); margin-bottom: 12px;">${mx.map(m => escapeHtml(m)).join('<br>')}</div>` : ''}
+                `;
+            } else if (tool === 'dorks') {
+                const dorks = Array.isArray(data) ? data : (data.dorks || []);
+                if (dorks.length === 0) {
+                    container.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted);">No dorks generated.</div>`;
+                    return;
+                }
+                let html = `<table><thead><tr><th style="width: 180px;">INTEL CATEGORY</th><th>CUSTOM GOOGLE DORK</th><th style="width: 140px;">ACTION</th></tr></thead><tbody>`;
+                dorks.forEach(d => {
+                    html += `<tr>
+                        <td style="font-weight: bold; color: var(--amber);">${escapeHtml(d.category || 'Leak')}</td>
+                        <td style="font-family: monospace; color: var(--cyan); font-size: 11px;">${escapeHtml(d.query)}</td>
+                        <td><a href="${d.search_url}" target="_blank" class="btn-preset" style="color: var(--green); text-decoration: none; display: inline-block;"><span class="holo-glyph">[⌖]</span> SEARCH GOOGLE</a></td>
+                    </tr>`;
+                });
+                html += `</tbody></table>`;
+                container.innerHTML = html;
+            } else if (tool === 'github') {
+                if (data.found === false) {
+                    container.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--amber);"><span class="holo-glyph">[⬡]</span> Zero public GitHub activity confirmed for '@${escapeHtml(data.username || '')}'. No unverified data displayed.</div>`;
+                    return;
+                }
+                const emails = data.discovered_emails || [];
+                container.innerHTML = `
+                    <div style="display: flex; gap: 16px; align-items: flex-start; margin-bottom: 14px; background: rgba(8,13,26,0.6); padding: 14px; border: 1px solid var(--border-dim); border-radius: 6px;">
+                        ${data.avatar_url ? `<img src="${data.avatar_url}" style="width: 64px; height: 64px; border-radius: 50%; border: 2px solid var(--cyan);" />` : ''}
+                        <div style="flex: 1;">
+                            <h3 style="color: var(--cyan); font-size: 16px;">${escapeHtml(data.name || data.username)} <span style="font-size: 12px; color: var(--text-muted);">(@${escapeHtml(data.username)})</span></h3>
+                            <p style="color: var(--text-main); font-size: 12px; margin: 4px 0;">${escapeHtml(data.bio || 'No public bio.')}</p>
+                            <div style="display: flex; gap: 12px; font-size: 11px; color: var(--text-muted); flex-wrap: wrap;">
+                                <span>Company: <b style="color: var(--text-bright);">${escapeHtml(data.company || 'None')}</b></span>
+                                <span>Location: <b style="color: var(--text-bright);">${escapeHtml(data.location || 'Unknown')}</b></span>
+                                <span>Public Repos: <b style="color: var(--green);">${data.public_repos || 0}</b></span>
+                                <span>Followers: <b style="color: var(--cyan);">${data.followers || 0}</b></span>
+                            </div>
+                        </div>
+                        <a href="${data.profile_url}" target="_blank" class="btn-action" style="text-decoration: none;"><span class="holo-glyph">[⧉]</span> VIEW PROFILE</a>
+                    </div>
+                    ${emails.length > 0 ? `<div style="padding: 10px 14px; background: rgba(0, 255, 136, 0.08); border-left: 3px solid var(--green); margin-top: 10px; border-radius: 4px;">
+                        <span style="color: var(--green); font-weight: bold; font-size: 11px;"><span class="holo-glyph">[⚡]</span> EXPOSED GIT COMMIT AUTHOR EMAILS:</span>
+                        <div style="font-family: monospace; color: var(--cyan); font-size: 12px; margin-top: 4px;">${emails.map(e => escapeHtml(e)).join(' | ')}</div>
+                    </div>` : '<div style="font-size: 11px; color: var(--text-muted);">No commit author emails publicly exposed in recent push events.</div>'}
+                `;
+            } else if (tool === 'crypto') {
+                const chain = (data.network || data.currency || data.blockchain || 'Crypto').toUpperCase();
+                const bal = data.balance || data.balance_str || '0.00';
+                const txCount = data.transaction_count !== undefined ? data.transaction_count : 0;
+                const risk = (data.aml_risk && data.aml_risk.score !== undefined) ? data.aml_risk.score : 0;
+                const att = data.attribution || {};
+                container.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px;">
+                        <div class="metric-card"><div class="metric-title">BLOCKCHAIN</div><div class="metric-value" style="color: var(--cyan); font-size: 16px;">${escapeHtml(chain)}</div><div class="metric-sub">${escapeHtml(data.address || '')}</div></div>
+                        <div class="metric-card"><div class="metric-title">CONFIRMED BALANCE</div><div class="metric-value" style="color: var(--green); font-size: 16px;">${escapeHtml(bal)}</div><div class="metric-sub">${txCount} Total Transactions</div></div>
+                        <div class="metric-card"><div class="metric-title">AML RISK SCORE</div><div class="metric-value" style="color: ${risk >= 70 ? 'var(--red)' : (risk >= 40 ? 'var(--amber)' : 'var(--green)')}; font-size: 18px;">${risk}/100</div><div class="metric-sub">${escapeHtml((data.aml_risk && data.aml_risk.rating) || 'Evaluated')}</div></div>
+                        <div class="metric-card"><div class="metric-title">IDENTIFIED ENTITY</div><div class="metric-value" style="color: var(--amber); font-size: 14px;">${escapeHtml(att.entity || att.identified_entity || 'Unattributed')}</div><div class="metric-sub">${escapeHtml(att.category || 'General')}</div></div>
+                    </div>
+                `;
+            } else if (tool === 'hash') {
+                const algos = data.possible_algorithms || [];
+                const links = data.crack_lookup_links || {};
+                container.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px;">
+                        <div class="metric-card"><div class="metric-title">HASH STRING</div><div class="metric-value" style="color: var(--cyan); font-size: 13px; word-break: break-all;">${escapeHtml(data.hash)}</div><div class="metric-sub">Length: ${data.length || 0} characters</div></div>
+                        <div class="metric-card"><div class="metric-title">CANDIDATE ALGORITHMS</div><div class="metric-value" style="color: var(--green); font-size: 15px;">${escapeHtml(algos.slice(0, 2).join(', '))}</div><div class="metric-sub">${algos.length} possible hash types</div></div>
+                        <div class="metric-card"><div class="metric-title">ENCODING</div><div class="metric-value" style="color: var(--text-bright); font-size: 15px;">${data.is_hex ? 'Hexadecimal String' : 'Salted Crypt Format'}</div><div class="metric-sub">Standard Format</div></div>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        ${Object.entries(links).map(([k, v]) => `<a href="${v}" target="_blank" class="btn-preset" style="color: var(--cyan); text-decoration: none;"><span class="holo-glyph">[⧉]</span> CRACK ON ${escapeHtml(k.toUpperCase())}</a>`).join('')}
+                    </div>
+                `;
+            } else if (tool === 'crawler') {
+                const emails = data.emails_extracted || [];
+                const phones = data.phones_extracted || [];
+                const socials = data.social_profiles || [];
+                if (emails.length === 0 && phones.length === 0 && socials.length === 0) {
+                    container.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--amber);"><span class="holo-glyph">[⬡]</span> Web crawl completed on '${escapeHtml(data.target || '')}'. Zero emails, phones, or social profiles exposed on landing page.</div>`;
+                    return;
+                }
+                container.innerHTML = `
+                    <div style="margin-bottom: 12px; font-size: 12px; color: var(--text-bright);">Target: <b style="color: var(--cyan);">${escapeHtml(data.target || '')}</b> | Page Title: <i>${escapeHtml(data.page_title || '')}</i></div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                        <div class="table-container" style="padding: 10px;"><b style="color: var(--green);">EXTRACTED EMAILS (${emails.length}):</b><div style="font-family: monospace; font-size: 11px; margin-top: 6px; color: var(--cyan);">${emails.map(e => escapeHtml(e)).join('<br>') || 'None'}</div></div>
+                        <div class="table-container" style="padding: 10px;"><b style="color: var(--cyan);">PHONE NUMBERS (${phones.length}):</b><div style="font-family: monospace; font-size: 11px; margin-top: 6px; color: var(--text-bright);">${phones.map(p => escapeHtml(p)).join('<br>') || 'None'}</div></div>
+                        <div class="table-container" style="padding: 10px;"><b style="color: var(--amber);">SOCIAL PROFILES (${socials.length}):</b><div style="font-size: 11px; margin-top: 6px;">${socials.map(s => `<a href="${s}" target="_blank" style="color: var(--neon-blue); text-decoration: none; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(s)}</a>`).join('') || 'None'}</div></div>
+                    </div>
+                `;
+            } else if (tool === 'reputation') {
+                const sources = data.reputation_sources || {};
+                container.innerHTML = `
+                    <div style="font-size: 12px; color: var(--text-bright); margin-bottom: 12px;">Target Entity: <b style="color: var(--cyan);">${escapeHtml(data.target || '')}</b></div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        ${Object.entries(sources).map(([k, v]) => `<a href="${v}" target="_blank" class="btn-preset" style="color: var(--amber); text-decoration: none;"><span class="holo-glyph">[⌖]</span> QUERY ${escapeHtml(k.toUpperCase())}</a>`).join('')}
+                    </div>
+                `;
+            } else if (tool === 'url') {
+                const flags = data.heuristic_flags || [];
+                const risk = data.risk_score || 0;
+                container.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px;">
+                        <div class="metric-card"><div class="metric-title">TARGET URL</div><div class="metric-value" style="color: var(--cyan); font-size: 14px; word-break: break-all;">${escapeHtml(data.url)}</div><div class="metric-sub">Host: ${escapeHtml(data.hostname || '')}</div></div>
+                        <div class="metric-card"><div class="metric-title">PHISHING RISK</div><div class="metric-value" style="color: ${risk >= 50 ? 'var(--red)' : (risk >= 25 ? 'var(--amber)' : 'var(--green)')}; font-size: 18px;">${risk}/100</div><div class="metric-sub">${escapeHtml(data.threat_rating || 'Clean')}</div></div>
+                        <div class="metric-card"><div class="metric-title">FLAGS TRIGGERED</div><div class="metric-value" style="color: var(--text-bright); font-size: 18px;">${flags.length}</div><div class="metric-sub">Verified Heuristics</div></div>
+                    </div>
+                    ${flags.length > 0 ? `<div class="table-container" style="padding: 12px;"><b style="color: var(--red);">TRIGGERED SUSPICIOUS SIGNALS:</b><ul style="margin-left: 20px; font-size: 11.5px; color: var(--text-main); margin-top: 6px;">${flags.map(f => `<li>${escapeHtml(f)}</li>`).join('')}</ul></div>` : '<div style="color: var(--green); font-size: 12px;"><span class="holo-glyph">[✔]</span> Zero phishing indicators or brand spoofing detected in URL hostname.</div>'}
+                `;
+            } else {
+                container.innerHTML = `<pre style="height: 380px; overflow-y: auto;">${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+            }
+        }
+
+        // ==========================================
+        // TAB: CRYPTOTRACE ON-CHAIN AML TRACER
+        // ==========================================
+        let currentCryptoTrace = null;
+
+        function setCryptoAddressAndTrace(addr) {
+            document.getElementById('cryptoAddressInput').value = addr;
+            traceCryptoWallet();
+        }
+
+        async function traceCryptoWallet() {
+            const addr = document.getElementById('cryptoAddressInput').value.trim();
+            if (!addr) return alert('Please enter a cryptocurrency wallet address.');
+
+            const btn = document.getElementById('btnCryptoTrace');
+            if (btn) { btn.innerText = 'TRACING FLOWS ON-CHAIN...'; btn.disabled = true; }
+            logToConsole(`Querying on-chain blockchain ledger and AML attribution for wallet: ${addr}`, 'WARN');
+
+            try {
+                const res = await fetch('/api/cryptotrace/trace', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address: addr })
+                });
+                const data = await res.json();
+                currentCryptoTrace = data;
+
+                // Update metrics
+                const amlRisk = data.aml_risk || {};
+                const risk = (amlRisk.score !== undefined) ? amlRisk.score : (data.aml_risk_score !== undefined ? data.aml_risk_score : 50);
+                const riskEl = document.getElementById('valCryptoRisk');
+                riskEl.innerText = `${risk}/100`;
+                if (risk >= 80) {
+                    riskEl.style.color = 'var(--red)';
+                    document.getElementById('valCryptoRiskLabel').innerText = amlRisk.rating || 'CRITICAL / OFAC SANCTION';
+                    document.getElementById('valCryptoRiskLabel').style.color = 'var(--red)';
+                } else if (risk >= 50) {
+                    riskEl.style.color = 'var(--amber)';
+                    document.getElementById('valCryptoRiskLabel').innerText = amlRisk.rating || 'HIGH SUSPICION / UNVERIFIED';
+                    document.getElementById('valCryptoRiskLabel').style.color = 'var(--amber)';
+                } else {
+                    riskEl.style.color = 'var(--green)';
+                    document.getElementById('valCryptoRiskLabel').innerText = amlRisk.rating || 'LOW / BENCHMARK CLEAN';
+                    document.getElementById('valCryptoRiskLabel').style.color = 'var(--green)';
+                }
+
+                const chainStr = (data.network || data.currency || data.blockchain || 'UNKNOWN').toUpperCase();
+                document.getElementById('valCryptoChain').innerText = chainStr;
+                document.getElementById('valCryptoFormat').innerText = data.format || data.address_format || 'Standard Wallet';
+
+                const balStr = data.balance || data.balance_str || `${data.balance_native || 0} ${data.currency || data.asset_symbol || ''}`;
+                document.getElementById('valCryptoBalance').innerText = balStr;
+                document.getElementById('valCryptoTxCount').innerText = `${data.transaction_count || 0} Transactions`;
+
+                const att = data.attribution || {};
+                const entityName = att.entity || att.name || att.identified_entity || 'Unattributed Counterparty';
+                const entityCat = att.category || 'General Transfer';
+                const entityTag = att.tag || att.description || '';
+
+                document.getElementById('valCryptoEntity').innerText = entityName;
+                document.getElementById('valCryptoCategory').innerText = entityCat;
+
+                // Attribution Banner
+                const attBox = document.getElementById('cryptoAttributionBox');
+                attBox.style.display = 'block';
+                document.getElementById('cryptoEntityTitle').innerText = `${entityName} (${data.address})`;
+                document.getElementById('cryptoEntityDesc').innerText = entityTag || 'No direct mixer or law enforcement sanctions flag in primary database. Flow tracing active.';
+
+                const sanctionCont = document.getElementById('cryptoSanctionBadgeContainer');
+                sanctionCont.innerHTML = '';
+                if (att.is_sanctioned || att.is_mixer || att.is_known_scam) {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge-sev badge-crit';
+                    badge.innerText = att.is_sanctioned ? '🚨 OFAC SDN SANCTIONED' : (att.is_mixer ? '⚠️ PRIVACY MIXER HOP' : '⚠️ CONFIRMED SCAM SYNDICATE');
+                    sanctionCont.appendChild(badge);
+                } else {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge-sev badge-pass';
+                    badge.innerText = 'VERIFIED LEDGER ENTRY';
+                    sanctionCont.appendChild(badge);
+                }
+
+                const alertNotice = document.getElementById('cryptoAlertNotice');
+                const flags = (amlRisk.flags && amlRisk.flags.length) ? amlRisk.flags.join('; ') : (data.aml_alert || att.aml_alert || '');
+                if (flags) {
+                    alertNotice.style.display = 'block';
+                    alertNotice.innerText = `FinCEN / AML ALERT: ${flags}`;
+                } else {
+                    alertNotice.style.display = 'none';
+                }
+
+                // Explorer Links
+                const expBox = document.getElementById('cryptoExplorerLinks');
+                expBox.innerHTML = '';
+                let expList = [];
+                if (Array.isArray(data.explorers)) expList = data.explorers;
+                else if (typeof data.explorers === 'object' && data.explorers !== null) {
+                    expList = Object.entries(data.explorers).map(([k, v]) => ({ label: k, url: v }));
+                } else if (Array.isArray(data.explorer_links)) {
+                    expList = data.explorer_links;
+                }
+                expList.forEach(l => {
+                    const a = document.createElement('a');
+                    a.href = l.url;
+                    a.target = '_blank';
+                    a.className = 'btn-preset';
+                    a.style.color = 'var(--cyan)';
+                    a.style.textDecoration = 'none';
+                    a.innerHTML = `<span class="holo-glyph">[⧉]</span> ${escapeHtml(l.label || 'Explorer')}`;
+                    expBox.appendChild(a);
+                });
+
+                // Transaction Flow Table
+                const tbody = document.getElementById('tbodyCryptoFlow');
+                tbody.innerHTML = '';
+                const flows = data.transaction_flow || [];
+                const recentTxs = data.recent_transactions || [];
+                const totalHops = flows.length + recentTxs.length;
+                document.getElementById('cryptoHopBadge').innerText = `${totalHops} HOPS / TXS RECORDED`;
+
+                if (totalHops === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 25px;">No confirmed transaction history recorded on this address.</td></tr>';
+                } else {
+                    // Render investigative forensic flow steps
+                    flows.forEach((flow, idx) => {
+                        const tr = document.createElement('tr');
+                        const stage = flow.stage || `HOP ${flow.step || (idx + 1)}`;
+                        const isOffRamp = stage.includes('OFF-RAMP') || stage.includes('CASH-OUT') || stage.includes('LIQUIDATION');
+                        const isScam = stage.includes('SCAM') || stage.includes('INGESTION');
+                        const dirBadge = isOffRamp
+                            ? '<span class="badge-sev badge-crit">CASH-OUT</span>'
+                            : (isScam ? '<span class="badge-sev badge-high">INFLOW</span>' : '<span class="badge-sev badge-med">LAYERING</span>');
+
+                        tr.innerHTML = `
+                            <td style="font-weight: bold; color: var(--cyan);">${flow.step || (idx + 1)}</td>
+                            <td>${dirBadge}</td>
+                            <td style="font-family: monospace; font-size: 10.5px; color: var(--amber);">${escapeHtml(flow.type || 'On-Chain Hop')}</td>
+                            <td><span style="color: var(--text-bright); font-weight: bold;">${escapeHtml(flow.entity || '')}</span><br><span style="font-size: 10px; color: var(--text-muted);">${escapeHtml(flow.stage || '')}</span></td>
+                            <td style="color: var(--green); font-weight: bold;">${escapeHtml(balStr)}</td>
+                            <td><span class="badge-sev ${isOffRamp ? 'badge-crit' : 'badge-med'}">${escapeHtml(flow.aml_action || 'Monitored')}</span></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    // Render confirmed on-chain recent ledger transactions if available
+                    recentTxs.forEach((tx, idx) => {
+                        const tr = document.createElement('tr');
+                        const shortHash = tx.hash ? tx.hash.substring(0, 16) + '...' : `tx-${idx+1}`;
+                        tr.innerHTML = `
+                            <td style="font-weight: bold; color: var(--cyan);">TX ${idx + 1}</td>
+                            <td><span class="badge-sev badge-pass">LEDGER TX</span></td>
+                            <td style="font-family: monospace; font-size: 10.5px;"><a href="${expList[0] ? expList[0].url : '#'}" target="_blank" style="color: var(--cyan); text-decoration: none;">${escapeHtml(shortHash)}</a></td>
+                            <td><span style="color: var(--text-muted); font-size: 11px;">Confirmed Block: ${escapeHtml(String(tx.block_height || 'On-chain'))} (${escapeHtml(tx.time || '')})</span></td>
+                            <td style="color: var(--green); font-weight: bold;">${escapeHtml(tx.value || '0.00')}</td>
+                            <td><span class="badge-sev badge-pass">CONFIRMED</span></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+
+                // If subpoena text is present in response, update preview
+                const subpoenaTxt = data.law_enforcement_subpoena || data.subpoena_dossier || '';
+                if (subpoenaTxt) {
+                    document.getElementById('cryptoSubpoenaDossierBox').style.display = 'block';
+                    document.getElementById('cryptoSubpoenaText').innerText = subpoenaTxt;
+                }
+
+                logToConsole(`CryptoTrace complete for ${addr}: Risk Score ${risk}/100, Network ${chainStr}, Entity: ${entityName}`, 'PASS');
+            } catch (err) {
+                logToConsole('CryptoTrace request failed: ' + err, 'THREAT');
+            } finally {
+                if (btn) { btn.innerText = '[☵] TRACE ON-CHAIN FLOW'; btn.disabled = false; }
+            }
+        }
+
+        async function exportCryptoDossier() {
+            if (!currentCryptoTrace) return alert('Run a CryptoTrace on a suspect wallet first.');
+            try {
+                const res = await fetch('/api/cryptotrace/subpoena', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ trace_result: currentCryptoTrace })
+                });
+                const data = await res.json();
+                const txt = data.dossier_text || currentCryptoTrace.law_enforcement_subpoena || '';
+
+                document.getElementById('cryptoSubpoenaDossierBox').style.display = 'block';
+                document.getElementById('cryptoSubpoenaText').innerText = txt;
+
+                // Download text file
+                const blob = new Blob([txt], { type: 'text/plain' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `Aegis_CryptoTrace_Subpoena_${currentCryptoTrace.address || 'wallet'}_${Date.now()}.txt`;
+                a.click();
+                logToConsole('Exported AML Law Enforcement Subpoena Dossier.', 'PASS');
+            } catch (e) {
+                logToConsole('Failed generating subpoena dossier: ' + e, 'THREAT');
+            }
+        }
+
+        function copyCryptoDossier() {
+            const txt = document.getElementById('cryptoSubpoenaText').innerText;
+            if (!txt) return alert('No dossier generated yet.');
+            navigator.clipboard.writeText(txt);
+            logToConsole('Copied AML Subpoena Dossier to clipboard.', 'PASS');
+            alert('AML Subpoena Dossier copied to clipboard!');
+        }
+
+        function downloadCryptoDossierFile() {
+            const txt = document.getElementById('cryptoSubpoenaText').innerText;
+            if (!txt) return alert('No dossier generated yet.');
+            const blob = new Blob([txt], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `Aegis_CryptoTrace_AML_Subpoena_${Date.now()}.txt`;
+            a.click();
+        }
+
+        // ==========================================
+        // TAB: SPIDERFOOT SCAM INFRASTRUCTURE RECON
+        // ==========================================
+        let currentSpiderFootReport = null;
+        let sfActiveFilter = 'ALL';
+
+        function setSpiderFootTargetAndRun(t) {
+            document.getElementById('spiderfootTargetInput').value = t;
+            runSpiderFootRecon();
+        }
+
+        async function runSpiderFootRecon() {
+            const target = document.getElementById('spiderfootTargetInput').value.trim();
+            if (!target) return alert('Please enter a target domain, IP, or email to profile.');
+
+            const btn = document.getElementById('btnSpiderFootRun');
+            if (btn) { btn.innerText = 'EXECUTING 8 RECON MODULES...'; btn.disabled = true; }
+            logToConsole(`Launching SpiderFoot automated infrastructure recon on: ${target}`, 'WARN');
+
+            try {
+                const res = await fetch('/api/spiderfoot/recon', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target: target, profile: 'all' })
+                });
+                const data = await res.json();
+                currentSpiderFootReport = data;
+
+                // Update Metrics
+                const totalFindings = data.total_findings || 0;
+                document.getElementById('valSfTotal').innerText = totalFindings;
+
+                const modCount = typeof data.modules_executed === 'number' ? data.modules_executed : ((data.modules_executed && data.modules_executed.length) || (data.modules_list && data.modules_list.length) || 8);
+                document.getElementById('valSfModules').innerText = `${modCount} Modules Swept`;
+
+                const s = data.severity_counts || data.severity_summary || {};
+                const critHigh = (s.CRITICAL || 0) + (s.HIGH || 0);
+                const critHighEl = document.getElementById('valSfCritHigh');
+                critHighEl.innerText = critHigh;
+                critHighEl.style.color = critHigh > 0 ? 'var(--red)' : 'var(--green)';
+
+                const overallRisk = data.overall_infrastructure_risk || data.risk_rating || 'LOW';
+                const riskEl = document.getElementById('valSfRisk');
+                riskEl.innerText = overallRisk;
+                if (overallRisk === 'CRITICAL') riskEl.style.color = 'var(--red)';
+                else if (overallRisk === 'HIGH') riskEl.style.color = 'var(--amber)';
+                else riskEl.style.color = 'var(--green)';
+
+                const elapsed = data.elapsed_seconds || data.scan_duration_sec || 0;
+                document.getElementById('valSfScanDuration').innerText = `Scan Latency: ${elapsed}s`;
+                document.getElementById('valSfTargetType').innerText = data.target_type || 'DOMAIN / HOST';
+
+                // Severity Counts for Filter buttons
+                document.getElementById('countSfAll').innerText = totalFindings;
+                document.getElementById('countSfCrit').innerText = s.CRITICAL || 0;
+                document.getElementById('countSfHigh').innerText = s.HIGH || 0;
+                document.getElementById('countSfMed').innerText = s.MEDIUM || 0;
+                document.getElementById('countSfLow').innerText = s.LOW || 0;
+                document.getElementById('countSfInfo').innerText = s.INFO || 0;
+
+                renderSpiderFootTable();
+                logToConsole(`SpiderFoot sweep complete for ${target}: ${totalFindings} findings discovered across ${modCount} modules.`, 'PASS');
+            } catch (err) {
+                logToConsole('SpiderFoot reconnaissance failed: ' + err, 'THREAT');
+            } finally {
+                if (btn) { btn.innerText = '[⌘] LAUNCH SPIDERFOOT RECON'; btn.disabled = false; }
+            }
+        }
+
+        function filterSpiderFootFindings(sev, btn) {
+            sfActiveFilter = sev;
+            document.querySelectorAll('#tab-spiderfoot .presets .btn-preset').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            renderSpiderFootTable();
+        }
+
+        function renderSpiderFootTable() {
+            if (!currentSpiderFootReport) return;
+            const findings = currentSpiderFootReport.findings || [];
+            const tbody = document.getElementById('tbodySpiderFoot');
+            tbody.innerHTML = '';
+
+            const filtered = sfActiveFilter === 'ALL' 
+                ? findings 
+                : findings.filter(f => (f.severity || 'INFO').toUpperCase() === sfActiveFilter);
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 25px;">No findings matching severity [${sfActiveFilter}].</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(f => {
+                const tr = document.createElement('tr');
+                const sev = (f.severity || 'INFO').toUpperCase();
+                let badgeClass = 'badge-pass';
+                if (sev === 'CRITICAL') badgeClass = 'badge-crit';
+                else if (sev === 'HIGH') badgeClass = 'badge-high';
+                else if (sev === 'MEDIUM') badgeClass = 'badge-med';
+
+                tr.innerHTML = `
+                    <td><span class="badge-sev ${badgeClass}">${sev}</span></td>
+                    <td style="color: var(--cyan); font-family: monospace; font-size: 11px;">${escapeHtml(f.module || '')}</td>
+                    <td style="font-weight: bold; color: var(--text-bright);">${escapeHtml(f.type || '')}</td>
+                    <td style="color: var(--text-main); font-size: 11.5px; line-height: 1.4;">${escapeHtml(f.data || '')}</td>
+                    <td style="color: var(--text-muted); font-size: 10.5px;">${escapeHtml(f.source || f.confidence || '')}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportSpiderFootReport() {
+            if (!currentSpiderFootReport) return alert('Execute SpiderFoot recon first to generate an infrastructure dossier.');
+            const blob = new Blob([JSON.stringify(currentSpiderFootReport, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `Aegis_SpiderFoot_Recon_${currentSpiderFootReport.target || 'target'}_${Date.now()}.json`;
+            a.click();
+            logToConsole('Exported SpiderFoot Scam Infrastructure JSON dossier.', 'PASS');
         }
 
         // ==========================================
@@ -2584,6 +3327,34 @@ def api_osint_suite():
         return jsonify(suite.scan_url(target))
     else:
         return jsonify({"error": f"Unknown tool: {tool}"})
+
+
+@app.route("/api/cryptotrace/trace", methods=["POST"])
+def api_cryptotrace_trace():
+    data = request.get_json() or {}
+    address = data.get("address", "").strip()
+    tracer = CryptoTraceEngine()
+    result = tracer.trace_wallet(address)
+    return jsonify(result)
+
+
+@app.route("/api/cryptotrace/subpoena", methods=["POST"])
+def api_cryptotrace_subpoena():
+    data = request.get_json() or {}
+    trace_result = data.get("trace_result", {})
+    tracer = CryptoTraceEngine()
+    dossier = tracer.generate_subpoena_dossier(trace_result)
+    return jsonify({"dossier_text": dossier})
+
+
+@app.route("/api/spiderfoot/recon", methods=["POST"])
+def api_spiderfoot_recon():
+    data = request.get_json() or {}
+    target = data.get("target", "").strip()
+    profile = data.get("profile", "all")
+    recon = SpiderFootReconEngine()
+    result = recon.run_recon(target, scan_profile=profile)
+    return jsonify(result)
 
 
 @app.route("/api/emergency-lockdown", methods=["POST"])

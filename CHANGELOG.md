@@ -6,6 +6,56 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [2.6.0] - 2026-10-16
+
+### 🪙 CryptoTrace On-Chain AML Engine, 🕷️ SpiderFoot Scam Infra Recon & Verified Real-Time OSINT
+Major intelligence release introducing institutional-grade cryptocurrency AML tracking, automated multi-module scam infrastructure reconnaissance, and verified-only real-time OSINT rendering.
+
+### 🌟 New Features & Architectural Upgrades
+- **🪙 CryptoTrace On-Chain AML Intelligence Engine (`aegis/crypto_tracer.py`):**
+  - **Live Blockchain Querying:** Real-time on-chain balance, transaction count, and history lookup for Bitcoin via `blockchain.info` API and Ethereum JSON-RPC via Cloudflare (`cloudflare-eth.com`), with format validation for TRON (TRC-20 USDT) and Solana.
+  - **Attribution & Sanctions Database:** Automated cross-referencing against known high-risk clusters:
+    - *Mixers & Laundering:* Tornado Cash, Wasabi Mixer, ChipMixer, Blender.io.
+    - *State-Sponsored & Extortion:* Lazarus Group (Ronin Bridge exploit), WannaCry Ransomware, Colonial Pipeline DarkSide extortion.
+    - *Scam Syndicates:* Southeast Asian industrial pig-butchering syndicates, PlusToken Ponzi ring.
+    - *Exchanges & Off-Ramps:* Binance, Coinbase, Kraken, OKX, Bitfinex.
+  - **Algorithmic AML Risk Scoring:** 0 to 100 risk score and rating (Minimal, Low, Elevated, High, Severe Risk) evaluating mixers, sanctioned origins, transaction frequency, and exchange off-ramps.
+  - **Multi-Hop Flow Analysis:** Traces incoming victim funds, intermediary hopping, and final cash-out destinations.
+  - **Law Enforcement & AML Subpoena Dossier:** Generates formal documentation conforming to `18 U.S.C. § 2703(f)` and FinCEN SAR standards for bank AML teams and law enforcement agencies.
+  - **Web HUD Tab `[☵] CRYPTOTRACE AML`:** Interactive UI with live wallet tracing, risk meter gauges, attribution alerts, multi-hop flow tables, and one-click subpoena dossier generation and clipboard export.
+
+- **🕷️ SpiderFoot Automated Scam Infrastructure Reconnaissance Engine (`aegis/spiderfoot_recon.py`):**
+  - **8 Modular Active Sweeps:**
+    - `sfp_dns`: A, AAAA, MX, NS, TXT, SOA record resolution via Cloudflare DNS-over-HTTPS.
+    - `sfp_subdomains`: CRT.SH Certificate Transparency log extraction for hidden staging, admin, and API endpoints.
+    - `sfp_whois`: Domain registrar, creation date, expiration, and name server detection.
+    - `sfp_ssl`: Direct SSL/TLS handshake for certificate subject, issuer, serial, and validity period.
+    - `sfp_threat_intel`: Real-time cross-referencing against AbuseIPDB, VirusTotal, AlienVault OTX, and URLhaus.
+    - `sfp_cloud_buckets`: Heuristic enumeration of misconfigured AWS S3 and GCP storage buckets matching target naming conventions.
+    - `sfp_darkweb_leaks`: Tor onion search queries (Ahmia.fi, TorTaxi) and pastebin aggregators for compromised credentials.
+    - `sfp_tech_stack`: Web application server, framework, and security header fingerprinting.
+  - **Severity Scoring & Risk Rating:** Classifies all discovered telemetry into Critical, High, Medium, Low, and Info categories, calculating an overall composite infrastructure risk rating.
+  - **Web HUD Tab `[⌘] SPIDERFOOT RECON`:** Comprehensive tactical interface with module selection checkboxes, dynamic progress telemetry, severity metric cards, interactive filter pills, and JSON export.
+
+- **🕵️ Username OSINT Hunt Refinement (Verified Real-Time Data Only):**
+  - **Removed Sample "Quick Presets":** Eliminated static placeholder buttons (`cyberghost`, `fraudster99`, `shadow_operative`, `octocat`) to eliminate UI clutter.
+  - **Integrated `[⚡] OSINT PIVOT SUITE`:**
+    - `[✉] Email Permutations`: Instant generation of 12+ standard enterprise and scam email patterns for the handle.
+    - `[⧉] GitHub Deep Profiler`: Direct API lookup of user bio, public repos, and commit author email leaks.
+    - `[⌛] Wayback Archive`: One-click historical archive timeline search across target handles.
+    - `[🧅] Tor Darknet Leaks`: Automated Ahmia.fi dark web search queries for breached handles.
+    - `[🔑] PGP Keyring`: Verification of cryptographic keys and real-name associations via keys.openpgp.org.
+  - **Strict Verified-Only Display Filtering:**
+    - Suppressed all speculative and "NOT FOUND" entries. Only confirmed profiles (`r.status === 'FOUND'`) with verified HTTP 200 OK responses and response latencies are rendered in the live footprint table.
+    - If 0 profiles are found, renders a clean, focused amber notification banner stating zero confirmed footprints rather than 35+ red "NOT FOUND" rows.
+
+- **⌖ 20-in-1 Cyber OSINT Suite Real-Time Data Overhaul:**
+  - Integrated `CryptoTraceEngine` into Tool 6 (Crypto Tracer) for live on-chain AML verification and mixer checks.
+  - Enhanced Tool 5 (GitHub OSINT) to extract bio, company, avatar, public repos, and commit author email leaks.
+  - Added dedicated holographic renderer `renderSuiteToolOutput()` in Web HUD generating structured, real-time cards and tables for all 10 primary tools (Investigation Graph, Phone Analyzer, Email Analyzer, Dorks Generator, GitHub OSINT, Crypto Tracer, Hash Analyzer, Web Crawler, Reputation Checker, URL Scanner), eliminating unconfirmed / speculative fields and displaying real-time actionable intelligence only.
+
+---
+
 ## [2.5.0] - 2026-10-16
 
 ### 🔮 Minimal Holographical Sci-Fi HUD Transformation & 20-in-1 Cyber OSINT Suite

@@ -14,18 +14,20 @@
 1. [Mission & Purpose](#-mission--purpose)
 2. [Categorized Architecture & Holographic HUD](#-categorized-architecture)
 3. [20-in-1 Cyber OSINT & Investigation Suite](#-20-in-1-cyber-osint--investigation-suite)
-4. [How to Run the Application](#-how-to-run-the-application)
+4. [CryptoTrace // On-Chain AML Money Flow Tracer](#-cryptotrace--on-chain-aml-money-flow-tracer)
+5. [SpiderFoot // Scam Infrastructure Reconnaissance](#-spiderfoot--scam-infrastructure-reconnaissance)
+6. [How to Run the Application](#-how-to-run-the-application)
    - [Desktop PyQt6 GUI Interface (`gui.py`)](#1-running-the-desktop-gui-interface-recommended)
    - [Interactive Web Tactical HUD (`web.py`)](#2-running-the-localhost-web-hud)
    - [Headless Command-Line Interface (`main.py`)](#3-running-via-command-line-cli)
-5. [Target Connectivity & Connection Diagnostics](#-target-connectivity--connection-diagnostics)
-6. [Infected Path & Malware Scanner](#-infected-path--malware-scanner)
-7. [Host Server Machine Rootkit & Process Auditor](#-host-server-machine-rootkit--process-auditor)
-8. [Comprehensive Attack Matrix & Fix Runbook](#-comprehensive-attack-matrix--fix-runbook)
-9. [Attacker Tracking, VPN/Proxy Detection & Carrier Subpoena Protocol](#-attacker-tracking-vpnproxy-detection--carrier-subpoena-protocol)
-10. [Real-Time Version-by-Version Changelog](#-real-time-version-by-version-changelog)
-11. [Developers & Contributors (Team White Hat)](#-developers--contributors-team-white-hat)
-12. [License & Ethics](#-license--ethics)
+7. [Target Connectivity & Connection Diagnostics](#-target-connectivity--connection-diagnostics)
+8. [Infected Path & Malware Scanner](#-infected-path--malware-scanner)
+9. [Host Server Machine Rootkit & Process Auditor](#-host-server-machine-rootkit--process-auditor)
+10. [Comprehensive Attack Matrix & Fix Runbook](#-comprehensive-attack-matrix--fix-runbook)
+11. [Attacker Tracking, VPN/Proxy Detection & Carrier Subpoena Protocol](#-attacker-tracking-vpnproxy-detection--carrier-subpoena-protocol)
+12. [Real-Time Version-by-Version Changelog](#-real-time-version-by-version-changelog)
+13. [Developers & Contributors (Team White Hat)](#-developers--contributors-team-white-hat)
+14. [License & Ethics](#-license--ethics)
 
 ---
 
@@ -39,6 +41,7 @@ Instead of waiting for an attacker to breach your systems, Aegis audits your def
 * **Host Server Machine Auditor:** Scans running OS processes for rogue cryptominers, reverse shells, backdoor ports (4444, 1337), hosts file hijacking, and dropped executable payloads in Temp directories, with one-click process termination (`kill PID`).
 * **Interactive Cyber Attack Matrix:** A complete War Room dashboard cataloging all major web attack vectors (SQLi, XSS, Web Shells, RCE, Path Traversal, DDoS, Brute Force, .env leaks, CSRF, SSRF), detailing exact log symptoms, immediate containment actions, permanent architectural fixes, and ready-to-deploy code fixes for Nginx, Apache, Python, Node.js, and PHP.
 * **Law Enforcement & Carrier Subpoena Dossier:** Synthesizes ISO/IEC 27037 compliant forensic evidence reports with 18 U.S.C. § 2703 preservation procedures for police authorities to legally request subscriber SIM ICCID, hardware IMEI, and cell tower GPS coordinates from mobile carriers.
+* **On-Chain CryptoTrace & SpiderFoot Recon:** Institutional-grade cryptocurrency AML tracking linking scam wallets to exchanges, mixers, and cash-out off-ramps, paired with automated multi-sweep scam infrastructure reconnaissance.
 
 ---
 
@@ -56,6 +59,8 @@ Both the **PyQt6 Desktop GUI** and the **Localhost Web HUD** are structured into
 | **CAT 6** | 🚨 | **Attacker Tracker & Log IDS** | Ingests server access logs, identifies probing attacks, profiles attacker IPs, detects VPN/Proxy/Tor, and fingerprints mobile device models. |
 | **CAT 7** | ⚔️ | **Attack Matrix & How to Fix Dashboard** | Catalog of all web attacks, symptoms, immediate emergency containment actions, permanent architectural fixes, and multi-language code snippets. |
 | **CAT 8** | 📜 | **Carrier Subpoena Evidence Dossier** | Formal forensic evidence report formatted for police cybercrime units and carrier subpoenas (SIM/IMEI/GPS coordinates). |
+| **CAT 9** | 🪙 | **CryptoTrace AML & Money Flow Tracer** | Real-time on-chain tracing across Bitcoin, Ethereum, USDT TRC-20, and Solana; links scam wallets to mixers and exchange off-ramps with AML risk scoring. |
+| **CAT 10** | 🕷️ | **SpiderFoot Scam Infrastructure Recon** | Automated 8-module active sweep (DNS, WHOIS, CRT.SH subdomains, SSL/TLS, cloud buckets, dark web leaks, threat reputation) to expose scam infrastructure. |
 
 ---
 
@@ -222,9 +227,71 @@ Aegis features a master intelligence engine in `aegis/osint_suite.py` providing 
 
 ---
 
+## 🪙 CryptoTrace // On-Chain AML Money Flow Tracer
+
+**CryptoTrace** acts as an on-chain cryptocurrency and AML money flow tracer that traces fund movements across blockchains, linking scam wallets to exchanges, mixers, and cash-out off-ramps. For pig-butchering, investment scams, and ransomware, it turns a wallet address into an actionable money trail an AML compliance team or law enforcement investigator can act on.
+
+* **Best For:** Cryptocurrency fraud investigations, pig-butchering scams, ransomware ransom tracing, and financial AML money tracking.
+* **Sources:** On-chain live APIs across all major blockchains (Bitcoin, Ethereum, USDT ERC-20 / TRC-20, Solana).
+* **Key Strengths:**
+  - **Deep On-Chain Attribution:** Real-time query integration with `blockchain.info` (Bitcoin) and Ethereum JSON-RPC over Cloudflare.
+  - **Sanctions & Threat Intelligence:** Built-in attribution database cross-referencing known mixer clusters (Tornado Cash, Wasabi, ChipMixer), state-sponsored threats (Lazarus Group Ronin Bridge exploit, WannaCry, DarkSide ransomware), industrial pig-butchering syndicates, and major centralized exchanges (Binance, Coinbase, Kraken, OKX, Bitfinex).
+  - **Algorithmic AML Risk Scoring:** Calculates risk from 0 to 100 with categorical ratings (Minimal, Low, Elevated, High, Severe Risk).
+  - **Multi-Stage Money Flow Analysis:** Traces victim deposit, intermediary mixing hops, and final off-ramp destinations.
+  - **Law Enforcement & Bank Subpoena Dossier:** Formats formal subpoena and Suspicious Activity Report (SAR) dossiers under `18 U.S.C. § 2703(f)` and `31 U.S.C. § 5318(g)` for exchange KYC disclosure.
+
+---
+
+## 🕷️ SpiderFoot // Scam Infrastructure Reconnaissance
+
+**SpiderFoot** automates data collection across modular reconnaissance sweeps, from DNS and WHOIS to Certificate Transparency logs, SSL/TLS handshakes, cloud bucket enumeration, breach databases, and threat intelligence feeds. It is designed for mapping out scam operations that utilize multiple domains, shell companies, or disposable infrastructure.
+
+* **Best For:** Automated scam infrastructure mapping, attack surface discovery, and phishing network takedowns.
+* **Price:** Fully open-source and built directly into Aegis without external subscription paywalls.
+* **Sources:** 8 integrated tactical reconnaissance modules:
+  - `sfp_dns`: A, AAAA, MX, NS, TXT, SOA record resolution via Cloudflare DNS-over-HTTPS.
+  - `sfp_subdomains`: CRT.SH Certificate Transparency log extraction for hidden staging, admin, and API endpoints.
+  - `sfp_whois`: Domain registrar, registration date, expiration, and name servers.
+  - `sfp_ssl`: Direct SSL/TLS handshake for certificate subject, issuer, serial, and validity.
+  - `sfp_threat_intel`: Real-time cross-referencing against AbuseIPDB, VirusTotal, AlienVault OTX, and URLhaus.
+  - `sfp_cloud_buckets`: Heuristic enumeration of misconfigured AWS S3 and GCP storage buckets matching target brands.
+  - `sfp_darkweb_leaks`: Tor darknet onion queries (Ahmia.fi, TorTaxi) and pastebin aggregators for credential exposure.
+  - `sfp_tech_stack`: Web application server, framework, and security header fingerprinting.
+* **Key Strengths:**
+  - Automated correlation across disparate infrastructure points.
+  - Finding classification across Critical, High, Medium, Low, and Info severities.
+  - Overall composite infrastructure risk score with one-click JSON export.
+
+---
+
 ## 📜 Real-Time Version-by-Version Changelog
 
 All notable changes, architectural implementations, enhancements, security patches, and version releases are documented chronologically:
+
+### 🌟 [2.6.0] - 2026-10-16
+#### 🪙 CryptoTrace On-Chain AML Engine, 🕷️ SpiderFoot Scam Infra Recon & Verified Real-Time OSINT
+* **CryptoTrace On-Chain AML Intelligence Engine (`aegis/crypto_tracer.py`):**
+  - Live on-chain balance and transaction history lookup for Bitcoin (`blockchain.info`) and Ethereum JSON-RPC via Cloudflare, with format validation for TRON (TRC-20 USDT) and Solana.
+  - Automated cross-referencing against mixers (Tornado Cash, Wasabi), ransomware (Lazarus Ronin Bridge, WannaCry, DarkSide), industrial pig-butchering syndicates, and centralized exchange off-ramps (Binance, Coinbase, Kraken, OKX).
+  - Algorithmic AML Risk Scoring (0–100 scale: Minimal, Low, Elevated, High, Severe Risk).
+  - Multi-stage money flow analysis tracing victim deposits, intermediary hops, and cash-out points.
+  - Automated Law Enforcement & AML Subpoena Dossier generator conforming to `18 U.S.C. § 2703(f)` and FinCEN SAR guidelines.
+  - Web HUD Tab `[☵] CRYPTOTRACE AML` with live tracing, risk gauges, multi-hop flow tables, and one-click dossier export.
+* **SpiderFoot Automated Scam Infrastructure Reconnaissance Engine (`aegis/spiderfoot_recon.py`):**
+  - 8 modular active sweeps: `sfp_dns`, `sfp_subdomains`, `sfp_whois`, `sfp_ssl`, `sfp_threat_intel`, `sfp_cloud_buckets`, `sfp_darkweb_leaks`, and `sfp_tech_stack`.
+  - Severity classification (Critical, High, Medium, Low, Info) and overall composite infrastructure risk rating.
+  - Web HUD Tab `[⌘] SPIDERFOOT RECON` with module selection checkboxes, live progress telemetry, severity metric cards, interactive filter pills, and JSON export.
+* **Username OSINT Hunt Refinement (Verified Real-Time Data Only):**
+  - Removed sample "Quick Presets" (`cyberghost`, `fraudster99`, `shadow_operative`, `octocat`) to eliminate UI clutter.
+  - Integrated `[⚡] OSINT PIVOT SUITE` featuring Email Permutations, GitHub Deep Profiler, Wayback Archive Machine, Tor Darknet Leaks (Ahmia.fi), and PGP Keyring lookup.
+  - Suppressed all speculative and "NOT FOUND" entries. Only confirmed profiles (`r.status === 'FOUND'`) with verified HTTP 200 OK responses and response latencies are rendered in the live footprint table.
+  - If 0 profiles are found, renders a clean, focused amber notification banner stating zero confirmed footprints rather than 35+ red "NOT FOUND" rows.
+* **20-in-1 Cyber OSINT Suite Real-Time Data Overhaul:**
+  - Integrated `CryptoTraceEngine` into Tool 6 (Crypto Tracer) for live on-chain AML verification and mixer checks.
+  - Enhanced Tool 5 (GitHub OSINT) to extract bio, company, avatar, public repos, and commit author email leaks.
+  - Added dedicated holographic renderer `renderSuiteToolOutput()` in Web HUD generating structured, real-time cards and tables for all 10 primary tools, eliminating unconfirmed / speculative fields and displaying real-time actionable intelligence only.
+
+---
 
 ### 🌟 [2.5.0] - 2026-10-16
 #### 🔮 Minimal Holographical Sci-Fi HUD Transformation & 20-in-1 Cyber OSINT Suite

@@ -511,50 +511,19 @@ class AdvancedOsintSuite:
     # TOOL 7: CRYPTO WALLET TRACER
     # ==========================================================================
     def trace_crypto(self, address: str) -> Dict[str, Any]:
-        """Validates cryptocurrency address formats and generates blockchain explorer pivots."""
+        """Validates cryptocurrency address formats and performs live on-chain AML tracing."""
         addr = address.strip()
-        coin = "Unknown / Invalid Format"
-        explorer_url = "#"
-        valid = False
-
-        # Bitcoin (BTC)
-        if re.match(r"^(1|3)[a-km-zA-HJ-NP-Z1-9]{25,34}$", addr) or re.match(r"^bc1[a-z0-9]{39,59}$", addr):
-            coin = "Bitcoin (BTC)"
-            valid = True
-            explorer_url = f"https://www.blockchain.com/explorer/addresses/btc/{addr}"
-        # Ethereum (ETH / ERC-20)
-        elif re.match(r"^0x[a-fA-F0-9]{40}$", addr):
-            coin = "Ethereum (ETH / ERC-20 Token)"
-            valid = True
-            explorer_url = f"https://etherscan.io/address/{addr}"
-        # Litecoin (LTC)
-        elif re.match(r"^[LM3][a-km-zA-HJ-NP-Z1-9]{26,33}$", addr) or addr.startswith("ltc1"):
-            coin = "Litecoin (LTC)"
-            valid = True
-            explorer_url = f"https://blockchair.com/litecoin/address/{addr}"
-        # Dogecoin (DOGE)
-        elif re.match(r"^D{1}[5-9A-HJ-NP-U]{1}[1-9A-HJ-NP-Za-km-z]{32}$", addr):
-            coin = "Dogecoin (DOGE)"
-            valid = True
-            explorer_url = f"https://blockchair.com/dogecoin/address/{addr}"
-        # Monero (XMR)
-        elif re.match(r"^4[0-9AB][1-9A-HJ-NP-Za-km-z]{93}$", addr):
-            coin = "Monero (XMR Private Currency)"
-            valid = True
-            explorer_url = f"https://localmonero.co/blocks/search/{addr}"
-        # Solana (SOL)
-        elif re.match(r"^[1-9A-HJ-NP-Za-km-z]{32,44}$", addr):
-            coin = "Solana (SOL)"
-            valid = True
-            explorer_url = f"https://solscan.io/account/{addr}"
-
-        return {
-            "address": addr,
-            "valid": valid,
-            "currency": coin,
-            "explorer_url": explorer_url,
-            "investigation_advice": "Cross-reference transaction history for KYC exchange cashouts (Binance, Coinbase, Kraken) via law enforcement MLAT/subpoena." if valid else "Invalid crypto address checksum."
-        }
+        try:
+            from aegis.crypto_tracer import CryptoTraceEngine
+            tracer = CryptoTraceEngine(timeout=self.timeout)
+            return tracer.trace_wallet(addr)
+        except Exception:
+            return {
+                "address": addr,
+                "valid": False,
+                "currency": "Unknown",
+                "message": "Unable to resolve on-chain ledger."
+            }
 
     # ==========================================================================
     # TOOL 8: HASH ALGORITHM IDENTIFIER
