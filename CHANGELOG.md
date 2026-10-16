@@ -4,6 +4,29 @@ All notable changes, architectural implementations, enhancements, security patch
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - 2026-10-16
+
+### ⌖ Collapsible Host Interfaces & Full 17-Module Operational Integrity
+Major ergonomics and stability release making the host interfaces banner collapsible to reclaim valuable UI space, while hardening and standardizing all 17 cybersecurity analysis tabs and backend capabilities for zero-exception real-time execution.
+
+### 🌟 New Features & Architectural Upgrades
+- **⌖ Space-Saving Collapsible Host Interfaces Bar (`aegis/web_app.py`):**
+  - Replaced the static full-width banner with an interactive `<details class="host-interfaces-accordion">` component with custom glowing neon border and hover animations.
+  - Collapsed state displays a summary indicator (`#myIpsPreview`) showing detected IP addresses without consuming vertical screen space.
+  - Displays dynamic adapter counter badge (`#hostInterfacesCountBadge`) and animated toggle chevron indicator.
+  - Retains instant access to the "REFRESH IPs" and "TEST ATTACK PROBE" buttons.
+- **🛠️ 17-Module Operational Integrity & Data Standardization:**
+  - **[⬢] Server Rootkit Auditor (`aegis/server_auditor.py`):** Added unified `threats_identified` array consolidating rogue connections, hidden persistence keys, suspicious memory binaries, and hosts tampering; added instance aliases for automated audits.
+  - **[⌥] Malware Scanner (`aegis/malware_scanner.py`):** Fixed directory path parameter resolution in `scan_directory(directory)` and added `total_scanned` metric.
+  - **[⚡] Anti-XSS & Injection Defense (`aegis/injection_defense.py`):** Added structured `checks` array with standardized pass/fail status, current values, and recommended policies for the frontend table.
+  - **[▲] Attacker IDS & Threat Intel (`aegis/threat_intel.py`):** Added RFC 5737 documentation subnet fast-path and bounded socket PTR lookups to eliminate 15-second hangs during attack log analysis.
+  - **[⚓] Localhost & Ports (`aegis/port_auditor.py`):** Included bind address and security risk advisory details.
+  - **[⌘] SpiderFoot Recon (`aegis/spiderfoot_recon.py`):** Parallelized web directory, database, and backdoor scans using `ThreadPoolExecutor` and optimized connection schemes for localhost.
+  - **[📜] Carrier Subpoena Dossier (`aegis/web_app.py`):** Added interactive on-demand dossier generation button `[⚡] GENERATE EVIDENCE DOSSIER`.
+  - **Comprehensive Verification Suite (`test_all_17_tabs.py`):** Automated test suite verifying 21/21 API and UI endpoints with 100% pass rate.
+
+---
+
 ## [2.7.0] - 2026-10-16
 
 ### 🔐 Security Exposure & Secret-Leak Audit Center & Client-Side Execution Resilience

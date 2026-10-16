@@ -391,9 +391,17 @@ class SpiderFootReconEngine:
         except Exception:
             pass
 
+    def _get_base_url(self, target: str) -> str:
+        """Determines optimal scheme and base URL for target host."""
+        if target.startswith("http://") or target.startswith("https://"):
+            return target.rstrip("/")
+        if target.startswith("localhost") or target.startswith("127.0.0.1"):
+            return f"http://{target}"
+        return f"https://{target}"
+
     def _module_web_directories(self, target: str, findings: List[Dict[str, Any]]):
-        """Scans for exposed/infected website directories and sensitive management paths."""
-        base_url = f"https://{target}" if not target.startswith("http") else target
+        """Scans for exposed/infected website directories and sensitive management paths in parallel."""
+        base_url = self._get_base_url(target)
         test_dirs = [
             {"path": "/admin/", "name": "Administrative Interface", "sev": "HIGH", "kw": ["login", "admin", "dashboard"]},
             {"path": "/administrator/", "name": "Joomla/CMS Administrator", "sev": "HIGH", "kw": ["administrator", "login"]},
@@ -405,27 +413,35 @@ class SpiderFootReconEngine:
             {"path": "/.env", "name": "Environment Credentials File", "sev": "CRITICAL", "kw": ["DB_PASSWORD", "SECRET_KEY", "API_KEY"]}
         ]
 
-        for d in test_dirs:
-            full_url = f"{base_url.rstrip('/')}{d['path']}"
+        def check_dir(d):
+            full_url = f"{base_url}{d['path']}"
             try:
-                r = self.session.get(full_url, timeout=self.timeout, allow_redirects=False, verify=False)
+                r = self.session.get(full_url, timeout=1.5, allow_redirects=False, verify=False)
                 if r.status_code == 200:
                     text_lower = r.text.lower()
                     if any(k.lower() in text_lower for k in d["kw"]):
-                        findings.append({
+                        return {
                             "module": "sfp_web_directories",
                             "type": "EXPOSED_DIRECTORY_OR_FILE",
                             "data": full_url,
                             "description": f"Exposed Sensitive Path: {d['name']} at {d['path']}",
                             "confidence": "HIGH",
                             "severity": d["sev"]
-                        })
+                        }
             except Exception:
                 pass
+            return None
+
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = [executor.submit(check_dir, d) for d in test_dirs]
+            for f in as_completed(futures):
+                res = f.result()
+                if res:
+                    findings.append(res)
 
     def _module_database_exposure(self, target: str, findings: List[Dict[str, Any]]):
-        """Scans for exposed SQL database dumps and SQLite files."""
-        base_url = f"https://{target}" if not target.startswith("http") else target
+        """Scans for exposed SQL database dumps and SQLite files in parallel."""
+        base_url = self._get_base_url(target)
         db_paths = [
             {"path": "/database.sql", "name": "SQL Database Dump", "kw": ["CREATE TABLE", "INSERT INTO", "-- MySQL dump"]},
             {"path": "/dump.sql", "name": "Database Dump File", "kw": ["CREATE TABLE", "INSERT INTO"]},
@@ -433,27 +449,35 @@ class SpiderFootReconEngine:
             {"path": "/db.sqlite3", "name": "SQLite Database File", "kw": ["SQLite format 3"]}
         ]
 
-        for db in db_paths:
-            full_url = f"{base_url.rstrip('/')}{db['path']}"
+        def check_db(db):
+            full_url = f"{base_url}{db['path']}"
             try:
-                r = self.session.get(full_url, timeout=self.timeout, stream=True, verify=False)
+                r = self.session.get(full_url, timeout=1.5, stream=True, verify=False)
                 if r.status_code == 200:
                     chunk = r.raw.read(512, decode_content=True).decode("utf-8", errors="ignore")
                     if any(k in chunk for k in db["kw"]):
-                        findings.append({
+                        return {
                             "module": "sfp_database_exposure",
                             "type": "EXPOSED_DATABASE_DUMP",
                             "data": full_url,
                             "description": f"CRITICAL: Exposed Database File: {db['name']} ({db['path']}) accessible publicly!",
                             "confidence": "HIGH",
                             "severity": "CRITICAL"
-                        })
+                        }
             except Exception:
                 pass
+            return None
+
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = [executor.submit(check_db, db) for db in db_paths]
+            for f in as_completed(futures):
+                res = f.result()
+                if res:
+                    findings.append(res)
 
     def _module_web_backdoors(self, target: str, findings: List[Dict[str, Any]]):
-        """Scans for attacker webshell backdoors and malware drop files."""
-        base_url = f"https://{target}" if not target.startswith("http") else target
+        """Scans for attacker webshell backdoors and malware drop files in parallel."""
+        base_url = self._get_base_url(target)
         backdoor_paths = [
             {"path": "/shell.php", "name": "Generic PHP Webshell", "kw": ["eval(", "system(", "passthru(", "base64_decode("]},
             {"path": "/c99.php", "name": "c99 Webshell Backdoor", "kw": ["c99shell", "c99"]},
@@ -461,20 +485,28 @@ class SpiderFootReconEngine:
             {"path": "/wso.php", "name": "WSO Webshell Backdoor", "kw": ["WSO", "FilesMan"]}
         ]
 
-        for b in backdoor_paths:
-            full_url = f"{base_url.rstrip('/')}{b['path']}"
+        def check_backdoor(b):
+            full_url = f"{base_url}{b['path']}"
             try:
-                r = self.session.get(full_url, timeout=self.timeout, stream=True, verify=False)
+                r = self.session.get(full_url, timeout=1.5, stream=True, verify=False)
                 if r.status_code == 200:
                     chunk = r.raw.read(1024, decode_content=True).decode("utf-8", errors="ignore")
                     if any(k in chunk for k in b["kw"]):
-                        findings.append({
+                        return {
                             "module": "sfp_web_backdoors",
                             "type": "MALWARE_BACKDOOR_WEBSHELL",
                             "data": full_url,
                             "description": f"CRITICAL MALWARE: Webshell backdoor '{b['name']}' found at {b['path']}!",
                             "confidence": "HIGH",
                             "severity": "CRITICAL"
-                        })
+                        }
             except Exception:
                 pass
+            return None
+
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = [executor.submit(check_backdoor, b) for b in backdoor_paths]
+            for f in as_completed(futures):
+                res = f.result()
+                if res:
+                    findings.append(res)

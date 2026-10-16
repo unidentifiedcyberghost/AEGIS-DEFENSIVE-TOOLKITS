@@ -288,119 +288,556 @@ class AdvancedOsintSuite:
         }
 
     # ==========================================================================
-    # TOOL 1: INVESTIGATION GRAPH CORRELATION ENGINE (REAL DATA ONLY)
+    # TOOL 1: INVESTIGATION GRAPH CORRELATION ENGINE (REAL DATA & SPIDER CRAWLER)
     # ==========================================================================
     def build_investigation_graph(self, target: str) -> Dict[str, Any]:
-        """Correlates entities into a graph structure for cyber link analysis with REAL confirmed data."""
-        clean_target = target.strip()
+        """Correlates entities into an interactive visual topology showing REAL IP routes,
+        BGP backbones, ISP telecom carriers, DNS/MX infrastructure, and crawled web connections."""
+        raw_target = target.strip()
+        # Clean protocol and path if entered as URL
+        clean_target = raw_target
+        parsed_scheme = "https"
+        if "://" in clean_target:
+            try:
+                parsed = urllib.parse.urlparse(clean_target)
+                parsed_scheme = parsed.scheme or "https"
+                clean_target = parsed.netloc or parsed.path
+            except Exception:
+                clean_target = clean_target.split("://")[-1].split("/")[0]
+        else:
+            clean_target = clean_target.split("/")[0]
+
+        # Strip port if present
+        clean_host = clean_target.split(":")[0].strip()
+
         nodes = []
         links = []
+        route_flow = []
+        resolved_ips = []
+        discovered_isps = set()
+        discovered_asns = set()
+        crawled_assets = []
+        crawled_endpoints = []
+        crawled_subdomains = []
+        server_banner = "Standard HTTP Host"
+        page_title = ""
+
+        is_ip = bool(re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", clean_host))
+        is_email = bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", clean_target)) and not is_ip
+        is_domain = bool(re.match(r"^[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", clean_host)) and not is_ip and not is_email
+
+        target_type = "IP_ADDRESS" if is_ip else ("EMAIL" if is_email else ("WEBSITE" if is_domain else "USERNAME"))
 
         root_id = "node_target"
-        nodes.append({"id": root_id, "label": clean_target, "type": "TARGET", "color": "#00F0FF", "size": 24})
+        nodes.append({
+            "id": root_id,
+            "label": clean_host if is_domain or is_ip else clean_target,
+            "type": "TARGET",
+            "color": "#00F0FF",
+            "size": 24,
+            "icon": "[TARGET]",
+            "metadata": {
+                "name": clean_target,
+                "role": "Investigation Primary Subject",
+                "classification": target_type,
+                "target_type": target_type
+            }
+        })
 
-        is_ip = bool(re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", clean_target))
-        is_email = bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", clean_target))
-        is_domain = bool(re.match(r"^[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", clean_target)) and not is_ip and not is_email
+        primary_geo = {}
+        if is_ip or is_domain:
+            ip_list = []
+            cname_val = None
+            ns_list = []
+            mx_list = []
 
-        if is_ip:
-            geo = self.analyze_ip(clean_target)
-            if geo.get("as_number") and geo["as_number"] != "Unknown":
-                asn_id = "node_asn"
-                nodes.append({"id": asn_id, "label": geo["as_number"], "type": "ASN", "color": "#FFB800", "size": 18})
-                links.append({"source": root_id, "target": asn_id, "relation": "routed_by"})
-
-            if geo.get("country") and geo["country"] != "Unknown":
-                loc_id = "node_loc"
-                loc_str = f"{geo.get('city', '')}, {geo['country']}".strip(", ")
-                nodes.append({"id": loc_id, "label": loc_str, "type": "LOCATION", "color": "#00FF88", "size": 18})
-                links.append({"source": root_id, "target": loc_id, "relation": "located_in"})
-
-            if geo.get("reverse_dns") and not geo["reverse_dns"].startswith("No PTR"):
-                rdns_id = "node_rdns"
-                nodes.append({"id": rdns_id, "label": geo["reverse_dns"], "type": "HOSTNAME", "color": "#B026FF", "size": 16})
-                links.append({"source": root_id, "target": rdns_id, "relation": "ptr_record"})
-
-            # Quick probe common open ports to add real service nodes
-            for p, s_name in [(80, "HTTP"), (443, "HTTPS"), (22, "SSH"), (53, "DNS"), (8080, "HTTP-Proxy")]:
+            if is_ip:
+                ip_list.append(clean_host)
+            else:
+                # 1. Resolve DNS A records via Cloudflare DoH
                 try:
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    sock.settimeout(0.25)
-                    res = sock.connect_ex((clean_target, p))
-                    sock.close()
-                    if res == 0:
-                        p_id = f"node_port_{p}"
-                        nodes.append({"id": p_id, "label": f"Port {p} ({s_name})", "type": "SERVICE", "color": "#FF3366", "size": 14})
-                        links.append({"source": root_id, "target": p_id, "relation": "listening_port"})
+                    r_a = self.session.get(f"https://cloudflare-dns.com/dns-query?name={clean_host}&type=A", headers={"Accept": "application/dns-json"}, timeout=3.5)
+                    if r_a.status_code == 200:
+                        for ans in r_a.json().get("Answer", []):
+                            data_str = ans.get("data", "")
+                            # Check if answer is CNAME
+                            if ans.get("type") == 5:
+                                cname_val = data_str.rstrip(".")
+                            elif ans.get("type") == 1 and bool(re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", data_str)):
+                                if data_str not in ip_list:
+                                    ip_list.append(data_str)
                 except Exception:
                     pass
 
-        elif is_domain:
-            # Query real DNS A, MX, NS via Cloudflare DoH
+                # Fallback to local DNS if DoH failed or returned empty
+                if not ip_list:
+                    try:
+                        addr_infos = socket.getaddrinfo(clean_host, 80, socket.AF_INET, socket.SOCK_STREAM)
+                        for ai in addr_infos:
+                            sock_ip = ai[4][0]
+                            if sock_ip not in ip_list:
+                                ip_list.append(sock_ip)
+                    except Exception:
+                        pass
+
+                # 2. Resolve NS and MX records via Cloudflare DoH
+                try:
+                    r_ns = self.session.get(f"https://cloudflare-dns.com/dns-query?name={clean_host}&type=NS", headers={"Accept": "application/dns-json"}, timeout=3.0)
+                    if r_ns.status_code == 200:
+                        for ans in r_ns.json().get("Answer", [])[:2]:
+                            ns_val = ans.get("data", "").rstrip(".")
+                            if ns_val and ns_val not in ns_list:
+                                ns_list.append(ns_val)
+
+                    r_mx = self.session.get(f"https://cloudflare-dns.com/dns-query?name={clean_host}&type=MX", headers={"Accept": "application/dns-json"}, timeout=3.0)
+                    if r_mx.status_code == 200:
+                        for ans in r_mx.json().get("Answer", [])[:2]:
+                            mx_val = ans.get("data", "").split()[-1].rstrip(".")
+                            if mx_val and mx_val not in mx_list:
+                                mx_list.append(mx_val)
+                except Exception:
+                    pass
+
+                # If CNAME detected, add EDGE_CDN node
+                if cname_val:
+                    cname_id = "node_cname_edge"
+                    cdn_brand = "Cloudflare CDN" if "cloudflare" in cname_val.lower() else (
+                        "Amazon CloudFront" if "cloudfront" in cname_val.lower() else (
+                            "Akamai Edge" if "akamai" in cname_val.lower() else (
+                                "Fastly CDN" if "fastly" in cname_val.lower() else f"CDN: {cname_val}"
+                            )
+                        )
+                    )
+                    nodes.append({
+                        "id": cname_id,
+                        "label": f"Edge: {cdn_brand}",
+                        "type": "EDGE_CDN",
+                        "color": "#00F0FF",
+                        "size": 18,
+                        "icon": "[EDGE]",
+                        "metadata": {
+                            "cname_target": cname_val,
+                            "role": "Anycast Edge Reverse Proxy / CDN Gateway",
+                            "routing": "Frontend Traffic Ingress"
+                        }
+                    })
+                    links.append({"source": root_id, "target": cname_id, "relation": "cname_edge_ingress", "type": "EDGE_LINK"})
+
+            # Deep analyze each resolved IP in parallel
+            for idx, ip_str in enumerate(ip_list[:4]):
+                resolved_ips.append(ip_str)
+                geo = self.analyze_ip(ip_str)
+                if idx == 0:
+                    primary_geo = geo
+
+                ip_node_id = f"node_ip_{idx}"
+                ip_label = f"IP: {ip_str}"
+                asn_str = geo.get("as_number", "Unknown")
+                isp_str = geo.get("isp", "Unknown")
+                country_str = geo.get("country", "Unknown")
+                city_str = geo.get("city", "Unknown")
+                rev_dns = geo.get("reverse_dns", "No PTR Record")
+
+                if isp_str and isp_str != "Unknown":
+                    discovered_isps.add(isp_str)
+                if asn_str and asn_str != "Unknown":
+                    discovered_asns.add(asn_str)
+
+                nodes.append({
+                    "id": ip_node_id,
+                    "label": ip_label,
+                    "type": "IP_ADDRESS",
+                    "color": "#00FF88",
+                    "size": 20,
+                    "icon": "[IP]",
+                    "metadata": {
+                        "ip": ip_str,
+                        "isp": isp_str,
+                        "asn": asn_str,
+                        "location": f"{city_str}, {country_str}",
+                        "reverse_dns": rev_dns,
+                        "threat_score": geo.get("threat_score", 0),
+                        "is_datacenter": geo.get("is_datacenter", False),
+                        "role": "Resolved Origin / Host IP Address"
+                    }
+                })
+                # Link target to IP
+                links.append({"source": root_id, "target": ip_node_id, "relation": "resolves_to", "type": "ORIGIN_LINK"})
+
+                # Add BGP Backbone node
+                if asn_str and asn_str != "Unknown":
+                    asn_id = f"node_asn_{idx}"
+                    nodes.append({
+                        "id": asn_id,
+                        "label": f"BGP: {asn_str[:28]}",
+                        "type": "BGP_BACKBONE",
+                        "color": "#FFB800",
+                        "size": 17,
+                        "icon": "[BGP]",
+                        "metadata": {
+                            "asn": asn_str,
+                            "carrier": isp_str,
+                            "role": "Autonomous System (ASN) Routing Backbone",
+                            "routing_protocol": "Border Gateway Protocol (BGP v4)"
+                        }
+                    })
+                    links.append({"source": ip_node_id, "target": asn_id, "relation": "bgp_routed_by", "type": "BACKBONE_ROUTE"})
+
+                    # Add ISP Carrier node
+                    if isp_str and isp_str != "Unknown":
+                        isp_id = f"node_isp_{idx}"
+                        nodes.append({
+                            "id": isp_id,
+                            "label": f"ISP: {isp_str[:26]}",
+                            "type": "ISP_CARRIER",
+                            "color": "#FF8800",
+                            "size": 16,
+                            "icon": "[ISP]",
+                            "metadata": {
+                                "isp": isp_str,
+                                "organization": geo.get("org", isp_str),
+                                "role": "Telecom Transit & Internet Service Provider",
+                                "subpoena_basis": "Preservation order under 18 U.S.C. § 2703(f)"
+                            }
+                        })
+                        links.append({"source": asn_id, "target": isp_id, "relation": "carrier_transit", "type": "BACKBONE_ROUTE"})
+
+                # Add Geolocation Physical Origin node
+                if country_str and country_str != "Unknown":
+                    loc_id = f"node_geo_{idx}"
+                    nodes.append({
+                        "id": loc_id,
+                        "label": f"Origin: {city_str}, {country_str}"[:30],
+                        "type": "GEO_ORIGIN",
+                        "color": "#38EF7D",
+                        "size": 15,
+                        "icon": "[GEO]",
+                        "metadata": {
+                            "city": city_str,
+                            "country": country_str,
+                            "region": geo.get("region", "Unknown"),
+                            "role": "Physical Origin Datacenter / Regional PoP"
+                        }
+                    })
+                    links.append({"source": ip_node_id, "target": loc_id, "relation": "physical_origin", "type": "GEO_LINK"})
+
+                # Add Reverse DNS PTR if confirmed
+                if rev_dns and not rev_dns.startswith("No PTR"):
+                    rdns_id = f"node_rdns_{idx}"
+                    nodes.append({
+                        "id": rdns_id,
+                        "label": f"PTR: {rev_dns[:28]}",
+                        "type": "PTR_HOSTNAME",
+                        "color": "#B026FF",
+                        "size": 14,
+                        "icon": "[PTR]",
+                        "metadata": {
+                            "ptr_record": rev_dns,
+                            "role": "Authoritative Reverse DNS (in-addr.arpa)"
+                        }
+                    })
+                    links.append({"source": ip_node_id, "target": rdns_id, "relation": "ptr_validated", "type": "REVERSE_DNS"})
+
+            # Add Nameserver nodes
+            for n_idx, ns_name in enumerate(ns_list):
+                ns_id = f"node_ns_{n_idx}"
+                nodes.append({
+                    "id": ns_id,
+                    "label": f"NS: {ns_name}",
+                    "type": "NAMESERVER",
+                    "color": "#8A2BE2",
+                    "size": 14,
+                    "icon": "[DNS]",
+                    "metadata": {
+                        "nameserver": ns_name,
+                        "role": "Authoritative DNS Nameserver Zone Controller"
+                    }
+                })
+                links.append({"source": root_id, "target": ns_id, "relation": "delegated_dns", "type": "DNS_LINK"})
+
+            # Add Mail Exchanger nodes
+            for m_idx, mx_name in enumerate(mx_list):
+                mx_id = f"node_mx_{m_idx}"
+                nodes.append({
+                    "id": mx_id,
+                    "label": f"MX: {mx_name}",
+                    "type": "MAIL_EXCHANGER",
+                    "color": "#DDA0DD",
+                    "size": 14,
+                    "icon": "[MX]",
+                    "metadata": {
+                        "mail_exchanger": mx_name,
+                        "role": "Inbound SMTP Mail Gateway & Exchange Route"
+                    }
+                })
+                links.append({"source": root_id, "target": mx_id, "relation": "mail_routing", "type": "DNS_LINK"})
+
+            # Real Web Spider & Crawler Execution
+            crawl_url = f"{parsed_scheme}://{clean_host}"
+            crawl_res = None
             try:
-                # A Record
-                r_a = self.session.get(f"https://cloudflare-dns.com/dns-query?name={clean_target}&type=A", headers={"Accept": "application/dns-json"}, timeout=3)
-                if r_a.status_code == 200:
-                    for idx, ans in enumerate(r_a.json().get("Answer", [])[:2]):
-                        ip_val = ans.get("data", "")
-                        if ip_val:
-                            ip_id = f"node_ip_{idx}"
-                            nodes.append({"id": ip_id, "label": f"IP: {ip_val}", "type": "IP_ADDRESS", "color": "#00FF88", "size": 16})
-                            links.append({"source": root_id, "target": ip_id, "relation": "resolves_to"})
-
-                # MX Record
-                r_mx = self.session.get(f"https://cloudflare-dns.com/dns-query?name={clean_target}&type=MX", headers={"Accept": "application/dns-json"}, timeout=3)
-                if r_mx.status_code == 200:
-                    for idx, ans in enumerate(r_mx.json().get("Answer", [])[:2]):
-                        mx_val = ans.get("data", "").split()[-1].rstrip(".")
-                        if mx_val:
-                            mx_id = f"node_mx_{idx}"
-                            nodes.append({"id": mx_id, "label": f"Mail: {mx_val}", "type": "MAIL_SERVER", "color": "#FFB800", "size": 16})
-                            links.append({"source": root_id, "target": mx_id, "relation": "mx_exchange"})
-
-                # NS Record
-                r_ns = self.session.get(f"https://cloudflare-dns.com/dns-query?name={clean_target}&type=NS", headers={"Accept": "application/dns-json"}, timeout=3)
-                if r_ns.status_code == 200:
-                    for idx, ans in enumerate(r_ns.json().get("Answer", [])[:2]):
-                        ns_val = ans.get("data", "").rstrip(".")
-                        if ns_val:
-                            ns_id = f"node_ns_{idx}"
-                            nodes.append({"id": ns_id, "label": f"NS: {ns_val}", "type": "NAMESERVER", "color": "#B026FF", "size": 14})
-                            links.append({"source": root_id, "target": ns_id, "relation": "delegated_ns"})
+                crawl_res = self.session.get(
+                    crawl_url,
+                    timeout=3.5,
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AegisSpider/2.8 (OSINT Recon Spider)",
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                    },
+                    allow_redirects=True
+                )
             except Exception:
-                pass
+                if parsed_scheme == "https":
+                    try:
+                        crawl_url = f"http://{clean_host}"
+                        crawl_res = self.session.get(crawl_url, timeout=3.0, allow_redirects=True)
+                    except Exception:
+                        pass
+
+            if crawl_res and crawl_res.status_code < 500:
+                html_body = crawl_res.text or ""
+                server_hdr = crawl_res.headers.get("Server", "") or crawl_res.headers.get("server", "")
+                cf_ray = crawl_res.headers.get("CF-Ray", "")
+                via_hdr = crawl_res.headers.get("Via", "")
+                x_powered = crawl_res.headers.get("X-Powered-By", "")
+
+                server_banner = server_hdr or ("Cloudflare Edge" if cf_ray else (via_hdr or "HTTP Web Service"))
+                if x_powered:
+                    server_banner += f" ({x_powered})"
+
+                # Title extraction
+                t_match = re.search(r"<title>(.*?)</title>", html_body, re.IGNORECASE)
+                if t_match:
+                    page_title = t_match.group(1).strip()[:50]
+
+                # Web Server node
+                ws_id = "node_web_server"
+                nodes.append({
+                    "id": ws_id,
+                    "label": f"Backend: {server_banner[:26]}",
+                    "type": "WEB_SERVER",
+                    "color": "#00F0FF",
+                    "size": 17,
+                    "icon": "[WEB]",
+                    "metadata": {
+                        "server_technology": server_banner,
+                        "status_code": crawl_res.status_code,
+                        "cf_ray": cf_ray or "N/A",
+                        "via": via_hdr or "N/A",
+                        "role": "Application Web Server & Backend Daemon"
+                    }
+                })
+                links.append({"source": root_id, "target": ws_id, "relation": "runs_web_server", "type": "SERVICE_LINK"})
+
+                # Spider: Extract Internal Endpoints
+                raw_hrefs = re.findall(r'href=[\'"]?([^\'" >]+)', html_body)
+                for h in raw_hrefs:
+                    h_clean = h.split("?")[0].split("#")[0].strip()
+                    if h_clean.startswith("/") and len(h_clean) > 1 and not any(h_clean.endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".gif", ".ico", ".svg", ".css"]):
+                        if h_clean not in crawled_endpoints and len(crawled_endpoints) < 4:
+                            crawled_endpoints.append(h_clean)
+
+                for ep_idx, ep in enumerate(crawled_endpoints):
+                    ep_id = f"node_spider_ep_{ep_idx}"
+                    nodes.append({
+                        "id": ep_id,
+                        "label": f"Route: {ep}",
+                        "type": "SPIDER_ENDPOINT",
+                        "color": "#00E5FF",
+                        "size": 13,
+                        "icon": "[API]",
+                        "metadata": {
+                            "endpoint_path": ep,
+                            "role": "Crawled Internal Route & API Endpoint",
+                            "spider_origin": clean_host
+                        }
+                    })
+                    links.append({"source": ws_id, "target": ep_id, "relation": "spider_endpoint", "type": "SPIDER_LINK"})
+
+                # Spider: Extract External Script Assets & CDNs
+                raw_scripts = re.findall(r'src=[\'"]?(https?://[^\'" >]+)', html_body)
+                for sc in raw_scripts:
+                    try:
+                        p_host = urllib.parse.urlparse(sc).netloc
+                        if p_host and p_host != clean_host and p_host not in crawled_assets:
+                            if len(crawled_assets) < 4:
+                                crawled_assets.append(p_host)
+                    except Exception:
+                        pass
+
+                for asset_idx, asset_host in enumerate(crawled_assets):
+                    asset_id = f"node_spider_asset_{asset_idx}"
+                    nodes.append({
+                        "id": asset_id,
+                        "label": f"CDN: {asset_host[:26]}",
+                        "type": "ASSET_CDN",
+                        "color": "#FF007F",
+                        "size": 13,
+                        "icon": "[CDN]",
+                        "metadata": {
+                            "asset_host": asset_host,
+                            "role": "External Asset Dependency & Script Host",
+                            "spider_origin": clean_host
+                        }
+                    })
+                    links.append({"source": root_id, "target": asset_id, "relation": "linked_asset_host", "type": "SPIDER_LINK"})
+
+                # Spider: Extract Subdomains matching target domain
+                if is_domain:
+                    sub_pat = rf'https?://([a-zA-Z0-9-]+\.{re.escape(clean_host)})'
+                    found_subs = set(re.findall(sub_pat, html_body))
+                    for s in found_subs:
+                        if s != clean_host and s not in crawled_subdomains and len(crawled_subdomains) < 3:
+                            crawled_subdomains.append(s)
+
+                    for sub_idx, sub_name in enumerate(crawled_subdomains):
+                        sub_id = f"node_spider_sub_{sub_idx}"
+                        nodes.append({
+                            "id": sub_id,
+                            "label": f"Subdomain: {sub_name}",
+                            "type": "SUBDOMAIN",
+                            "color": "#FFB800",
+                            "size": 14,
+                            "icon": "[SUB]",
+                            "metadata": {
+                                "subdomain": sub_name,
+                                "role": "Crawled Correlated Subdomain Host"
+                            }
+                        })
+                        links.append({"source": root_id, "target": sub_id, "relation": "spider_subdomain", "type": "SPIDER_LINK"})
+
+            # Port scanning probe if IP
+            if is_ip:
+                for p, s_name in [(80, "HTTP"), (443, "HTTPS"), (22, "SSH"), (53, "DNS"), (8080, "HTTP-Proxy")]:
+                    try:
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        sock.settimeout(0.25)
+                        res = sock.connect_ex((clean_host, p))
+                        sock.close()
+                        if res == 0:
+                            p_id = f"node_port_{p}"
+                            nodes.append({
+                                "id": p_id,
+                                "label": f"Port {p} ({s_name})",
+                                "type": "SERVICE",
+                                "color": "#FF3366",
+                                "size": 14,
+                                "icon": "[PORT]",
+                                "metadata": {
+                                    "port": p,
+                                    "service": s_name,
+                                    "state": "OPEN / LISTENING",
+                                    "role": "Active Network Daemon Listener"
+                                }
+                            })
+                            links.append({"source": root_id, "target": p_id, "relation": "listening_port", "type": "SERVICE_LINK"})
+                    except Exception:
+                        pass
+
+            # Synthesize Deterministic Origin-to-Backbone Route Pathway Flow
+            p_ip = primary_geo.get("ip") or (resolved_ips[0] if resolved_ips else "127.0.0.1")
+            p_asn = primary_geo.get("as_number", "AS-Transit")
+            p_isp = primary_geo.get("isp", "Backbone Provider")
+            p_loc = f"{primary_geo.get('city', '')}, {primary_geo.get('country', '')}".strip(", ") or "Global Cloud Core"
+
+            route_flow = [
+                {
+                    "hop": 1,
+                    "title": "Client Ingress",
+                    "entity": "End-User Browser / Network Scanner",
+                    "role": "Initial TCP/TLS connection handshake initiated",
+                    "status": "INGRESS"
+                },
+                {
+                    "hop": 2,
+                    "title": "Access Network Provider",
+                    "entity": "Local ISP Gateway / Edge POP",
+                    "role": "Carrier residential/enterprise routing",
+                    "status": "TRANSIT"
+                },
+                {
+                    "hop": 3,
+                    "title": "Tier-1 BGP Backbone",
+                    "entity": p_asn,
+                    "role": f"Inter-domain BGP routing via {p_isp}",
+                    "status": "BACKBONE"
+                },
+                {
+                    "hop": 4,
+                    "title": "Edge Ingress / Reverse Proxy",
+                    "entity": cname_val or ("Cloud Edge Gateway" if "cloudflare" in p_isp.lower() else f"Ingress Proxy ({p_ip})"),
+                    "role": "Traffic filtering, WAF, SSL termination",
+                    "status": "EDGE"
+                },
+                {
+                    "hop": 5,
+                    "title": "Origin Server Host",
+                    "entity": f"{p_ip} ({p_loc})",
+                    "role": f"Physical application host server (PTR: {primary_geo.get('reverse_dns', 'Dynamic IP')[:24]})",
+                    "status": "ORIGIN"
+                },
+                {
+                    "hop": 6,
+                    "title": "Application Web Back-end",
+                    "entity": server_banner,
+                    "role": f"Serving {len(crawled_endpoints)} crawled routes & {len(crawled_assets)} asset CDNs",
+                    "status": "APPLICATION"
+                }
+            ]
 
         elif is_email:
             local_part, domain = clean_target.split("@", 1)
             d_id = "node_email_domain"
-            nodes.append({"id": d_id, "label": f"Domain: {domain}", "type": "DOMAIN", "color": "#00FF88", "size": 18})
-            links.append({"source": root_id, "target": d_id, "relation": "hosted_on"})
+            nodes.append({
+                "id": d_id,
+                "label": f"Domain: {domain}",
+                "type": "DOMAIN",
+                "color": "#00FF88",
+                "size": 18,
+                "icon": "[DOM]",
+                "metadata": {"domain": domain, "role": "Mail Server Domain Host"}
+            })
+            links.append({"source": root_id, "target": d_id, "relation": "hosted_on", "type": "ORIGIN_LINK"})
 
             is_disp = domain in DISPOSABLE_EMAIL_DOMAINS
             if is_disp:
                 disp_id = "node_disp_warn"
-                nodes.append({"id": disp_id, "label": "DISPOSABLE BURNER INBOX", "type": "THREAT_FLAG", "color": "#FF3366", "size": 16})
-                links.append({"source": root_id, "target": disp_id, "relation": "classified_as"})
+                nodes.append({
+                    "id": disp_id,
+                    "label": "DISPOSABLE BURNER INBOX",
+                    "type": "THREAT_FLAG",
+                    "color": "#FF3366",
+                    "size": 16,
+                    "icon": "[WARN]",
+                    "metadata": {"risk": "HIGH", "role": "Disposable burner inbox detection"}
+                })
+                links.append({"source": root_id, "target": disp_id, "relation": "classified_as", "type": "SERVICE_LINK"})
 
             # Query MX for email domain
             try:
-                r_mx = self.session.get(f"https://cloudflare-dns.com/dns-query?name={domain}&type=MX", headers={"Accept": "application/dns-json"}, timeout=3)
+                r_mx = self.session.get(f"https://cloudflare-dns.com/dns-query?name={domain}&type=MX", headers={"Accept": "application/dns-json"}, timeout=3.0)
                 if r_mx.status_code == 200:
                     for idx, ans in enumerate(r_mx.json().get("Answer", [])[:2]):
                         mx_val = ans.get("data", "").split()[-1].rstrip(".")
                         if mx_val:
                             mx_id = f"node_em_mx_{idx}"
-                            nodes.append({"id": mx_id, "label": f"MX: {mx_val}", "type": "MAIL_SERVER", "color": "#FFB800", "size": 14})
-                            links.append({"source": d_id, "target": mx_id, "relation": "receives_via"})
+                            nodes.append({
+                                "id": mx_id,
+                                "label": f"MX: {mx_val}",
+                                "type": "MAIL_SERVER",
+                                "color": "#FFB800",
+                                "size": 15,
+                                "icon": "[MX]",
+                                "metadata": {"mx_host": mx_val, "role": "Authoritative SMTP Mail Relay"}
+                            })
+                            links.append({"source": d_id, "target": mx_id, "relation": "receives_via", "type": "DNS_LINK"})
             except Exception:
                 pass
 
         else:
-            # Username target: Check GitHub, Keybase, HackerNews, GitLab, Reddit
-            # ONLY add nodes if confirmed active profile exists!
+            # Username target: Check confirmed accounts in parallel
             def check_service(plat, url_tpl, check_url):
                 try:
-                    r = self.session.get(check_url, timeout=3)
+                    r = self.session.get(check_url, timeout=3.0)
                     if r.status_code == 200:
                         return {"name": plat, "url": url_tpl.replace("{u}", clean_target)}
                 except Exception:
@@ -421,14 +858,55 @@ class AdvancedOsintSuite:
                     res = f.result()
                     if res:
                         p_id = f"node_prof_{idx}"
-                        nodes.append({"id": p_id, "label": f"{res['name']}: @{clean_target}", "type": "PROFILE", "color": "#00FF88", "size": 16, "url": res["url"]})
-                        links.append({"source": root_id, "target": p_id, "relation": "confirmed_profile"})
+                        nodes.append({
+                            "id": p_id,
+                            "label": f"{res['name']}: @{clean_target}",
+                            "type": "PROFILE",
+                            "color": "#00FF88",
+                            "size": 16,
+                            "icon": "[ID]",
+                            "metadata": {
+                                "platform": res["name"],
+                                "username": clean_target,
+                                "profile_url": res["url"],
+                                "role": "Confirmed Active Identity Profile"
+                            }
+                        })
+                        links.append({"source": root_id, "target": p_id, "relation": "confirmed_profile", "type": "ORIGIN_LINK"})
                         idx += 1
+
+        # Build comprehensive summary
+        summary = {
+            "total_nodes": len(nodes),
+            "total_links": len(links),
+            "resolved_ips": resolved_ips,
+            "isps": list(discovered_isps),
+            "asns": list(discovered_asns),
+            "crawled_assets_count": len(crawled_assets) + len(crawled_endpoints) + len(crawled_subdomains),
+            "backbone_hops_count": len(route_flow),
+            "primary_origin_ip": resolved_ips[0] if resolved_ips else "Unknown",
+            "primary_isp": list(discovered_isps)[0] if discovered_isps else "Unknown",
+            "primary_asn": list(discovered_asns)[0] if discovered_asns else "Unknown",
+            "primary_country": primary_geo.get("country", "Unknown") if is_ip or is_domain else "N/A",
+            "primary_city": primary_geo.get("city", "Unknown") if is_ip or is_domain else "N/A",
+            "web_server": server_banner if is_ip or is_domain else "N/A",
+            "page_title": page_title
+        }
 
         return {
             "target": clean_target,
+            "target_type": target_type,
+            "summary": summary,
             "nodes": nodes,
-            "links": links
+            "links": links,
+            "route_flow": route_flow,
+            "crawled_spider_data": {
+                "page_title": page_title,
+                "server_header": server_banner,
+                "endpoints": crawled_endpoints,
+                "asset_cdns": crawled_assets,
+                "subdomains": crawled_subdomains
+            }
         }
 
     # ==========================================================================

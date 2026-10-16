@@ -305,7 +305,12 @@ class OsintEngine:
         # 1. IP Details
         reverse_dns = "N/A"
         try:
-            reverse_dns = socket.gethostbyaddr(ip_str)[0]
+            old_to = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(1.2)
+            try:
+                reverse_dns = socket.gethostbyaddr(ip_str)[0]
+            finally:
+                socket.setdefaulttimeout(old_to)
         except Exception:
             pass
 

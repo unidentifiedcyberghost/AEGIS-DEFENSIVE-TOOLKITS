@@ -89,7 +89,55 @@ class ServerSystemAuditor:
         else:
             report["infection_status"] = "CLEAN (NO HOST INFECTIONS DETECTED)"
 
+        # Consolidate threats into threats_identified array for frontend consumption
+        threats_list = []
+        for p in report["suspicious_processes"]:
+            threats_list.append({
+                "severity": p.get("severity", "CRITICAL"),
+                "title": f"Suspicious Process: {p.get('name', 'unknown')} (PID {p.get('pid', 0)})",
+                "details": f"Path: {p.get('path', 'unknown')} | Matched: {p.get('threat', 'Malware Signature')}",
+                "pid": p.get("pid", 0)
+            })
+        for c in report["rogue_connections"]:
+            threats_list.append({
+                "severity": c.get("severity", "HIGH"),
+                "title": f"Rogue Connection: {c.get('process', 'unknown')} -> {c.get('remote_ip', 'unknown')}:{c.get('remote_port', 0)}",
+                "details": f"PID: {c.get('pid', 0)} | Protocol: {c.get('proto', 'TCP')} | Status: {c.get('status', 'ESTABLISHED')}",
+                "pid": c.get("pid", 0)
+            })
+        for t in report["temp_infections"]:
+            threats_list.append({
+                "severity": t.get("severity", "HIGH"),
+                "title": f"Infected Temp File: {t.get('name', 'file')}",
+                "details": f"Path: {t.get('path', 'unknown')} | Threat: {t.get('threat', 'Payload detected')}",
+                "pid": 0
+            })
+        for pf in report["persistence_findings"]:
+            threats_list.append({
+                "severity": pf.get("severity", "HIGH"),
+                "title": f"Persistence Finding: {pf.get('name', 'run_key')}",
+                "details": f"Command: {pf.get('command', 'unknown')} | Threat: {pf.get('threat', 'Startup persistence')}",
+                "pid": 0
+            })
+        if report.get("hosts_file_tampered"):
+            for h in report.get("hosts_tamper_details", []):
+                threats_list.append({
+                    "severity": "CRITICAL",
+                    "title": f"Hosts Tampering: {h.get('entry', 'Domain Redirection')}",
+                    "details": h.get("details", "DNS hijack detected in hosts file"),
+                    "pid": 0
+                })
+
+        report["threats_identified"] = threats_list
         return report
+
+    def run_full_system_audit(self) -> Dict[str, Any]:
+        """Instance alias for audit_full_system."""
+        return self.audit_full_system()
+
+    def kill_rogue_process(self, pid: int) -> Dict[str, Any]:
+        """Instance alias for kill_process."""
+        return self.kill_process(pid)
 
     @classmethod
     def _audit_running_processes(cls, report: Dict[str, Any]):

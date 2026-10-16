@@ -70,14 +70,17 @@ class PortAuditor:
                     listeners.append({
                         "port": port,
                         "ip": ip,
+                        "bind_address": ip,
                         "pid": pid,
                         "process_name": pname,
                         "service": service_name,
                         "description": desc,
                         "risk_level": risk_level,
                         "risk_message": risk_msg,
+                        "advisory": risk_msg,
                         "remediation": remediation,
-                        "is_all_interfaces": is_all_interfaces
+                        "is_all_interfaces": is_all_interfaces,
+                        "is_wildcard": is_all_interfaces
                     })
         else:
             # Cross-Platform Fallback: Direct Socket Probing (Linux/macOS unprivileged mode)
@@ -90,14 +93,17 @@ class PortAuditor:
                     listeners.append({
                         "port": port,
                         "ip": "127.0.0.1",
+                        "bind_address": "127.0.0.1",
                         "pid": None,
                         "process_name": sname,
                         "service": sname,
                         "description": desc,
                         "risk_level": "Pass",
                         "risk_message": f"Active service detected on localhost ({sname}) via socket check.",
+                        "advisory": f"Active service detected on localhost ({sname}) via socket check.",
                         "remediation": "Loopback service active.",
-                        "is_all_interfaces": False
+                        "is_all_interfaces": False,
+                        "is_wildcard": False
                     })
 
         listeners.sort(key=lambda x: x["port"])
